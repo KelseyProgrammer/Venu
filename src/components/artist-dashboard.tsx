@@ -13,6 +13,11 @@ import { GigDetails } from "./gig-details"
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
+  
+  // Earnings data
+  const totalEarnings = 620
+  const goalAmount = 300
+  const progressPercentage = (totalEarnings / goalAmount) * 100
 
   const mockGigs = [
     {
@@ -309,14 +314,21 @@ export function ArtistDashboard() {
 
           <Card className="p-6 bg-card border-border">
             <div className="text-center space-y-4">
-              <div className="relative">
-                <div className="w-32 h-32 mx-auto rounded-full border-8 border-primary/20 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-foreground">$620</div>
-                    <div className="text-sm text-muted-foreground">of $300 goal</div>
-                  </div>
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">${totalEarnings}</div>
+                  <div className="text-sm text-muted-foreground">of ${goalAmount} goal</div>
+                  <div className="text-xs text-primary font-medium">{Math.round(progressPercentage)}%</div>
                 </div>
-                <div className="absolute inset-0 rounded-full border-8 border-primary border-r-transparent border-b-transparent transform rotate-45" />
+                
+                {/* Progress bar using shadcn/ui Progress component */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Progress to goal</span>
+                    <span>{Math.round(Math.min(progressPercentage, 100))}%</span>
+                  </div>
+                  <Progress value={Math.min(progressPercentage, 100)} className="h-3" />
+                </div>
               </div>
 
               <div className="space-y-2">
