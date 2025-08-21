@@ -235,7 +235,7 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
         {/* Hero Image */}
         <div className="relative">
           <Image
-            src={gig.image || "/placeholder.svg"}
+            src={gig.image || "/images/venu-logo.png"}
             alt={gig.venue}
             width={400}
             height={200}

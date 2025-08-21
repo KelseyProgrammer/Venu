@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts 
+
+# history
+.history/
+
+# cursor rules
+CURSOR_RULES.md
+.lh 

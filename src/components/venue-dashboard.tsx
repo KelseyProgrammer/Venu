@@ -223,7 +223,7 @@ export function VenueDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
+            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
             <span className="font-serif font-bold text-xl">venu</span>
           </div>
           <Button onClick={() => setShowPostGig(true)} className="bg-primary hover:bg-primary/90">
@@ -274,11 +274,11 @@ export function VenueDashboard() {
                 <Card key={event.id} className="p-4 bg-card border-border">
                   <div className="flex gap-4">
                     <Image
-                      src={event.image || "/placeholder.svg"}
+                      src={event.image || "/images/venu-logo.png"}
                       alt={event.artist}
                       width={80}
                       height={80}
-                      className="rounded-lg object-cover"
+                      className="rounded-lg object-cover w-20 h-20"
                     />
 
                     <div className="flex-1 space-y-3">
@@ -345,11 +345,11 @@ export function VenueDashboard() {
               <Card key={artist.id} className="p-4 bg-card border-border">
                 <div className="flex gap-4">
                   <Image
-                    src={artist.image || "/placeholder.svg"}
+                    src={artist.image || "/images/venu-logo.png"}
                     alt={artist.artist}
                     width={60}
                     height={60}
-                    className="rounded-lg object-cover"
+                    className="rounded-lg object-cover w-15 h-15"
                   />
 
                   <div className="flex-1 space-y-2">

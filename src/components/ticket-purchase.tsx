@@ -158,11 +158,11 @@ export function TicketPurchase({ eventId, onBack }: TicketPurchaseProps) {
               {/* QR Code */}
               <div className="bg-white p-6 rounded-lg mx-auto w-fit">
                 <Image
-                  src={mockQRCode || "/placeholder.svg"}
+                  src={mockQRCode || "/images/venu-logo.png"}
                   alt="QR Ticket Code"
                   width={120}
                   height={120}
-                  className="mx-auto"
+                  className="mx-auto w-30 h-30"
                 />
               </div>
 
@@ -216,7 +216,7 @@ export function TicketPurchase({ eventId, onBack }: TicketPurchaseProps) {
       <div className="p-4 space-y-6 max-w-sm mx-auto">
         <div className="relative">
           <Image
-            src={event.image || "/placeholder.svg"}
+            src={event.image || "/images/venu-logo.png"}
             alt={event.artist}
             width={400}
             height={200}

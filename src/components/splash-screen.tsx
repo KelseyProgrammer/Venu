@@ -28,7 +28,7 @@ export function SplashScreen() {
       <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
         {/* Logo */}
         <div className="mb-8">
-          <Image src="/images/venu-logo.png" alt="Venu Logo" width={120} height={120} className="rounded-2xl" />
+          <Image src="/images/venu-logo.png" alt="Venu Logo" width={120} height={120} className="rounded-2xl w-30 h-30" />
         </div>
 
         {/* Brand tagline */}

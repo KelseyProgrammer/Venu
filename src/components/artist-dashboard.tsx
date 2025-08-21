@@ -17,11 +17,11 @@ export function ArtistDashboard() {
   const mockGigs = [
     {
       id: 1,
-      venue: "The Blue Note",
-      location: "Downtown",
+      venue: "Muggsy's Bar",
+      location: "213 W King St, St. Augustine, FL 32084",
       date: "Sat, Oct 12",
       time: "8 PM doors",
-      genre: "Jazz",
+      genre: "Rock",
       guarantee: 200,
       tier1: { amount: 200, threshold: 30, color: "bg-yellow-500" },
       tier2: { amount: 400, threshold: 50, color: "bg-green-500" },
@@ -30,12 +30,12 @@ export function ArtistDashboard() {
       totalTickets: 50,
       rating: 4.8,
       requirements: ["PA system", "Backline provided"],
-      image: "/jazz-club-blue-stage.png",
+      image: "/images/MUGS.jpeg",
     },
     {
       id: 2,
-      venue: "Whisky Bar",
-      location: "Midtown",
+      venue: "Sarbez",
+      location: "115 Anastasia Blvd, St. Augustine, FL 32080",
       date: "Wed, Oct 16",
       time: "9 PM",
       genre: "Rock",
@@ -47,7 +47,7 @@ export function ArtistDashboard() {
       totalTickets: 75,
       rating: 4.5,
       requirements: ["Sound system", "Early-bird pricing"],
-      image: "/rock-venue-red-lighting.png",
+      image: "/images/SARBEZ.jpg",
     },
     {
       id: 3,
@@ -64,32 +64,32 @@ export function ArtistDashboard() {
       totalTickets: 100,
       rating: 4.9,
       requirements: ["Acoustic preferred", "PA system"],
-      image: "/intimate-jazz-cellar.png",
+      image: "/images/venu-logo.png",
     },
   ]
 
   const myBookings = [
     {
       id: 1,
-      venue: "The Midnight Keys",
+      venue: "Muggsy's Bar",
       date: "Sat, Oct 12",
       time: "8 PM doors",
       status: "confirmed",
       ticketsSold: 50,
       totalTickets: 75,
       earnings: 400,
-      image: "/purple-concert-stage.png",
+      image: "/images/MUGS.jpeg",
     },
     {
       id: 2,
-      venue: "Blue Moon Cafe",
+      venue: "Sarbez",
       date: "Thu, Oct 3",
       time: "7 PM",
       status: "completed",
       ticketsSold: 45,
       totalTickets: 60,
       earnings: 350,
-      image: "/cozy-cafe-stage.png",
+      image: "/images/SARBEZ.jpg",
     },
   ]
 
@@ -112,7 +112,7 @@ export function ArtistDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
+            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
             <span className="font-serif font-bold text-xl">venu</span>
           </div>
           <div className="flex items-center gap-2">
@@ -175,11 +175,11 @@ export function ArtistDashboard() {
                   <div className="flex gap-4">
                     <div className="relative">
                       <Image
-                        src={gig.image || "/placeholder.svg"}
+                        src={gig.image || "/images/venu-logo.png"}
                         alt={gig.venue}
                         width={80}
                         height={80}
-                        className="rounded-lg object-cover"
+                        className="rounded-lg object-cover w-20 h-20"
                       />
                       <div className="absolute -top-1 -right-1">
                         <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
@@ -271,11 +271,11 @@ export function ArtistDashboard() {
               <Card key={booking.id} className="p-4 bg-card border-border">
                 <div className="flex gap-4">
                   <Image
-                    src={booking.image || "/placeholder.svg"}
+                    src={booking.image || "/images/venu-logo.png"}
                     alt={booking.venue}
                     width={80}
-                    height={60}
-                    className="rounded-lg object-cover"
+                    height={80}
+                    className="rounded-lg object-cover w-20 h-20"
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
