@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic test styles to verify CSS is working */
+.test-red {
+  background-color: red;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+} 

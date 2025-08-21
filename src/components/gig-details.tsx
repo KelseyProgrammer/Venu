@@ -1,0 +1,354 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ChevronLeft, MapPin, Calendar, Star, Share2, CheckCircle, AlertCircle, CreditCard } from "lucide-react"
+import Image from "next/image"
+
+interface GigDetailsProps {
+  gigId: string
+  onBack: () => void
+}
+
+export function GigDetails({ gigId, onBack }: GigDetailsProps) {
+  const [showBookingFlow, setShowBookingFlow] = useState(false)
+  const [checklistAgreed, setChecklistAgreed] = useState(false)
+  const [bookingStep, setBookingStep] = useState<"checklist" | "payment" | "confirmation">("checklist")
+
+  // Mock gig data - in real app this would come from props or API
+  const gig = {
+    id: 1,
+    venue: "The Midnight Keys",
+    location: "Downtown Jazz Club",
+    date: "Sat, Oct 12",
+    time: "8 PM doors",
+    genre: "Jazz",
+    description:
+      "Intimate jazz venue with excellent acoustics and a sophisticated atmosphere. Perfect for artists looking to connect with music lovers in an upscale setting.",
+    guarantee: 400,
+    tiers: [
+      { threshold: 50, amount: 400, label: "50 tickets = $400", color: "bg-yellow-500" },
+      { threshold: 75, amount: 600, label: "75 tickets = $600", color: "bg-green-500" },
+    ],
+    ticketsSold: 50,
+    totalTickets: 75,
+    rating: 4.8,
+    reviews: 127,
+    checklist: [
+      { id: 1, item: "Venue provides PA system, backline", completed: true, type: "venue" },
+      { id: 2, item: "Artist must promote $% on socials (template posts provided)", completed: false, type: "artist" },
+      { id: 3, item: "Arrive 1 hour early for soundcheck", completed: false, type: "artist" },
+      { id: 4, item: "Professional stage lighting included", completed: true, type: "venue" },
+    ],
+    image: "/purple-concert-stage.png",
+    venueImages: ["/jazz-club-interior.png", "/stage-setup.png"],
+  }
+
+  const progress = (gig.ticketsSold / gig.totalTickets) * 100
+  const currentTier = gig.tiers.find((tier) => gig.ticketsSold >= tier.threshold) || {
+    amount: gig.guarantee,
+    label: `${gig.ticketsSold} tickets = $${gig.guarantee}`,
+  }
+
+  const BookingFlow = () => {
+    if (bookingStep === "checklist") {
+      return (
+        <DialogContent className="bg-card border-border max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Confirm Requirements</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please review and confirm you agree to all requirements for this gig.
+            </p>
+
+            <div className="space-y-3">
+              {gig.checklist.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
+                  <div className="mt-0.5">
+                    {item.completed ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">{item.item}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {item.type === "venue" ? "Venue provides" : "Artist must"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-2 p-4 bg-accent/10 rounded-lg">
+              <Checkbox
+                id="agree-checklist"
+                checked={checklistAgreed}
+                onCheckedChange={(checked) => setChecklistAgreed(checked as boolean)}
+              />
+              <label htmlFor="agree-checklist" className="text-sm text-foreground">
+                I agree to all requirements listed above
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setShowBookingFlow(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => setBookingStep("payment")}
+                disabled={!checklistAgreed}
+                className="flex-1 bg-primary hover:bg-primary/90"
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      )
+    }
+
+    if (bookingStep === "payment") {
+      return (
+        <DialogContent className="bg-card border-border max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Secure Payment</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                <span className="font-medium text-foreground">Escrow Protection</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your payment is held securely until the event is completed. This protects both you and the venue.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Guaranteed minimum</span>
+                <span className="text-sm font-medium text-foreground">${gig.guarantee}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Current tier bonus</span>
+                <span className="text-sm font-medium text-green-400">+${currentTier.amount - gig.guarantee}</span>
+              </div>
+              <div className="border-t border-border pt-2">
+                <div className="flex justify-between">
+                  <span className="font-medium text-foreground">Total payout</span>
+                  <span className="font-bold text-foreground">${currentTier.amount}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/20 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                Payment will be processed via Stripe Connect and released automatically after the event.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setBookingStep("checklist")} className="flex-1">
+                Back
+              </Button>
+              <Button onClick={() => setBookingStep("confirmation")} className="flex-1 bg-primary hover:bg-primary/90">
+                Confirm Booking
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      )
+    }
+
+    if (bookingStep === "confirmation") {
+      return (
+        <DialogContent className="bg-card border-border max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-center">Booking Confirmed!</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 text-center">
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground mb-1">{gig.venue}</h3>
+              <p className="text-sm text-muted-foreground">
+                {gig.date} - {gig.time}
+              </p>
+            </div>
+
+            <div className="p-4 bg-accent/10 rounded-lg">
+              <p className="text-sm text-foreground mb-2">Your gig is confirmed!</p>
+              <p className="text-xs text-muted-foreground">
+                You'll receive promotional materials and event details via email. Payment will be processed after the
+                event.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => {
+                setShowBookingFlow(false)
+                setBookingStep("checklist")
+                setChecklistAgreed(false)
+                onBack()
+              }}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      )
+    }
+
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex items-center justify-between p-4">
+          <Button variant="ghost" size="sm" onClick={onBack} className="p-2">
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="font-serif font-bold text-lg">Gig Details</h1>
+          <Button variant="ghost" size="sm">
+            <Share2 className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-6 max-w-sm mx-auto">
+        {/* Hero Image */}
+        <div className="relative">
+          <Image
+            src={gig.image || "/placeholder.svg"}
+            alt={gig.venue}
+            width={400}
+            height={200}
+            className="w-full h-48 object-cover rounded-lg"
+          />
+          <div className="absolute top-4 left-4">
+            <Badge className="bg-primary text-primary-foreground">{gig.genre}</Badge>
+          </div>
+        </div>
+
+        {/* Event Info */}
+        <Card className="p-6 bg-card border-border">
+          <div className="space-y-4">
+            <div>
+              <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{gig.venue}</h2>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {gig.date} - {gig.time}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  {gig.rating} ({gig.reviews})
+                </span>
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                {gig.location}
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground leading-relaxed">{gig.description}</p>
+          </div>
+        </Card>
+
+        {/* Payout Information */}
+        <Card className="p-6 bg-card border-border">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Payout Tiers</h3>
+              <span className="text-sm text-accent">2 opening acts needed</span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Current earnings</span>
+                <span className="font-bold text-foreground">${currentTier.amount}</span>
+              </div>
+
+              <div className="space-y-2">
+                <Progress value={progress} className="h-3" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {gig.ticketsSold} tickets = ${currentTier.amount}
+                  </span>
+                  <span>{gig.totalTickets} tickets = $600</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {gig.tiers.map((tier, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <div className={`w-3 h-3 rounded-full ${tier.color}`} />
+                    <span className="text-muted-foreground">{tier.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Checklist */}
+        <Card className="p-6 bg-card border-border">
+          <div className="space-y-4">
+            <h3 className="font-semibold text-foreground">Checklist</h3>
+
+            <div className="space-y-3">
+              {gig.checklist.map((item) => (
+                <div key={item.id} className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    {item.completed ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 border-2 border-muted-foreground rounded" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">{item.item}</p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {item.type === "venue" ? "Venue provides" : "Artist must"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pb-6">
+          <Button variant="outline" className="flex-1 bg-transparent">
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Gig
+          </Button>
+
+          <Dialog open={showBookingFlow} onOpenChange={setShowBookingFlow}>
+            <DialogTrigger asChild>
+              <Button className="flex-1 bg-primary hover:bg-primary/90">Book Now</Button>
+            </DialogTrigger>
+            <BookingFlow />
+          </Dialog>
+        </div>
+      </div>
+    </div>
+  )
+}
