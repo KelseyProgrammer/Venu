@@ -9,27 +9,26 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ChevronLeft, MapPin, Calendar, Star, Share2, CheckCircle, AlertCircle, CreditCard } from "lucide-react"
 import Image from "next/image"
+import { VENUE_DATA } from "@/lib/venue-data"
 
 interface GigDetailsProps {
   gigId: string
   onBack: () => void
+  gigData?: any // Allow passing custom gig data
 }
 
-export function GigDetails({ gigId, onBack }: GigDetailsProps) {
+export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
   const [showBookingFlow, setShowBookingFlow] = useState(false)
   const [checklistAgreed, setChecklistAgreed] = useState(false)
   const [bookingStep, setBookingStep] = useState<"checklist" | "payment" | "confirmation">("checklist")
 
-  // Mock gig data - in real app this would come from props or API
-  const gig = {
+  // Use passed gig data or fall back to default
+  const gig = gigData || {
     id: 1,
-    venue: "The Midnight Keys",
-    location: "Downtown Jazz Club",
+    venue: "sarbez", // Use venue key instead of full name
     date: "Sat, Oct 12",
     time: "8 PM doors",
     genre: "Jazz",
-    description:
-      "Intimate jazz venue with excellent acoustics and a sophisticated atmosphere. Perfect for artists looking to connect with music lovers in an upscale setting.",
     guarantee: 400,
     tiers: [
       { threshold: 50, amount: 400, label: "50 tickets = $400", color: "bg-yellow-500" },
@@ -45,9 +44,10 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
       { id: 3, item: "Arrive 1 hour early for soundcheck", completed: false, type: "artist" },
       { id: 4, item: "Professional stage lighting included", completed: true, type: "venue" },
     ],
-    image: "/purple-concert-stage.png",
-    venueImages: ["/jazz-club-interior.png", "/stage-setup.png"],
   }
+
+  // Get venue details from standardized data
+  const venueInfo = VENUE_DATA[gig.venue as keyof typeof VENUE_DATA] || VENUE_DATA.sarbez
 
   const progress = (gig.ticketsSold / gig.totalTickets) * 100
   const currentTier = gig.tiers.find((tier) => gig.ticketsSold >= tier.threshold) || {
@@ -183,7 +183,7 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
             </div>
 
             <div>
-              <h3 className="font-semibold text-foreground mb-1">{gig.venue}</h3>
+              <h3 className="font-semibold text-foreground mb-1">{venueInfo.name}</h3>
               <p className="text-sm text-muted-foreground">
                 {gig.date} - {gig.time}
               </p>
@@ -235,8 +235,8 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
         {/* Hero Image */}
         <div className="relative">
           <Image
-            src={gig.image || "/images/venu-logo.png"}
-            alt={gig.venue}
+            src={venueInfo.image || "/images/venu-logo.png"}
+            alt={venueInfo.name}
             width={400}
             height={200}
             className="w-full h-48 object-cover rounded-lg"
@@ -250,7 +250,7 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
         <Card className="p-6 bg-card border-border">
           <div className="space-y-4">
             <div>
-              <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{gig.venue}</h2>
+              <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{venueInfo.name}</h2>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
@@ -263,11 +263,11 @@ export function GigDetails({ gigId, onBack }: GigDetailsProps) {
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
-                {gig.location}
+                {venueInfo.address}
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed">{gig.description}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{venueInfo.description}</p>
           </div>
         </Card>
 

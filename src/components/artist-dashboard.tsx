@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Filter, MapPin, Calendar, Star, TrendingUp, Share2 } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
+import { getVenueDisplayName, getVenueImage } from "@/lib/venue-data"
 
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -22,7 +23,7 @@ export function ArtistDashboard() {
   const mockGigs = [
     {
       id: 1,
-      venue: "Muggsy's Bar",
+      venue: "muggys", // Use standardized venue key
       location: "213 W King St, St. Augustine, FL 32084",
       date: "Sat, Oct 12",
       time: "8 PM doors",
@@ -39,7 +40,7 @@ export function ArtistDashboard() {
     },
     {
       id: 2,
-      venue: "Sarbez",
+      venue: "sarbez", // Use standardized venue key
       location: "115 Anastasia Blvd, St. Augustine, FL 32080",
       date: "Wed, Oct 16",
       time: "9 PM",
@@ -56,8 +57,8 @@ export function ArtistDashboard() {
     },
     {
       id: 3,
-      venue: "The Jazz Cellar",
-      location: "East Side",
+      venue: "alfreds", // Use standardized venue key
+      location: "222 West King Street, St. Augustine, FL 32084",
       date: "Fri, Oct 18",
       time: "7 PM",
       genre: "Jazz",
@@ -69,14 +70,14 @@ export function ArtistDashboard() {
       totalTickets: 100,
       rating: 4.9,
       requirements: ["Acoustic preferred", "PA system"],
-      image: "/images/venu-logo.png",
+      image: "/images/Alfreds.jpg",
     },
   ]
 
   const myBookings = [
     {
       id: 1,
-      venue: "Muggsy's Bar",
+      venue: "muggys", // Use standardized venue key
       date: "Sat, Oct 12",
       time: "8 PM doors",
       status: "confirmed",
@@ -87,7 +88,7 @@ export function ArtistDashboard() {
     },
     {
       id: 2,
-      venue: "Sarbez",
+      venue: "sarbez", // Use standardized venue key
       date: "Thu, Oct 3",
       time: "7 PM",
       status: "completed",
@@ -108,7 +109,8 @@ export function ArtistDashboard() {
   }
 
   if (selectedGig) {
-    return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} />
+    const gig = mockGigs.find(g => g.id.toString() === selectedGig)
+    return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={gig} />
   }
 
   return (
@@ -195,7 +197,7 @@ export function ArtistDashboard() {
 
                     <div className="flex-1 space-y-3">
                       <div>
-                        <h3 className="font-semibold text-foreground">{gig.venue}</h3>
+                        <h3 className="font-semibold text-foreground">{getVenueDisplayName(gig.venue)}</h3>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
@@ -284,7 +286,7 @@ export function ArtistDashboard() {
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-foreground">{booking.venue}</h3>
+                      <h3 className="font-semibold text-foreground">{getVenueDisplayName(booking.venue)}</h3>
                       <Badge
                         variant={booking.status === "confirmed" ? "default" : "secondary"}
                         className={booking.status === "confirmed" ? "bg-green-600" : ""}

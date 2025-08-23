@@ -30,7 +30,7 @@ export function VenueDashboard() {
       currentEarnings: 600,
       status: "live",
       applications: 3,
-      image: "/purple-concert-stage.png",
+      image: "/images/venu-logo.png",
     },
     {
       id: 2,
@@ -44,7 +44,7 @@ export function VenueDashboard() {
       currentEarnings: 0,
       status: "posted",
       applications: 7,
-      image: "/electronic-stage-lights.png",
+      image: "/images/venu-logo.png",
     },
     {
       id: 3,
@@ -58,7 +58,7 @@ export function VenueDashboard() {
       currentEarnings: 350,
       status: "completed",
       applications: 0,
-      image: "/acoustic-intimate-venue.png",
+      image: "/images/venu-logo.png",
     },
   ]
 
@@ -70,7 +70,7 @@ export function VenueDashboard() {
       followers: "2.3K",
       rating: 4.7,
       bio: "Dreamy indie rock with ethereal vocals and atmospheric soundscapes.",
-      image: "/indie-band-photo.png",
+      image: "/images/venu-logo.png",
     },
     {
       id: 2,
@@ -79,7 +79,7 @@ export function VenueDashboard() {
       followers: "1.8K",
       rating: 4.9,
       bio: "Modern jazz ensemble bringing fresh energy to classic standards.",
-      image: "/jazz-ensemble-photo.png",
+      image: "/images/venu-logo.png",
     },
   ]
 

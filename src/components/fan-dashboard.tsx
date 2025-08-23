@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Filter, MapPin, Calendar, Star, Heart, Share2, Ticket, Users, Clock, Download } from "lucide-react"
 import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
+import { getVenueDisplayName } from "@/lib/venue-data"
 
 export function FanDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -21,8 +22,8 @@ export function FanDashboard() {
   const allEvents = [
     {
       id: 1,
-      artist: "The Midnight Keys",
-      venue: "Muggsy's Bar",
+      artist: "Uncle Marty",
+      venue: "muggys", // Use standardized venue key
       location: "213 W King St, St. Augustine, FL 32084",
       date: "Sat, Oct 12",
       time: "8 PM doors",
@@ -37,8 +38,8 @@ export function FanDashboard() {
     },
     {
       id: 2,
-      artist: "Electric Pulse",
-      venue: "Sarbez",
+      artist: "86 Hope",
+      venue: "sarbez", // Use standardized venue key
       location: "115 Anastasia Blvd, St. Augustine, FL 32080",
       date: "Wed, Oct 16",
       time: "9 PM",
@@ -53,9 +54,9 @@ export function FanDashboard() {
     },
     {
       id: 3,
-      artist: "Acoustic Souls",
-      venue: "The Jazz Cellar",
-      location: "East Side",
+      artist: "Naum",
+      venue: "alfreds", // Use standardized venue key
+      location: "222 West King Street, St. Augustine, FL 32084",
       date: "Fri, Oct 18",
       time: "7 PM",
       genre: "Folk",
@@ -64,7 +65,7 @@ export function FanDashboard() {
       totalTickets: 100,
       rating: 4.9,
       description: "Intimate folk music in a cozy cellar setting.",
-      image: "/images/venu-logo.png",
+      image: "/images/Alfreds.jpg",
       tags: ["Folk", "Acoustic", "Intimate"],
     },
     {
@@ -140,11 +141,12 @@ export function FanDashboard() {
 
   const filteredEvents = allEvents.filter(event =>
     event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    getVenueDisplayName(event.venue).toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.genre.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   if (showTicketPurchase && selectedEvent) {
+    const event = allEvents.find(e => e.id.toString() === selectedEvent)
     return (
       <TicketPurchase
         eventId={selectedEvent}
@@ -152,6 +154,7 @@ export function FanDashboard() {
           setShowTicketPurchase(false)
           setSelectedEvent(null)
         }}
+        eventData={event}
       />
     )
   }
@@ -232,7 +235,7 @@ export function FanDashboard() {
                 <div className="p-4 space-y-3">
                   <div>
                     <h3 className="font-semibold text-lg text-foreground">{event.artist}</h3>
-                    <p className="text-sm text-muted-foreground">{event.venue}</p>
+                                           <p className="text-sm text-muted-foreground">{getVenueDisplayName(event.venue)}</p>
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -368,7 +371,7 @@ export function FanDashboard() {
                   <div className="p-4 space-y-3">
                     <div>
                       <h3 className="font-semibold text-lg text-foreground">{event.artist}</h3>
-                      <p className="text-sm text-muted-foreground">{event.venue}</p>
+                      <p className="text-sm text-muted-foreground">{getVenueDisplayName(event.venue)}</p>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
