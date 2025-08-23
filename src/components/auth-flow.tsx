@@ -9,12 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronLeft, Music, MapPin, Users, Upload, X } from "lucide-react"
+import { ChevronLeft, Music, MapPin, Users, Upload, X, Heart } from "lucide-react"
 import Image from "next/image"
 
 export function AuthFlow() {
   const [isSignUp, setIsSignUp] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<"artist" | "venue" | "promoter" | null>(null)
+  const [selectedRole, setSelectedRole] = useState<"artist" | "venue" | "promoter" | "fan" | null>(null)
   const [showProfileSetup, setShowProfileSetup] = useState(false)
   const [genres, setGenres] = useState<string[]>([])
   const [equipment, setEquipment] = useState<string[]>([])
@@ -39,6 +39,12 @@ export function AuthFlow() {
       icon: Users,
       title: "Promoter",
       description: "Connect artists with venues",
+    },
+    {
+      id: "fan" as const,
+      icon: Heart,
+      title: "Fan",
+      description: "Discover events and buy tickets",
     },
   ]
 
@@ -91,6 +97,8 @@ export function AuthFlow() {
       window.location.href = "/artist"
     } else if (selectedRole === "venue") {
       window.location.href = "/venue"
+    } else if (selectedRole === "fan") {
+      window.location.href = "/fan"
     } else {
       // For promoter or other roles, go to main page
       window.location.href = "/"
@@ -349,6 +357,109 @@ export function AuthFlow() {
                     placeholder="Describe some successful events you've promoted..."
                     className="mt-2 bg-input border-border text-foreground min-h-[100px]"
                   />
+                </div>
+              </div>
+            )}
+
+            {selectedRole === "fan" && (
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-foreground">Favorite Genres</Label>
+                  <Select onValueChange={(value) => addItem(value, genres, setGenres)}>
+                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
+                      <SelectValue placeholder="Select your favorite genres" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {genreOptions.map((genre) => (
+                        <SelectItem key={genre} value={genre}>
+                          {genre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {genres.map((genre) => (
+                      <Badge key={genre} variant="secondary" className="bg-accent text-accent-foreground">
+                        {genre}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 h-4 w-4 p-0"
+                          onClick={() => removeItem(genre, genres, setGenres)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-foreground">Preferred Locations</Label>
+                  <Select onValueChange={(value) => addItem(value, regions, setRegions)}>
+                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
+                      <SelectValue placeholder="Select preferred areas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regionOptions.map((region) => (
+                        <SelectItem key={region} value={region}>
+                          {region}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {regions.map((region) => (
+                      <Badge key={region} variant="secondary" className="bg-accent text-accent-foreground">
+                        {region}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-1 h-4 w-4 p-0"
+                          onClick={() => removeItem(region, regions, setRegions)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="budget" className="text-foreground">
+                    Typical Ticket Budget
+                  </Label>
+                  <Select>
+                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
+                      <SelectValue placeholder="Select your typical budget range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0-25">$0 - $25</SelectItem>
+                      <SelectItem value="25-50">$25 - $50</SelectItem>
+                      <SelectItem value="50-100">$50 - $100</SelectItem>
+                      <SelectItem value="100+">$100+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="notifications" className="text-foreground">
+                    Notification Preferences
+                  </Label>
+                  <div className="mt-2 space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="email-notifications" className="rounded border-border" />
+                      <Label htmlFor="email-notifications" className="text-sm text-foreground">
+                        Email notifications for new events
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="push-notifications" className="rounded border-border" />
+                      <Label htmlFor="push-notifications" className="text-sm text-foreground">
+                        Push notifications for favorite artists
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

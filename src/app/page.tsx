@@ -19,6 +19,11 @@ export default function HomePage() {
             Venue Dashboard
           </Button>
         </Link>
+        <Link href="/fan">
+          <Button variant="outline" size="sm">
+            Fan Dashboard
+          </Button>
+        </Link>
         <Link href="/ticket/1">
           <Button variant="outline" size="sm">
             Ticket Purchase
