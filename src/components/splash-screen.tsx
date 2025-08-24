@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { OnboardingFlow } from "./onboarding-flow"
 import { AuthFlow } from "./auth-flow"
@@ -8,6 +8,29 @@ import Image from "next/image"
 
 export function SplashScreen() {
   const [currentView, setCurrentView] = useState<"splash" | "onboarding" | "auth">("splash")
+  const [showLogo, setShowLogo] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.log("Video autoplay failed:", error)
+      })
+      
+      // Listen for video end to show logo
+      const handleVideoEnd = () => {
+        setShowLogo(true)
+      }
+      
+      videoRef.current.addEventListener('ended', handleVideoEnd)
+      
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('ended', handleVideoEnd)
+        }
+      }
+    }
+  }, [])
 
   if (currentView === "onboarding") {
     return <OnboardingFlow onComplete={() => setCurrentView("auth")} />
@@ -26,9 +49,28 @@ export function SplashScreen() {
       <div className="absolute bottom-1/3 left-1/3 w-28 h-28 bg-secondary/25 rounded-full blur-3xl" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
-        {/* Logo */}
-        <div className="mb-8">
-          <Image src="/images/venu-logo.png" alt="Venu Logo" width={120} height={120} className="rounded-2xl w-30 h-30" />
+        {/* Logo/Video Container */}
+        <div className="mb-8 relative w-[120px] h-[120px] flex items-center justify-center">
+          {!showLogo ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-[120px] h-[120px] rounded-2xl object-cover"
+            >
+              <source src="/VENUSTARTSCREEN.MP4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <Image 
+              src="/images/venu-logo.png" 
+              alt="Venu Logo" 
+              width={120} 
+              height={120} 
+              className="w-[120px] h-[120px] rounded-2xl" 
+            />
+          )}
         </div>
 
         {/* Brand tagline */}
