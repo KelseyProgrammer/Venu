@@ -349,59 +349,63 @@ export function PromoterDashboard() {
           <div className="p-4">
             <div className="max-w-6xl mx-auto">
               {/* Step Numbers and Titles */}
-              <div className="flex items-start justify-between mb-6">
-                {GIG_STEPS.map((step, index) => (
-                  <div key={step.id} className="flex flex-col items-center flex-1">
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 mb-4 ${
-                      currentStep > step.id 
-                        ? 'bg-primary border-primary text-primary-foreground' 
-                        : currentStep === step.id 
-                        ? 'border-primary text-primary' 
-                        : 'border-muted-foreground text-muted-foreground'
-                    }`}>
-                      {currentStep > step.id ? (
-                        <Check className="w-5 h-5" />
-                      ) : (
-                        <span className="font-medium">{step.id}</span>
-                      )}
-                    </div>
-                    
-                    {/* Title and Description */}
-                    <div className="text-center px-2 min-h-[4rem] flex flex-col justify-center">
-                      <h3 className={`text-sm font-medium leading-tight mb-1 ${
-                        currentStep === step.id 
-                          ? 'text-primary' 
-                          : currentStep > step.id 
-                          ? 'text-foreground' 
-                          : 'text-muted-foreground'
+              <div className="flex items-start justify-between mb-6 relative">
+                {/* Continuous Background Line */}
+                <div className="absolute top-6 left-0 right-0 h-3 bg-muted-foreground rounded-full -z-10"></div>
+                
+                {/* Progress Line Overlay */}
+                <div 
+                  className="absolute top-6 left-0 h-3 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full transition-all duration-500 ease-out -z-10"
+                  style={{ 
+                    width: `${Math.min(((currentStep - 1) / (GIG_STEPS.length - 1)) * 100, 100)}%`,
+                    boxShadow: '0 0 20px rgba(147, 51, 234, 0.5)'
+                  }}
+                ></div>
+                
+                {GIG_STEPS.map((step) => {
+                  const isCompleted = currentStep > step.id;
+                  const isActive = currentStep === step.id;
+                  
+                  return (
+                    <div key={step.id} className="flex flex-col items-center flex-1 relative z-10">
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 mb-4 transition-all duration-300 relative z-20 ${
+                        isCompleted
+                          ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/50' 
+                          : isActive
+                          ? 'border-purple-600 text-purple-600 bg-white shadow-lg shadow-purple-600/30' 
+                          : 'border-muted-foreground text-muted-foreground bg-background'
                       }`}>
-                        {step.title}
-                      </h3>
-                      <p className={`text-xs leading-tight ${
-                        currentStep === step.id 
-                          ? 'text-primary/80' 
-                          : currentStep > step.id 
-                          ? 'text-muted-foreground' 
-                          : 'text-muted-foreground/60'
-                      }`}>
-                        {step.description}
-                      </p>
+                        {isCompleted ? (
+                          <Check className="w-5 h-5 text-white" />
+                        ) : (
+                          <span className="font-medium">{step.id}</span>
+                        )}
+                      </div>
+                      
+                      {/* Title and Description */}
+                      <div className="text-center px-2 min-h-[4rem] flex flex-col justify-center">
+                        <h3 className={`text-sm font-medium leading-tight mb-1 ${
+                          isActive
+                            ? 'text-purple-600 font-semibold' 
+                            : isCompleted
+                            ? 'text-foreground font-semibold' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          {step.title}
+                        </h3>
+                        <p className={`text-xs leading-tight ${
+                          isActive
+                            ? 'text-purple-600/80' 
+                            : isCompleted
+                            ? 'text-muted-foreground' 
+                            : 'text-muted-foreground/60'
+                        }`}>
+                          {step.description}
+                        </p>
+                      </div>
                     </div>
-                    
-                    {/* Connecting Line */}
-                    {index < GIG_STEPS.length - 1 && (
-                      <div className={`w-full h-0.5 mt-4 ${
-                        currentStep > step.id ? 'bg-primary' : 'bg-muted-foreground'
-                      }`} />
-                    )}
-                    {/* Line after the last step */}
-                    {index === GIG_STEPS.length - 1 && (
-                      <div className={`w-full h-0.5 mt-4 ${
-                        currentStep > step.id ? 'bg-primary' : 'bg-muted-foreground'
-                      }`} />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Current Step Highlight */}
@@ -409,8 +413,6 @@ export function PromoterDashboard() {
                 <h2 className="font-semibold text-foreground text-lg">{GIG_STEPS[currentStep - 1].title}</h2>
                 <p className="text-sm text-muted-foreground">{GIG_STEPS[currentStep - 1].description}</p>
               </div>
-              
-              <Progress value={(currentStep / GIG_STEPS.length) * 100} className="h-2" />
             </div>
           </div>
         </div>
