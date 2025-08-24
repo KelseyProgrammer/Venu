@@ -17,8 +17,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       icon: Shield,
       title: "Transparent Payments",
       description:
-        "Secure escrow system ensures fair payouts for everyone. Artists get guaranteed minimums with tiered bonuses based on ticket sales.",
-      highlight: "No surprises, just fair deals",
+        "Clear payout structure with guaranteed minimums for artists, configurable percentages for bands, and promoter compensation. Everyone knows exactly what they'll earn.",
+      highlight: "Guaranteed minimums + percentage splits",
     },
     {
       icon: CheckCircle,
