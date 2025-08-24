@@ -10,18 +10,47 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, Building2, Filter, Search, BarChart3, Clock, MapPin } from "lucide-react"
+import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin } from "lucide-react"
 import Image from "next/image"
+
+// Step configuration
+const GIG_STEPS = [
+  { id: 1, title: "Event Details", description: "Basic event information" },
+  { id: 2, title: "Lineup", description: "Bands and scheduling" },
+  { id: 3, title: "Payout", description: "Financial structure" },
+  { id: 4, title: "Staff & Requirements", description: "Team and artist needs" },
+  { id: 5, title: "Review", description: "Final review and publish" }
+]
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedVenue, setSelectedVenue] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
+  
+  // Form state
+  const [eventName, setEventName] = useState("")
+  const [eventDate, setEventDate] = useState("")
+  const [eventTime, setEventTime] = useState("")
+  const [eventGenre, setEventGenre] = useState("")
+  const [ticketCapacity, setTicketCapacity] = useState("")
+  const [selectedVenueForGig, setSelectedVenueForGig] = useState("")
+  
   const [selectedDoorPerson, setSelectedDoorPerson] = useState("")
   const [doorPersonEmail, setDoorPersonEmail] = useState("")
+  
   const [requirements, setRequirements] = useState<Array<{ id: string; text: string; checked: boolean }>>([])
   const [requirementsInput, setRequirementsInput] = useState("")
+  
+  const [bands, setBands] = useState<Array<{ id: string; name: string; genre: string; setTime: string; percentage: string; email: string }>>([])
+  const [bandName, setBandName] = useState("")
+  const [bandGenre, setBandGenre] = useState("")
+  const [bandSetTime, setBandSetTime] = useState("")
+  const [bandPercentage, setBandPercentage] = useState("")
+  const [bandEmail, setBandEmail] = useState("")
+  
+  const [guarantee, setGuarantee] = useState("")
 
   // Mock data for venues the promoter works with
   const myVenues = [
@@ -194,6 +223,113 @@ export function PromoterDashboard() {
     setRequirements(requirements.filter(req => req.id !== id))
   }
 
+  const addBand = () => {
+    if (bandName.trim() && bandGenre.trim() && bandSetTime.trim() && bandPercentage.trim() && bandEmail.trim()) {
+      const newBand = {
+        id: Date.now().toString(),
+        name: bandName.trim(),
+        genre: bandGenre.trim(),
+        setTime: bandSetTime.trim(),
+        percentage: bandPercentage.trim(),
+        email: bandEmail.trim()
+      }
+      const updatedBands = [...bands, newBand]
+      // Sort bands by time
+      updatedBands.sort((a, b) => a.setTime.localeCompare(b.setTime))
+      setBands(updatedBands)
+      setBandName("")
+      setBandGenre("")
+      setBandSetTime("")
+      setBandPercentage("")
+      setBandEmail("")
+    }
+  }
+
+  const removeBand = (id: string) => {
+    setBands(bands.filter(band => band.id !== id))
+  }
+
+  const nextStep = () => {
+    if (currentStep < GIG_STEPS.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1:
+        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedVenueForGig
+        console.log('Step 1 validation:', {
+          eventName: eventName.trim(),
+          eventDate,
+          eventTime,
+          eventGenre,
+          ticketCapacity: ticketCapacity.trim(),
+          selectedVenueForGig,
+          isValid: step1Valid
+        })
+        return step1Valid
+      case 2:
+        const step2Valid = bands.length > 0
+        console.log('Step 2 validation:', { bandsLength: bands.length, isValid: step2Valid })
+        return step2Valid
+      case 3:
+        const step3Valid = guarantee.trim() && bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0) <= 100
+        console.log('Step 3 validation:', { guarantee, bandsTotal: bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0), isValid: step3Valid })
+        return step3Valid
+      case 4:
+        return true // Optional step
+      default:
+        return true
+    }
+  }
+
+  const resetForm = () => {
+    setCurrentStep(1)
+    setEventName("")
+    setEventDate("")
+    setEventTime("")
+    setEventGenre("")
+    setTicketCapacity("")
+    setSelectedVenueForGig("")
+    setSelectedDoorPerson("")
+    setDoorPersonEmail("")
+    setRequirements([])
+    setBands([])
+    setGuarantee("")
+    setBandEmail("")
+  }
+
+  const handlePublish = () => {
+    // Here you would typically send the data to your backend
+    console.log("Publishing gig:", {
+      eventName,
+      eventDate,
+      eventTime,
+      eventGenre,
+      ticketCapacity,
+      selectedVenueForGig,
+      selectedDoorPerson,
+      doorPersonEmail,
+      requirements,
+      bands: bands.map(band => ({
+        ...band,
+        email: band.email
+      })),
+      guarantee
+    })
+    
+    // Reset and close
+    resetForm()
+    setShowPostGig(false)
+  }
+
   if (showPostGig) {
     return (
       <div className="min-h-screen bg-background">
@@ -204,13 +340,89 @@ export function PromoterDashboard() {
               Cancel
             </Button>
             <h1 className="font-serif font-bold text-lg">Post a Gig</h1>
-            <Button className="bg-primary hover:bg-primary/90">Publish</Button>
+            <div className="w-20"></div> {/* Spacer for centering */}
           </div>
         </div>
 
-        <div className="p-4 space-y-6 max-w-sm mx-auto">
+        {/* Progress Bar */}
+        <div className="sticky top-16 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+          <div className="p-4">
+            <div className="max-w-6xl mx-auto">
+              {/* Step Numbers and Titles */}
+              <div className="flex items-start justify-between mb-6">
+                {GIG_STEPS.map((step, index) => (
+                  <div key={step.id} className="flex flex-col items-center flex-1">
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 mb-4 ${
+                      currentStep > step.id 
+                        ? 'bg-primary border-primary text-primary-foreground' 
+                        : currentStep === step.id 
+                        ? 'border-primary text-primary' 
+                        : 'border-muted-foreground text-muted-foreground'
+                    }`}>
+                      {currentStep > step.id ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <span className="font-medium">{step.id}</span>
+                      )}
+                    </div>
+                    
+                    {/* Title and Description */}
+                    <div className="text-center px-2 min-h-[4rem] flex flex-col justify-center">
+                      <h3 className={`text-sm font-medium leading-tight mb-1 ${
+                        currentStep === step.id 
+                          ? 'text-primary' 
+                          : currentStep > step.id 
+                          ? 'text-foreground' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {step.title}
+                      </h3>
+                      <p className={`text-xs leading-tight ${
+                        currentStep === step.id 
+                          ? 'text-primary/80' 
+                          : currentStep > step.id 
+                          ? 'text-muted-foreground' 
+                          : 'text-muted-foreground/60'
+                      }`}>
+                        {step.description}
+                      </p>
+                    </div>
+                    
+                    {/* Connecting Line */}
+                    {index < GIG_STEPS.length - 1 && (
+                      <div className={`w-full h-0.5 mt-4 ${
+                        currentStep > step.id ? 'bg-primary' : 'bg-muted-foreground'
+                      }`} />
+                    )}
+                    {/* Line after the last step */}
+                    {index === GIG_STEPS.length - 1 && (
+                      <div className={`w-full h-0.5 mt-4 ${
+                        currentStep > step.id ? 'bg-primary' : 'bg-muted-foreground'
+                      }`} />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Current Step Highlight */}
+              <div className="text-center mb-4">
+                <h2 className="font-semibold text-foreground text-lg">{GIG_STEPS[currentStep - 1].title}</h2>
+                <p className="text-sm text-muted-foreground">{GIG_STEPS[currentStep - 1].description}</p>
+              </div>
+              
+              <Progress value={(currentStep / GIG_STEPS.length) * 100} className="h-2" />
+            </div>
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="p-4 max-w-2xl mx-auto">
+          {/* Step 1: Event Details */}
+          {currentStep === 1 && (
           <Card className="p-6 bg-card border-border">
             <div className="space-y-4">
+
+              
               <div>
                 <Label htmlFor="event-name" className="text-foreground">
                   Event Name
@@ -218,6 +430,8 @@ export function PromoterDashboard() {
                 <Input
                   id="event-name"
                   placeholder="e.g. Jazz Night at The Blue Note"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
                   className="mt-2 bg-input border-border text-foreground"
                 />
               </div>
@@ -226,7 +440,7 @@ export function PromoterDashboard() {
                 <Label htmlFor="venue" className="text-foreground">
                   Venue
                 </Label>
-                <Select>
+                <Select value={selectedVenueForGig} onValueChange={setSelectedVenueForGig}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                     <SelectValue placeholder="Select venue" />
                   </SelectTrigger>
@@ -241,17 +455,56 @@ export function PromoterDashboard() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date" className="text-foreground">
-                    Date
-                  </Label>
-                  <Input id="date" type="date" className="mt-2 bg-input border-border text-foreground" />
-                </div>
+                                  <div>
+                    <Label htmlFor="date" className="text-foreground">
+                      Date
+                    </Label>
+                    <div className="relative mt-2">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      <Input 
+                        id="date" 
+                        type="date" 
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="pl-10 bg-input border-border text-foreground cursor-pointer hover:bg-accent/50 hover:border-primary/50 focus:bg-accent/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ease-in-out" 
+                        onClick={() => {
+                          const dateInput = document.getElementById('date') as HTMLInputElement;
+                          if (dateInput) {
+                            dateInput.showPicker();
+                          }
+                        }}
+                      />
+                      <div className="absolute inset-0 pointer-events-none rounded-md" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Click to open calendar picker
+                    </p>
+                  </div>
                 <div>
                   <Label htmlFor="time" className="text-foreground">
                     Time
                   </Label>
-                  <Input id="time" type="time" className="mt-2 bg-input border-border text-foreground" />
+                    <Select value={eventTime} onValueChange={setEventTime}>
+                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
+                      <SelectValue placeholder="Select event time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="19:00">7:00 PM - Doors Open</SelectItem>
+                      <SelectItem value="19:30">7:30 PM - First Act</SelectItem>
+                      <SelectItem value="20:00">8:00 PM</SelectItem>
+                      <SelectItem value="20:30">8:30 PM</SelectItem>
+                      <SelectItem value="21:00">9:00 PM</SelectItem>
+                      <SelectItem value="21:30">9:30 PM</SelectItem>
+                      <SelectItem value="22:00">10:00 PM</SelectItem>
+                      <SelectItem value="22:30">10:30 PM</SelectItem>
+                      <SelectItem value="23:00">11:00 PM</SelectItem>
+                      <SelectItem value="23:30">11:30 PM</SelectItem>
+                      <SelectItem value="00:00">12:00 AM</SelectItem>
+                      <SelectItem value="00:30">12:30 AM</SelectItem>
+                      <SelectItem value="01:00">1:00 AM</SelectItem>
+                      <SelectItem value="01:30">1:30 AM</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -259,7 +512,7 @@ export function PromoterDashboard() {
                 <Label htmlFor="genre" className="text-foreground">
                   Preferred Genre
                 </Label>
-                <Select>
+                  <Select value={eventGenre} onValueChange={setEventGenre}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                     <SelectValue placeholder="Select genre" />
                   </SelectTrigger>
@@ -273,6 +526,255 @@ export function PromoterDashboard() {
                 </Select>
               </div>
 
+              <div>
+                  <Label htmlFor="capacity" className="text-foreground">
+                    Ticket Capacity
+                    </Label>
+                    <Input
+                    id="capacity"
+                    type="number"
+                    placeholder="e.g. 100"
+                    value={ticketCapacity}
+                    onChange={(e) => setTicketCapacity(e.target.value)}
+                      className="mt-2 bg-input border-border text-foreground"
+                    />
+                  </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Step 2: Lineup */}
+          {currentStep === 2 && (
+            <Card className="p-6 bg-card border-border">
+              <div className="space-y-4">
+              <div>
+                <Label className="text-foreground">Bands/Artists</Label>
+                <div className="mt-2 space-y-3">
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Band name"
+                      value={bandName}
+                      onChange={(e) => setBandName(e.target.value)}
+                      className="bg-input border-border text-foreground"
+                    />
+                    <Select value={bandGenre} onValueChange={setBandGenre}>
+                      <SelectTrigger className="bg-input border-border text-foreground">
+                        <SelectValue placeholder="Select genre" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="jazz">Jazz</SelectItem>
+                        <SelectItem value="rock">Rock</SelectItem>
+                        <SelectItem value="electronic">Electronic</SelectItem>
+                        <SelectItem value="folk">Folk</SelectItem>
+                        <SelectItem value="blues">Blues</SelectItem>
+                        <SelectItem value="pop">Pop</SelectItem>
+                        <SelectItem value="hip-hop">Hip-Hop</SelectItem>
+                        <SelectItem value="country">Country</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Label htmlFor="band-set-time" className="text-foreground">
+                      Set Time
+                    </Label>
+                    <Select value={bandSetTime} onValueChange={setBandSetTime}>
+                      <SelectTrigger className="bg-input border-border text-foreground">
+                        <SelectValue placeholder="Select set time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="19:00">7:00 PM - Doors Open</SelectItem>
+                        <SelectItem value="19:30">7:30 PM - First Act</SelectItem>
+                        <SelectItem value="20:00">8:00 PM</SelectItem>
+                        <SelectItem value="20:30">8:30 PM</SelectItem>
+                        <SelectItem value="21:00">9:00 PM</SelectItem>
+                        <SelectItem value="21:30">9:30 PM</SelectItem>
+                        <SelectItem value="22:00">10:00 PM</SelectItem>
+                        <SelectItem value="22:30">10:30 PM</SelectItem>
+                        <SelectItem value="23:00">11:00 PM</SelectItem>
+                        <SelectItem value="23:30">11:30 PM</SelectItem>
+                        <SelectItem value="00:00">12:00 AM</SelectItem>
+                        <SelectItem value="00:30">12:30 AM</SelectItem>
+                        <SelectItem value="01:00">1:00 AM</SelectItem>
+                        <SelectItem value="01:30">1:30 AM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Payout Percentage (e.g., 30)"
+                      value={bandPercentage}
+                      onChange={(e) => setBandPercentage(e.target.value)}
+                      className="bg-input border-border text-foreground"
+                    />
+                       <Input
+                         placeholder="Artist email address"
+                         type="email"
+                         value={bandEmail}
+                         onChange={(e) => setBandEmail(e.target.value)}
+                         className="bg-input border-border text-foreground"
+                       />
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={addBand} 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full"
+                      disabled={!bandName.trim() || !bandGenre.trim() || !bandSetTime.trim() || !bandPercentage.trim() || !bandEmail.trim()}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Band
+                  </Button>
+                </div>
+
+                                 {bands.length > 0 && (
+                   <div className="mt-6">
+                     <div className="flex items-center gap-3 mb-4">
+                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                         <Users className="w-4 h-4 text-primary" />
+                       </div>
+                       <Label className="text-lg font-semibold text-foreground">Set Times</Label>
+                       <Badge variant="secondary" className="ml-auto">
+                         {bands.length} {bands.length === 1 ? 'Artist' : 'Artists'}
+                       </Badge>
+                     </div>
+                     
+                     <div className="space-y-4">
+                       {bands.map((band, index) => (
+                         <div key={band.id} className="group relative bg-gradient-to-r from-card to-accent/5 border border-border rounded-xl p-5 hover:shadow-lg hover:border-primary/30 transition-all duration-200">
+                           {/* Position Badge */}
+                           <div className="absolute -top-3 -left-3 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                             <span className="text-sm font-bold text-primary-foreground">{index + 1}</span>
+                           </div>
+                           
+                           <div className="flex items-start justify-between">
+                             <div className="flex-1 space-y-4">
+                               {/* Band Header */}
+                               <div className="flex items-start gap-4">
+                                 <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center">
+                                   <span className="text-lg font-bold text-primary">🎵</span>
+                                 </div>
+                                 <div className="flex-1">
+                                   <h4 className="text-lg font-bold text-foreground mb-2">{band.name}</h4>
+                                   <div className="flex items-center gap-3">
+                                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                       {band.genre}
+                                     </Badge>
+                                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                       <Clock className="w-4 h-4" />
+                                       <span className="font-medium">
+                                         {band.setTime === "19:00" ? "7:00 PM - Doors" : 
+                                          band.setTime === "19:30" ? "7:30 PM - First Act" :
+                                          band.setTime === "20:00" ? "8:00 PM" :
+                                          band.setTime === "20:30" ? "8:30 PM" :
+                                          band.setTime === "21:00" ? "9:00 PM" :
+                                          band.setTime === "21:30" ? "9:30 PM" :
+                                          band.setTime === "22:00" ? "10:00 PM" :
+                                          band.setTime === "22:30" ? "10:30 PM" :
+                                          band.setTime === "23:00" ? "11:00 PM" :
+                                          band.setTime === "23:30" ? "11:30 PM" :
+                                          band.setTime === "00:00" ? "12:00 AM" :
+                                          band.setTime === "00:30" ? "12:30 AM" :
+                                          band.setTime === "01:00" ? "1:00 AM" :
+                                          band.setTime === "01:30" ? "1:30 AM" : band.setTime}
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
+                               
+                               {/* Details Grid */}
+                               <div className="grid grid-cols-2 gap-4">
+                                 <div className="bg-accent/20 rounded-lg p-3">
+                                   <div className="flex items-center gap-2 mb-1">
+                                     <DollarSign className="w-4 h-4 text-green-600" />
+                                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payout</span>
+                                   </div>
+                                   <span className="text-xl font-bold text-green-600">{band.percentage}%</span>
+                                 </div>
+                                 
+                                 <div className="bg-accent/20 rounded-lg p-3">
+                                   <div className="flex items-center gap-2 mb-1">
+                                     <span className="w-4 h-4 bg-muted rounded-full flex items-center justify-center">
+                                       <span className="text-xs font-medium">@</span>
+                                     </span>
+                                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact</span>
+                                   </div>
+                                   <span className="text-sm font-mono text-foreground break-all">{band.email}</span>
+                                 </div>
+                               </div>
+                             </div>
+                             
+                             {/* Remove Button */}
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => removeBand(band.id)}
+                               className="opacity-0 group-hover:opacity-100 h-10 w-10 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all duration-200"
+                             >
+                               <span className="text-lg">×</span>
+                             </Button>
+                           </div>
+                           
+                           {/* Subtle border accent */}
+                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-b-xl"></div>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+              </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Step 3: Payout Structure */}
+          {currentStep === 3 && (
+            <Card className="p-6 bg-card border-border">
+              <div className="space-y-4">
+              <div>
+                <Label htmlFor="guarantee" className="text-foreground">
+                  Guaranteed Minimum
+                </Label>
+                <div className="relative mt-2">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="guarantee"
+                    type="number"
+                    placeholder="200"
+                    value={guarantee}
+                    onChange={(e) => setGuarantee(e.target.value)}
+                    className="pl-10 bg-input border-border text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-foreground">Payout Summary</Label>
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Bands Total:</span>
+                    <span className="text-foreground font-medium">
+                      {bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t border-border pt-2">
+                    <span className="text-foreground font-medium">Promoter Remainder:</span>
+                    <span className="text-foreground font-medium">
+                      {Math.max(0, 100 - bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0))}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Promoter receives any remaining percentage after bands
+                </p>
+              </div>
+            </div>
+          </Card>
+          )}
+
+          {/* Step 4: Staff & Requirements */}
+          {currentStep === 4 && (
+            <div className="space-y-4">
+          <Card className="p-6 bg-card border-border">
+            <h3 className="font-semibold text-foreground mb-4">Door Person</h3>
+            <div className="space-y-4">
               <div>
                 <Label htmlFor="door-person" className="text-foreground">
                   Door Person
@@ -307,59 +809,6 @@ export function PromoterDashboard() {
                     />
                   </div>
                 )}
-              </div>
-
-              <div>
-                <Label htmlFor="capacity" className="text-foreground">
-                  Ticket Capacity
-                </Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="e.g. 100"
-                  className="mt-2 bg-input border-border text-foreground"
-                />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Payout Structure</h3>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="guarantee" className="text-foreground">
-                  Guaranteed Minimum
-                </Label>
-                <div className="relative mt-2">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="guarantee"
-                    type="number"
-                    placeholder="200"
-                    className="pl-10 bg-input border-border text-foreground"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-foreground">Bonus Tiers</Label>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                    <span className="text-sm">+$200 if 30+ tickets</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full" />
-                      <span className="text-sm">+$200 if 50+ tickets</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                    <span className="text-sm">+$200 if 100+ tickets</span>
-                  </div>
-                </div>
               </div>
             </div>
           </Card>
@@ -412,6 +861,102 @@ export function PromoterDashboard() {
               )}
             </div>
           </Card>
+            </div>
+          )}
+
+          {/* Step 5: Review & Publish */}
+          {currentStep === 5 && (
+            <div className="space-y-4">
+              <Card className="p-6 bg-card border-border">
+                <h3 className="font-semibold text-foreground mb-4">Event Summary</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Event Name:</span>
+                    <span className="text-foreground font-medium">{eventName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Venue:</span>
+                    <span className="text-foreground font-medium">
+                      {myVenues.find(v => v.id === selectedVenueForGig)?.name || 'Not selected'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Date & Time:</span>
+                    <span className="text-foreground font-medium">{eventDate} at {eventTime}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Genre:</span>
+                    <span className="text-foreground font-medium">{eventGenre}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Capacity:</span>
+                    <span className="text-foreground font-medium">{ticketCapacity} tickets</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bands:</span>
+                    <span className="text-foreground font-medium">{bands.length} artists</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Guarantee:</span>
+                    <span className="text-foreground font-medium">${guarantee || 0}</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card border-border">
+                <h3 className="font-semibold text-foreground mb-4">Payout Breakdown</h3>
+                <div className="space-y-2">
+                  {bands.map((band) => (
+                    <div key={band.id} className="flex justify-between">
+                      <span className="text-muted-foreground">{band.name}:</span>
+                      <span className="text-foreground font-medium">{band.percentage}%</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-border pt-2">
+                    <span className="text-foreground font-medium">Promoter:</span>
+                    <span className="text-foreground font-medium">
+                      {Math.max(0, 100 - bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0))}%
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            
+            <div className="flex gap-2">
+              {currentStep < GIG_STEPS.length ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!canProceedToNext()}
+                  className="flex items-center gap-2"
+                >
+                  Next
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handlePublish}
+                  disabled={!canProceedToNext()}
+                  className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Publish Gig
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -434,7 +979,7 @@ export function PromoterDashboard() {
               <Plus className="w-4 h-4 mr-1" />
               Add Venue
             </Button>
-            <Button onClick={() => setShowPostGig(true)} className="bg-primary hover:bg-primary/90">
+            <Button variant="purple" onClick={() => setShowPostGig(true)}>
               <Plus className="w-4 h-4 mr-1" />
               Post Gig
             </Button>
@@ -467,25 +1012,25 @@ export function PromoterDashboard() {
         <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="overview"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="events"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Events
           </TabsTrigger>
           <TabsTrigger
             value="applications"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Applications
           </TabsTrigger>
           <TabsTrigger
             value="analytics"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Analytics
           </TabsTrigger>
@@ -714,7 +1259,7 @@ export function PromoterDashboard() {
               <Card key={artist.id} className="p-4 bg-card border-border">
                 <div className="flex gap-4">
                   <Image
-                    src={artist.image}
+                    src={artist.image || "/images/BandFallBack.PNG"}
                     alt={artist.artist}
                     width={60}
                     height={60}
@@ -754,7 +1299,7 @@ export function PromoterDashboard() {
                       <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                         Decline
                       </Button>
-                      <Button size="sm" className="flex-1 bg-primary hover:bg-primary/90">
+                      <Button variant="purple" size="sm" className="flex-1">
                         Accept
                       </Button>
                     </div>

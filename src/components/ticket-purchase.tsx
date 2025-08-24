@@ -116,8 +116,9 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
           </Card>
 
           <Button
+            variant="purple"
             onClick={() => setPurchaseStep("ticket")}
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full h-12"
           >
             Complete Purchase
           </Button>
@@ -276,8 +277,9 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
             </div>
 
             <Button
+              variant="purple"
               onClick={() => setPurchaseStep("payment")}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full h-12"
             >
               Buy Ticket - ${event.ticketPrice + 2.5}
             </Button>

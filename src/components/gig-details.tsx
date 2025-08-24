@@ -175,7 +175,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
               <Button variant="outline" onClick={() => setBookingStep("checklist")} className="flex-1">
                 Back
               </Button>
-              <Button onClick={() => setBookingStep("confirmation")} className="flex-1 bg-primary hover:bg-primary/90">
+              <Button variant="purple" onClick={() => setBookingStep("confirmation")} className="flex-1">
                 Confirm Booking
               </Button>
             </div>
@@ -212,13 +212,14 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             </div>
 
             <Button
+              variant="purple"
               onClick={() => {
                 setShowBookingFlow(false)
                 setBookingStep("checklist")
                 setChecklistAgreed(false)
                 onBack()
               }}
-              className="w-full bg-primary hover:bg-primary/90"
+              className="w-full"
             >
               Done
             </Button>
@@ -357,7 +358,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
 
           <Dialog open={showBookingFlow} onOpenChange={setShowBookingFlow}>
             <DialogTrigger asChild>
-              <Button className="flex-1 bg-primary hover:bg-primary/90">Book Now</Button>
+              <Button variant="purple" className="flex-1">Book Now</Button>
             </DialogTrigger>
             <BookingFlow />
           </Dialog>

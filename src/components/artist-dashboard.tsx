@@ -138,25 +138,25 @@ export function ArtistDashboard() {
         <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="discover"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Discover
           </TabsTrigger>
           <TabsTrigger
             value="bookings"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Bookings
           </TabsTrigger>
           <TabsTrigger
             value="earnings"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Earnings
           </TabsTrigger>
           <TabsTrigger
             value="tools"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Tools
           </TabsTrigger>
@@ -254,8 +254,8 @@ export function ArtistDashboard() {
                           See Checklist
                         </Button>
                         <Button
+                          variant="purple"
                           size="sm"
-                          className="bg-primary hover:bg-primary/90"
                           onClick={() => setSelectedGig(gig.id.toString())}
                         >
                           Book Now

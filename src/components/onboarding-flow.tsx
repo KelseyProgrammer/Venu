@@ -88,7 +88,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </div>
         </Card>
 
-        <Button onClick={nextStep} className="w-full h-12 text-base font-medium bg-primary hover:bg-primary/90">
+        <Button variant="purple" onClick={nextStep} className="w-full h-12 text-base font-medium">
           {currentStep === onboardingSteps.length - 1 ? "Get Started" : "Next"}
           <ChevronRight className="w-5 h-5 ml-2" />
         </Button>

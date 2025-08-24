@@ -496,14 +496,14 @@ export function AuthFlow() {
             <TabsTrigger
               value="login"
               onClick={() => setIsSignUp(false)}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Log In
             </TabsTrigger>
             <TabsTrigger
               value="signup"
               onClick={() => setIsSignUp(true)}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Sign Up
             </TabsTrigger>
@@ -534,7 +534,7 @@ export function AuthFlow() {
                     className="mt-2 bg-input border-border text-foreground"
                   />
                 </div>
-                <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground">Log In</Button>
+                <Button variant="purple" className="w-full h-12">Log In</Button>
               </div>
             </Card>
           </TabsContent>
@@ -609,8 +609,9 @@ export function AuthFlow() {
                     />
                   </div>
                   <Button
+                    variant="purple"
                     onClick={handleCreateAccount}
-                    className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="w-full h-12"
                   >
                     Create Account
                   </Button>
@@ -632,10 +633,10 @@ export function AuthFlow() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="h-12 border-border hover:bg-accent/10 bg-transparent">
+            <Button variant="purple" className="h-12">
               Google
             </Button>
-            <Button variant="outline" className="h-12 border-border hover:bg-accent/10 bg-transparent">
+            <Button variant="purple" className="h-12">
               Apple
             </Button>
           </div>

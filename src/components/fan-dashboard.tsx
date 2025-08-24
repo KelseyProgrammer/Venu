@@ -394,6 +394,7 @@ export function FanDashboard() {
                     </div>
                     
                     <Button 
+                      variant="purple"
                       size="sm"
                       className="w-full"
                       onClick={() => {

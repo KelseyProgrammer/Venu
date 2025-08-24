@@ -81,8 +81,9 @@ export function SplashScreen() {
         {/* Action buttons */}
         <div className="w-full space-y-4">
           <Button
+            variant="purple"
             onClick={() => setCurrentView("onboarding")}
-            className="w-full h-12 text-base font-medium bg-primary hover:bg-primary/90"
+            className="w-full h-12 text-base font-medium"
           >
             Get Started
           </Button>
