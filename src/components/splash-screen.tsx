@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import { Button } from "./ui/button"
 import { OnboardingFlow } from "./onboarding-flow"
 import { AuthFlow } from "./auth-flow"
-import Image from "next/image"
 
 export function SplashScreen() {
   const [currentView, setCurrentView] = useState<"splash" | "onboarding" | "auth">("splash")
@@ -59,13 +59,13 @@ export function SplashScreen() {
               playsInline
               className="w-[120px] h-[120px] rounded-2xl object-cover"
             >
-              <source src="/VENUSTARTSCREEN.MP4" type="video/mp4" />
+              <source src="/images/VENUSTARTUPSCREEN.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           ) : (
             <Image 
-              src="/images/venu-logo.png" 
-              alt="Venu Logo" 
+              src="/images/VENUDONE.png" 
+              alt="Venu Done" 
               width={120} 
               height={120} 
               className="w-[120px] h-[120px] rounded-2xl" 

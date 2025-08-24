@@ -946,8 +946,8 @@ export function VenueDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <Image src="/images/venu-logo.png" alt="VENU" width={40} height={40} />
-            <h1 className="font-serif font-bold text-xl">Venu</h1>
+            <Image src="/images/venu-logo.png" alt="venu" width={40} height={40} />
+            <h1 className="font-serif font-bold text-xl">venu</h1>
           </div>
           <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setShowPostGig(true)}>
             <Plus className="w-4 h-4 mr-2" />

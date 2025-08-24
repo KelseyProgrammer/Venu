@@ -467,7 +467,8 @@ export function AuthFlow() {
             <Button
               onClick={handleCompleteProfile}
               disabled={isCompleting}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground mt-6 disabled:opacity-50"
+              variant="purple"
+              className="w-full h-12 mt-6 disabled:opacity-50"
             >
               {isCompleting ? "Completing Profile..." : "Complete Profile"}
             </Button>
