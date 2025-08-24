@@ -46,14 +46,28 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
     ],
   }
 
+  // Ensure venue has a fallback value
+  const venueKey = gig.venue || "sarbez"
+  
   // Get venue details from standardized data
-  const venueInfo = VENUE_DATA[gig.venue as keyof typeof VENUE_DATA] || VENUE_DATA.sarbez
+  const venueInfo = VENUE_DATA[venueKey as keyof typeof VENUE_DATA] || VENUE_DATA.sarbez
 
-  const progress = (gig.ticketsSold / gig.totalTickets) * 100
-  const currentTier = gig.tiers.find((tier) => gig.ticketsSold >= tier.threshold) || {
-    amount: gig.guarantee,
-    label: `${gig.ticketsSold} tickets = $${gig.guarantee}`,
+  // Ensure critical properties have fallback values
+  const ticketsSold = gig.ticketsSold || 0
+  const totalTickets = gig.totalTickets || 1
+  const guarantee = gig.guarantee || 0
+
+  const progress = (ticketsSold / totalTickets) * 100
+  
+  // Ensure tiers array exists and has proper structure
+  const tiers = gig.tiers || []
+  const currentTier = tiers.find((tier) => ticketsSold >= tier.threshold) || {
+    amount: guarantee,
+    label: `${ticketsSold} tickets = $${guarantee}`,
   }
+  
+  // Ensure checklist array exists
+  const checklist = gig.checklist || []
 
   const BookingFlow = () => {
     if (bookingStep === "checklist") {
@@ -69,7 +83,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             </p>
 
             <div className="space-y-3">
-              {gig.checklist.map((item) => (
+              {checklist.map((item) => (
                 <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
                   <div className="mt-0.5">
                     {item.completed ? (
@@ -137,11 +151,11 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Guaranteed minimum</span>
-                <span className="text-sm font-medium text-foreground">${gig.guarantee}</span>
+                <span className="text-sm font-medium text-foreground">${guarantee}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Current tier bonus</span>
-                <span className="text-sm font-medium text-green-400">+${currentTier.amount - gig.guarantee}</span>
+                <span className="text-sm font-medium text-green-400">+${currentTier.amount - guarantee}</span>
               </div>
               <div className="border-t border-border pt-2">
                 <div className="flex justify-between">
@@ -289,14 +303,14 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
                 <Progress value={progress} className="h-3" />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
-                    {gig.ticketsSold} tickets = ${currentTier.amount}
+                    {ticketsSold} tickets = ${currentTier.amount}
                   </span>
-                  <span>{gig.totalTickets} tickets = $600</span>
+                  <span>{totalTickets} tickets = $600</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {gig.tiers.map((tier, index) => (
+                {tiers.map((tier, index) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
                     <div className={`w-3 h-3 rounded-full ${tier.color}`} />
                     <span className="text-muted-foreground">{tier.label}</span>
@@ -313,7 +327,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             <h3 className="font-semibold text-foreground">Checklist</h3>
 
             <div className="space-y-3">
-              {gig.checklist.map((item) => (
+              {checklist.map((item) => (
                 <div key={item.id} className="flex items-start gap-3">
                   <div className="mt-0.5">
                     {item.completed ? (
