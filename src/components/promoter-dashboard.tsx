@@ -198,6 +198,21 @@ export function PromoterDashboard() {
     return locationMatch && searchMatch
   })
 
+  // Filter locations based on selected location
+  const filteredLocations = selectedLocation === "all" 
+    ? myLocations 
+    : myLocations.filter(location => location.id === selectedLocation)
+
+  // Filter upcoming events for overview stats
+  const filteredUpcomingEvents = selectedLocation === "all" 
+    ? upcomingEvents 
+    : upcomingEvents.filter(event => event.location === myLocations.find(v => v.id === selectedLocation)?.name)
+
+  // Filter artist applications for overview stats
+  const filteredArtistApplications = selectedLocation === "all" 
+    ? artistApplications 
+    : artistApplications.filter(app => app.location === myLocations.find(v => v.id === selectedLocation)?.name)
+
   const handleRequirementsKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -1065,7 +1080,7 @@ export function PromoterDashboard() {
             value="events"
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
-            Events
+            My Events
           </TabsTrigger>
           <TabsTrigger
             value="applications"
@@ -1100,22 +1115,27 @@ export function PromoterDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-4 bg-card border-border text-center">
               <Building2 className="w-8 h-8 text-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{myLocations.length}</div>
+              <div className="text-2xl font-bold text-foreground">{filteredLocations.length}</div>
               <div className="text-sm text-muted-foreground">Active Locations</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{upcomingEvents.length}</div>
+              <div className="text-2xl font-bold text-foreground">{filteredUpcomingEvents.length}</div>
               <div className="text-sm text-muted-foreground">Total Events</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <Users className="w-8 h-8 text-green-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{artistApplications.length}</div>
+              <div className="text-2xl font-bold text-foreground">{filteredArtistApplications.length}</div>
               <div className="text-sm text-muted-foreground">Applications</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <DollarSign className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">$30.7K</div>
+              <div className="text-2xl font-bold text-foreground">
+                ${filteredLocations.reduce((sum, location) => {
+                  const revenue = parseFloat(location.revenue.replace(/[$,]/g, ''))
+                  return sum + revenue
+                }, 0).toLocaleString()}
+              </div>
               <div className="text-sm text-muted-foreground">Total Revenue</div>
             </Card>
           </div>
@@ -1124,7 +1144,7 @@ export function PromoterDashboard() {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-foreground">My Locations</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {myLocations.map((location) => (
+              {filteredLocations.map((location) => (
                 <Card key={location.id} className="p-4 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
                   <div className="flex items-center gap-3 mb-3">
                     <Image
@@ -1166,21 +1186,55 @@ export function PromoterDashboard() {
             <h3 className="font-semibold text-lg text-foreground">Recent Activity</h3>
             <Card className="p-4 bg-card border-border">
               <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">2 hours ago</span>
-                  <span className="text-foreground">New application from "Rock Solid" for Electric Factory</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">1 day ago</span>
-                  <span className="text-foreground">Event "Jazz Night" at The Blue Note went live</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">3 days ago</span>
-                  <span className="text-foreground">Revenue milestone reached at The Basement</span>
-                </div>
+                {selectedLocation === "all" ? (
+                  <>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">2 hours ago</span>
+                      <span className="text-foreground">New application from "Rock Solid" for Electric Factory</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">1 day ago</span>
+                      <span className="text-foreground">Event "Jazz Night" at The Blue Note went live</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">3 days ago</span>
+                      <span className="text-foreground">Revenue milestone reached at The Basement</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {filteredUpcomingEvents.length > 0 && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Recent</span>
+                        <span className="text-foreground">
+                          {filteredUpcomingEvents.length} event{filteredUpcomingEvents.length !== 1 ? 's' : ''} at {filteredLocations[0]?.name}
+                        </span>
+                      </div>
+                    )}
+                    {filteredArtistApplications.length > 0 && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Recent</span>
+                        <span className="text-foreground">
+                          {filteredArtistApplications.length} application{filteredArtistApplications.length !== 1 ? 's' : ''} received
+                        </span>
+                      </div>
+                    )}
+                    {filteredLocations.length > 0 && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Revenue</span>
+                        <span className="text-foreground">
+                          ${filteredLocations[0]?.revenue} generated at {filteredLocations[0]?.name}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </Card>
           </div>
@@ -1363,17 +1417,26 @@ export function PromoterDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-4 bg-card border-border text-center">
               <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">92%</div>
+              <div className="text-2xl font-bold text-foreground">
+                {selectedLocation === "all" ? "92%" : "85%"}
+              </div>
               <div className="text-sm text-muted-foreground">Avg Fill Rate</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">$30.7K</div>
+              <div className="text-2xl font-bold text-foreground">
+                ${filteredLocations.reduce((sum, location) => {
+                  const revenue = parseFloat(location.revenue.replace(/[$,]/g, ''))
+                  return sum + revenue
+                }, 0).toLocaleString()}
+              </div>
               <div className="text-sm text-muted-foreground">Total Revenue</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">1,247</div>
+              <div className="text-2xl font-bold text-foreground">
+                {filteredUpcomingEvents.reduce((sum, event) => sum + event.ticketsSold, 0).toLocaleString()}
+              </div>
               <div className="text-sm text-muted-foreground">Total Tickets Sold</div>
             </Card>
           </div>
@@ -1382,7 +1445,7 @@ export function PromoterDashboard() {
           <Card className="p-4 bg-card border-border">
             <h3 className="font-semibold text-foreground mb-4">Location Performance</h3>
             <div className="space-y-4">
-              {myLocations.map((location) => (
+              {filteredLocations.map((location) => (
                 <div key={location.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Image
