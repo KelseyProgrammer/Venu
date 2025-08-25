@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ChevronLeft, MapPin, Calendar, Star, Share2, CheckCircle, AlertCircle, CreditCard } from "lucide-react"
 import Image from "next/image"
-import { VENUE_DATA } from "@/lib/venue-data"
+import { LOCATION_DATA } from "@/lib/location-data"
 
 interface GigDetailsProps {
   gigId: string
@@ -25,7 +25,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
   // Use passed gig data or fall back to default
   const gig = gigData || {
     id: 1,
-    venue: "sarbez", // Use venue key instead of full name
+    location: "sarbez", // Use location key instead of full name
     date: "Sat, Oct 12",
     time: "8 PM doors",
     genre: "Jazz",
@@ -39,18 +39,18 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
     rating: 4.8,
     reviews: 127,
     checklist: [
-      { id: 1, item: "Venue provides PA system, backline", completed: true, type: "venue" },
+      { id: 1, item: "Location provides PA system, backline", completed: true, type: "location" },
       { id: 2, item: "Artist must promote $% on socials (template posts provided)", completed: false, type: "artist" },
       { id: 3, item: "Arrive 1 hour early for soundcheck", completed: false, type: "artist" },
-      { id: 4, item: "Professional stage lighting included", completed: true, type: "venue" },
+      { id: 4, item: "Professional stage lighting included", completed: true, type: "location" },
     ],
   }
 
-  // Ensure venue has a fallback value
-  const venueKey = gig.venue || "sarbez"
-  
-  // Get venue details from standardized data
-  const venueInfo = VENUE_DATA[venueKey as keyof typeof VENUE_DATA] || VENUE_DATA.sarbez
+      // Ensure location has a fallback value
+    const locationKey = gig.location || "sarbez"
+    
+    // Get location details from standardized data
+    const locationInfo = LOCATION_DATA[locationKey as keyof typeof LOCATION_DATA] || LOCATION_DATA.sarbez
 
   // Ensure critical properties have fallback values
   const ticketsSold = gig.ticketsSold || 0
@@ -95,7 +95,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
                   <div className="flex-1">
                     <p className="text-sm text-foreground">{item.item}</p>
                     <Badge variant="outline" className="mt-1 text-xs">
-                      {item.type === "venue" ? "Venue provides" : "Artist must"}
+                      {item.type === "location" ? "Location provides" : "Artist must"}
                     </Badge>
                   </div>
                 </div>
@@ -144,7 +144,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
                 <span className="font-medium text-foreground">Escrow Protection</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your payment is held securely until the event is completed. This protects both you and the venue.
+                Your payment is held securely until the event is completed. This protects both you and the location.
               </p>
             </div>
 
@@ -197,7 +197,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             </div>
 
             <div>
-              <h3 className="font-semibold text-foreground mb-1">{venueInfo.name}</h3>
+                              <h3 className="font-semibold text-foreground mb-1">{locationInfo.name}</h3>
               <p className="text-sm text-muted-foreground">
                 {gig.date} - {gig.time}
               </p>
@@ -250,8 +250,8 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
         {/* Hero Image */}
         <div className="relative">
           <Image
-            src={venueInfo.image || "/images/venu-logo.png"}
-            alt={venueInfo.name}
+                              src={locationInfo.image || "/images/venu-logo.png"}
+                  alt={locationInfo.name}
             width={400}
             height={200}
             className="w-full h-48 object-cover rounded-lg"
@@ -265,7 +265,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
         <Card className="p-6 bg-card border-border">
           <div className="space-y-4">
             <div>
-              <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{venueInfo.name}</h2>
+                              <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{locationInfo.name}</h2>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
@@ -278,11 +278,11 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
-                {venueInfo.address}
+                {locationInfo.address}
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed">{venueInfo.description}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{locationInfo.description}</p>
           </div>
         </Card>
 
@@ -340,7 +340,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
                   <div className="flex-1">
                     <p className="text-sm text-foreground">{item.item}</p>
                     <Badge variant="outline" className="mt-1 text-xs">
-                      {item.type === "venue" ? "Venue provides" : "Artist must"}
+                      {item.type === "location" ? "Location provides" : "Artist must"}
                     </Badge>
                   </div>
                 </div>

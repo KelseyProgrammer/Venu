@@ -24,7 +24,7 @@ const GIG_STEPS = [
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
-  const [selectedVenue, setSelectedVenue] = useState("all")
+  const [selectedLocation, setSelectedLocation] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
@@ -35,7 +35,7 @@ export function PromoterDashboard() {
   const [eventTime, setEventTime] = useState("")
   const [eventGenre, setEventGenre] = useState("")
   const [ticketCapacity, setTicketCapacity] = useState("")
-  const [selectedVenueForGig, setSelectedVenueForGig] = useState("")
+  const [selectedLocationForGig, setSelectedLocationForGig] = useState("")
   
   const [selectedDoorPerson, setSelectedDoorPerson] = useState("")
   const [doorPersonEmail, setDoorPersonEmail] = useState("")
@@ -52,10 +52,10 @@ export function PromoterDashboard() {
   
   const [guarantee, setGuarantee] = useState("")
 
-  // Mock data for venues the promoter works with
-  const myVenues = [
+  // Mock data for locations the promoter works with
+  const myLocations = [
     {
-      id: "venue1",
+      id: "location1",
       name: "The Blue Note",
       location: "New York, NY",
       type: "Jazz Club",
@@ -64,7 +64,7 @@ export function PromoterDashboard() {
       image: "/images/venu-logo.png",
     },
     {
-      id: "venue2",
+      id: "location2",
       name: "Electric Factory",
       location: "Philadelphia, PA",
       type: "Concert Hall",
@@ -73,7 +73,7 @@ export function PromoterDashboard() {
       image: "/images/venu-logo.png",
     },
     {
-      id: "venue3",
+      id: "location3",
       name: "The Basement",
       location: "Nashville, TN",
       type: "Live Music Bar",
@@ -83,12 +83,12 @@ export function PromoterDashboard() {
     },
   ]
 
-  // Mock data for upcoming events across all venues
+  // Mock data for upcoming events across all locations
   const upcomingEvents = [
     {
       id: 1,
       artist: "The Midnight Keys",
-      venue: "The Blue Note",
+      location: "The Blue Note",
       date: "Sat, Oct 12",
       time: "8 PM doors",
       genre: "Jazz",
@@ -101,7 +101,7 @@ export function PromoterDashboard() {
     {
       id: 2,
       artist: "Electric Pulse",
-      venue: "Electric Factory",
+      location: "Electric Factory",
       date: "Fri, Oct 18",
       time: "9 PM",
       genre: "Electronic",
@@ -114,7 +114,7 @@ export function PromoterDashboard() {
     {
       id: 3,
       artist: "Acoustic Souls",
-      venue: "The Basement",
+      location: "The Basement",
       date: "Thu, Oct 3",
       time: "7 PM",
       genre: "Folk",
@@ -127,7 +127,7 @@ export function PromoterDashboard() {
     {
       id: 4,
       artist: "Luna & The Waves",
-      venue: "The Blue Note",
+      location: "The Blue Note",
       date: "Sun, Oct 20",
       time: "7:30 PM",
       genre: "Indie Rock",
@@ -139,12 +139,12 @@ export function PromoterDashboard() {
     },
   ]
 
-  // Mock data for artist applications across all venues
+  // Mock data for artist applications across all locations
   const artistApplications = [
     {
       id: 1,
       artist: "Luna & The Waves",
-      venue: "The Blue Note",
+      location: "The Blue Note",
       genre: "Indie Rock",
       followers: "2.3K",
       rating: 4.7,
@@ -156,7 +156,7 @@ export function PromoterDashboard() {
     {
       id: 2,
       artist: "Jazz Collective",
-      venue: "The Blue Note",
+      location: "The Blue Note",
       genre: "Jazz",
       followers: "1.8K",
       rating: 4.9,
@@ -168,7 +168,7 @@ export function PromoterDashboard() {
     {
       id: 3,
       artist: "Rock Solid",
-      venue: "Electric Factory",
+      location: "Electric Factory",
       genre: "Rock",
       followers: "5.1K",
       rating: 4.6,
@@ -179,22 +179,22 @@ export function PromoterDashboard() {
     },
   ]
 
-  // Filter events based on selected venue and search query
+  // Filter events based on selected location and search query
   const filteredEvents = upcomingEvents.filter(event => {
-    const venueMatch = selectedVenue === "all" || event.venue === myVenues.find(v => v.id === selectedVenue)?.name
+    const locationMatch = selectedLocation === "all" || event.location === myLocations.find(v => v.id === selectedLocation)?.name
     const searchMatch = event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        event.genre.toLowerCase().includes(searchQuery.toLowerCase())
-    return venueMatch && searchMatch
+    return locationMatch && searchMatch
   })
 
-  // Filter applications based on selected venue and search query
+  // Filter applications based on selected location and search query
   const filteredApplications = artistApplications.filter(app => {
-    const venueMatch = selectedVenue === "all" || app.venue === myVenues.find(v => v.id === selectedVenue)?.name
+    const locationMatch = selectedLocation === "all" || app.location === myLocations.find(v => v.id === selectedLocation)?.name
     const searchMatch = app.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       app.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       app.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        app.genre.toLowerCase().includes(searchQuery.toLowerCase())
-    return venueMatch && searchMatch
+    return locationMatch && searchMatch
   })
 
   const handleRequirementsKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -264,14 +264,14 @@ export function PromoterDashboard() {
   const canProceedToNext = () => {
     switch (currentStep) {
       case 1:
-        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedVenueForGig
+        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig
         console.log('Step 1 validation:', {
           eventName: eventName.trim(),
           eventDate,
           eventTime,
           eventGenre,
           ticketCapacity: ticketCapacity.trim(),
-          selectedVenueForGig,
+          selectedLocationForGig,
           isValid: step1Valid
         })
         return step1Valid
@@ -297,7 +297,7 @@ export function PromoterDashboard() {
     setEventTime("")
     setEventGenre("")
     setTicketCapacity("")
-    setSelectedVenueForGig("")
+            setSelectedLocationForGig("")
     setSelectedDoorPerson("")
     setDoorPersonEmail("")
     setRequirements([])
@@ -314,7 +314,7 @@ export function PromoterDashboard() {
       eventTime,
       eventGenre,
       ticketCapacity,
-      selectedVenueForGig,
+              selectedLocationForGig,
       selectedDoorPerson,
       doorPersonEmail,
       requirements,
@@ -439,17 +439,17 @@ export function PromoterDashboard() {
               </div>
 
               <div>
-                <Label htmlFor="venue" className="text-foreground">
-                  Venue
+                <Label htmlFor="location" className="text-foreground">
+                  Location
                 </Label>
-                <Select value={selectedVenueForGig} onValueChange={setSelectedVenueForGig}>
+                <Select value={selectedLocationForGig} onValueChange={setSelectedLocationForGig}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
-                    <SelectValue placeholder="Select venue" />
+                    <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
-                    {myVenues.map((venue) => (
-                      <SelectItem key={venue.id} value={venue.id}>
-                        {venue.name}
+                    {myLocations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -877,9 +877,9 @@ export function PromoterDashboard() {
                     <span className="text-foreground font-medium">{eventName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Venue:</span>
+                                          <span className="text-muted-foreground">Location:</span>
                     <span className="text-foreground font-medium">
-                      {myVenues.find(v => v.id === selectedVenueForGig)?.name || 'Not selected'}
+                      {myLocations.find(v => v.id === selectedLocationForGig)?.name || 'Not selected'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -971,7 +971,7 @@ export function PromoterDashboard() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
-            <span className="font-serif font-bold text-xl">venu</span>
+            <span className="font-serif font-bold text-xl">Promoter Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -979,7 +979,7 @@ export function PromoterDashboard() {
             </Badge>
             <Button variant="outline" size="sm">
               <Plus className="w-4 h-4 mr-1" />
-              Add Venue
+              Add Location
             </Button>
             <Button variant="purple" onClick={() => setShowPostGig(true)}>
               <Plus className="w-4 h-4 mr-1" />
@@ -989,19 +989,19 @@ export function PromoterDashboard() {
         </div>
       </div>
 
-      {/* Venue Selector */}
+      {/* Location Selector */}
       <div className="p-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-4">
           <Label className="text-sm font-medium text-muted-foreground">Working with:</Label>
-          <Select value={selectedVenue} onValueChange={setSelectedVenue}>
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-48 bg-background">
-              <SelectValue placeholder="Select venue" />
+              <SelectValue placeholder="Select location" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Venues</SelectItem>
-              {myVenues.map((venue) => (
-                <SelectItem key={venue.id} value={venue.id}>
-                  {venue.name}
+              <SelectItem value="all">All Locations</SelectItem>
+              {myLocations.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1045,7 +1045,7 @@ export function PromoterDashboard() {
             <div className="flex items-center gap-2">
               <Search className="w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search events, artists, venues..."
+                placeholder="Search events, artists, locations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 bg-background"
@@ -1057,8 +1057,8 @@ export function PromoterDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-4 bg-card border-border text-center">
               <Building2 className="w-8 h-8 text-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{myVenues.length}</div>
-              <div className="text-sm text-muted-foreground">Active Venues</div>
+              <div className="text-2xl font-bold text-foreground">{myLocations.length}</div>
+              <div className="text-sm text-muted-foreground">Active Locations</div>
             </Card>
             <Card className="p-4 bg-card border-border text-center">
               <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
@@ -1077,40 +1077,40 @@ export function PromoterDashboard() {
             </Card>
           </div>
 
-          {/* Venues Overview */}
+          {/* Locations Overview */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg text-foreground">My Venues</h3>
+            <h3 className="font-semibold text-lg text-foreground">My Locations</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {myVenues.map((venue) => (
-                <Card key={venue.id} className="p-4 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
+              {myLocations.map((location) => (
+                <Card key={location.id} className="p-4 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
                   <div className="flex items-center gap-3 mb-3">
                     <Image
-                      src={venue.image}
-                      alt={venue.name}
+                      src={location.image}
+                      alt={location.name}
                       width={48}
                       height={48}
                       className="rounded-lg object-cover w-12 h-12"
                     />
                     <div>
-                      <h4 className="font-semibold text-foreground">{venue.name}</h4>
+                      <h4 className="font-semibold text-foreground">{location.name}</h4>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="w-3 h-3" />
-                        {venue.location}
+                        {location.location}
                       </div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Type:</span>
-                      <Badge variant="outline" className="text-xs">{venue.type}</Badge>
+                      <Badge variant="outline" className="text-xs">{location.type}</Badge>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Events:</span>
-                      <span className="text-foreground font-medium">{venue.eventsCount}</span>
+                      <span className="text-foreground font-medium">{location.eventsCount}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Revenue:</span>
-                      <span className="text-green-400 font-medium">{venue.revenue}</span>
+                      <span className="text-green-400 font-medium">{location.revenue}</span>
                     </div>
                   </div>
                 </Card>
@@ -1184,7 +1184,7 @@ export function PromoterDashboard() {
                           <h3 className="font-semibold text-foreground">{event.artist}</h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Building2 className="w-4 h-4" />
-                            {event.venue}
+                            {event.location}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
@@ -1283,7 +1283,7 @@ export function PromoterDashboard() {
                       </Badge>
                       <span className="flex items-center gap-1">
                         <Building2 className="w-4 h-4" />
-                        {artist.venue}
+                        {artist.location}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
@@ -1314,7 +1314,7 @@ export function PromoterDashboard() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="p-4 space-y-6">
-          <h2 className="font-serif font-bold text-xl">Cross-Venue Analytics</h2>
+          <h2 className="font-serif font-bold text-xl">Cross-Location Analytics</h2>
 
           {/* Overall Performance */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1335,32 +1335,32 @@ export function PromoterDashboard() {
             </Card>
           </div>
 
-          {/* Venue Performance Comparison */}
+          {/* Location Performance Comparison */}
           <Card className="p-4 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Venue Performance</h3>
+            <h3 className="font-semibold text-foreground mb-4">Location Performance</h3>
             <div className="space-y-4">
-              {myVenues.map((venue) => (
-                <div key={venue.id} className="flex items-center justify-between">
+              {myLocations.map((location) => (
+                <div key={location.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Image
-                      src={venue.image}
-                      alt={venue.name}
+                      src={location.image}
+                      alt={location.name}
                       width={32}
                       height={32}
                       className="rounded-lg object-cover w-8 h-8"
                     />
                     <div>
-                      <span className="text-sm font-medium text-foreground">{venue.name}</span>
-                      <div className="text-xs text-muted-foreground">{venue.location}</div>
+                      <span className="text-sm font-medium text-foreground">{location.name}</span>
+                      <div className="text-xs text-muted-foreground">{location.location}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-center">
-                      <div className="font-medium text-foreground">{venue.eventsCount}</div>
+                      <div className="font-medium text-foreground">{location.eventsCount}</div>
                       <div className="text-muted-foreground">Events</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium text-green-400">{venue.revenue}</div>
+                      <div className="font-medium text-green-400">{location.revenue}</div>
                       <div className="text-muted-foreground">Revenue</div>
                     </div>
                     <div className="text-center">
@@ -1375,7 +1375,7 @@ export function PromoterDashboard() {
 
           {/* Genre Performance */}
           <Card className="p-4 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Genre Performance Across Venues</h3>
+            <h3 className="font-semibold text-foreground mb-4">Genre Performance Across Locations</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Jazz</span>

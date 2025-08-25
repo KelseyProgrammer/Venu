@@ -56,7 +56,7 @@ const getTimeLabel = (timeValue: string): string => {
   return TIME_OPTIONS.find(option => option.value === timeValue)?.label || timeValue
 }
 
-export function VenueDashboard() {
+export function LocationDashboard() {
   const [activeTab, setActiveTab] = useState("events")
   const [showPostGig, setShowPostGig] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
@@ -108,7 +108,7 @@ export function VenueDashboard() {
     }
   }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedPromoter, bands, guarantee, promoterPercentage, bandsTotal])
 
-  // Mock data for promoters the venue works with
+  // Mock data for promoters the location works with
   const myPromoters = useMemo(() => [
     {
       id: "promoter1",
@@ -192,7 +192,7 @@ export function VenueDashboard() {
       genre: "Jazz",
       rating: 4.8,
       followers: "2.1K",
-      bio: "Smooth jazz quartet with over 10 years of experience performing at prestigious venues across the country.",
+      bio: "Smooth jazz quartet with over 10 years of experience performing at prestigious locations across the country.",
       image: "/images/BandFallBack.PNG",
     },
     {
@@ -210,7 +210,7 @@ export function VenueDashboard() {
       genre: "Folk",
       rating: 4.9,
       followers: "1.8K",
-      bio: "Intimate folk trio blending traditional melodies with contemporary storytelling. Perfect for intimate venues.",
+      bio: "Intimate folk trio blending traditional melodies with contemporary storytelling. Perfect for intimate locations.",
       image: "/images/BandFallBack.PNG",
     },
     {
@@ -949,7 +949,7 @@ export function VenueDashboard() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <Image src="/images/venu-logo.png" alt="venu" width={40} height={40} />
-            <h1 className="font-serif font-bold text-xl">venu</h1>
+            <h1 className="font-serif font-bold text-xl">Location Dashboard</h1>
           </div>
           <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setShowPostGig(true)}>
             <Plus className="w-4 h-4 mr-2" />
@@ -1102,7 +1102,7 @@ export function VenueDashboard() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="p-4 space-y-4">
-            <h2 className="font-serif font-bold text-xl">Venue Analytics</h2>
+            <h2 className="font-serif font-bold text-xl">Location Analytics</h2>
 
             <div className="grid grid-cols-2 gap-4">
               <Card className="p-4 bg-card border-border text-center">

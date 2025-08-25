@@ -14,7 +14,7 @@ export function DoorScanner() {
   // Mock event data
   const event = {
     name: "The Midnight Keys",
-    venue: "The Blue Note",
+    location: "The Blue Note",
     date: "Sat, Oct 12",
     time: "8 PM",
     checkedIn: 47,
@@ -43,7 +43,7 @@ export function DoorScanner() {
         <h1 className="font-serif font-bold text-xl text-foreground mb-2">Door Check-in</h1>
         <div className="text-sm text-muted-foreground">
           <p>
-            {event.name} at {event.venue}
+            {event.name} at {event.location}
           </p>
           <p>
             {event.date} - {event.time}

@@ -1,6 +1,6 @@
 # Venu
 
-A modern venue management platform built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui.
+A modern location management platform built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui.
 
 ## Features
 

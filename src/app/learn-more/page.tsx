@@ -9,7 +9,7 @@ export default function LearnMore() {
           Learn More
         </h1>
         <p className="text-center text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Discover how Venu can transform your venue management experience with powerful features and intuitive design.
+          Discover how Venu can transform your location management experience with powerful features and intuitive design.
         </p>
         
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -19,13 +19,13 @@ export default function LearnMore() {
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Venue Analytics</h3>
-            <p className="text-muted-foreground">Comprehensive insights into venue performance, booking patterns, and revenue optimization.</p>
+            <h3 className="text-2xl font-semibold mb-3">Location Analytics</h3>
+            <p className="text-muted-foreground">Comprehensive insights into location performance, booking patterns, and revenue optimization.</p>
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Multi-Venue Support</h3>
-            <p className="text-muted-foreground">Manage multiple venues from a single dashboard with centralized control and reporting.</p>
+            <h3 className="text-2xl font-semibold mb-3">Multi-Location Support</h3>
+            <p className="text-muted-foreground">Manage multiple locations from a single dashboard with centralized control and reporting.</p>
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">

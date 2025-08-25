@@ -24,14 +24,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       icon: CheckCircle,
       title: "Fair Expectations",
       description:
-        "Clear checklists for artists and venues eliminate confusion. Know exactly what's expected before you book.",
+        "Clear checklists for artists and locations eliminate confusion. Know exactly what's expected before you book.",
       highlight: "Everyone knows the plan",
     },
     {
       icon: Megaphone,
       title: "Smarter Promotion",
       description:
-        "Auto-generated promotional kits help artists and venues market events effectively with professional templates.",
+        "Auto-generated promotional kits help artists and locations market events effectively with professional templates.",
       highlight: "Built-in marketing tools",
     },
   ]

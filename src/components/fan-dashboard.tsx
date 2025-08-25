@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Filter, MapPin, Calendar, Star, Heart, Share2, Ticket, Users, Clock, Download } from "lucide-react"
 import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
-import { getVenueDisplayName } from "@/lib/venue-data"
+import { getLocationDisplayName } from "@/lib/location-data"
 
 export function FanDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -23,8 +23,8 @@ export function FanDashboard() {
     {
       id: 1,
       artist: "Uncle Marty",
-      venue: "muggys", // Use standardized venue key
-      location: "213 W King St, St. Augustine, FL 32084",
+      location: "muggys", // Use standardized location key
+      address: "213 W King St, St. Augustine, FL 32084",
       date: "Sat, Oct 12",
       time: "8 PM doors",
       genre: "Jazz",
@@ -34,13 +34,13 @@ export function FanDashboard() {
       rating: 4.8,
       description: "An intimate evening of modern jazz in the heart of downtown.",
       image: "/images/MUGS.jpeg",
-      tags: ["Live Music", "Intimate Venue", "Craft Cocktails"],
+      tags: ["Live Music", "Intimate Location", "Craft Cocktails"],
     },
     {
       id: 2,
       artist: "86 Hope",
-      venue: "sarbez", // Use standardized venue key
-      location: "115 Anastasia Blvd, St. Augustine, FL 32080",
+      location: "sarbez", // Use standardized location key
+      address: "115 Anastasia Blvd, St. Augustine, FL 32080",
       date: "Wed, Oct 16",
       time: "9 PM",
       genre: "Electronic",
@@ -55,8 +55,8 @@ export function FanDashboard() {
     {
       id: 3,
       artist: "Naum",
-      venue: "alfreds", // Use standardized venue key
-      location: "222 West King Street, St. Augustine, FL 32084",
+      location: "alfreds", // Use standardized location key
+      address: "222 West King Street, St. Augustine, FL 32084",
       date: "Fri, Oct 18",
       time: "7 PM",
       genre: "Folk",
@@ -71,8 +71,8 @@ export function FanDashboard() {
     {
       id: 4,
       artist: "Rock Revolution",
-      venue: "The Underground",
-      location: "Downtown District",
+      location: "The Underground",
+      address: "Downtown District",
       date: "Sat, Oct 19",
       time: "10 PM",
       genre: "Rock",
@@ -87,8 +87,8 @@ export function FanDashboard() {
     {
       id: 5,
       artist: "Blues Brothers",
-      venue: "Riverfront Blues",
-      location: "Waterfront",
+      location: "Riverfront Blues",
+      address: "Waterfront",
       date: "Sun, Oct 20",
       time: "6 PM",
       genre: "Blues",
@@ -106,7 +106,7 @@ export function FanDashboard() {
     {
       id: 1,
       artist: "The Midnight Keys",
-      venue: "Muggsy's Bar",
+      location: "Muggsy's Bar",
       date: "Sat, Oct 12",
       time: "8 PM doors",
       ticketType: "General Admission",
@@ -118,7 +118,7 @@ export function FanDashboard() {
     {
       id: 2,
       artist: "Electric Pulse",
-      venue: "Sarbez",
+      location: "Sarbez",
       date: "Wed, Oct 16",
       time: "9 PM",
       ticketType: "General Admission",
@@ -141,7 +141,7 @@ export function FanDashboard() {
 
   const filteredEvents = allEvents.filter(event =>
     event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    getVenueDisplayName(event.venue).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            getLocationDisplayName(event.location).toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.genre.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -188,7 +188,7 @@ export function FanDashboard() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search events, artists, or venues..."
+                placeholder="Search events, artists, or locations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -235,7 +235,7 @@ export function FanDashboard() {
                 <div className="p-4 space-y-3">
                   <div>
                     <h3 className="font-semibold text-lg text-foreground">{event.artist}</h3>
-                                           <p className="text-sm text-muted-foreground">{getVenueDisplayName(event.venue)}</p>
+                    <p className="text-sm text-muted-foreground">{getLocationDisplayName(event.location)}</p>
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -299,7 +299,7 @@ export function FanDashboard() {
                   <div className="flex-1 space-y-2">
                     <div>
                       <h3 className="font-semibold text-lg text-foreground">{ticket.artist}</h3>
-                      <p className="text-sm text-muted-foreground">{ticket.venue}</p>
+                      <p className="text-sm text-muted-foreground">{ticket.location}</p>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -371,7 +371,7 @@ export function FanDashboard() {
                   <div className="p-4 space-y-3">
                     <div>
                       <h3 className="font-semibold text-lg text-foreground">{event.artist}</h3>
-                      <p className="text-sm text-muted-foreground">{getVenueDisplayName(event.venue)}</p>
+                      <p className="text-sm text-muted-foreground">{getLocationDisplayName(event.location)}</p>
                     </div>
                     
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">

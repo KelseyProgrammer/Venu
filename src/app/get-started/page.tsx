@@ -9,23 +9,23 @@ export default function GetStarted() {
           Get Started
         </h1>
         <p className="text-center text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Ready to begin your venue management journey? Follow these simple steps to get started.
+          Ready to begin your location management journey? Follow these simple steps to get started.
         </p>
         
         <div className="space-y-6 mb-12">
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
             <h3 className="text-2xl font-semibold mb-3">Step 1: Create Your Account</h3>
-            <p className="text-muted-foreground">Sign up with your email and create your first venue profile.</p>
+            <p className="text-muted-foreground">Sign up with your email and create your first location profile.</p>
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Step 2: Add Your Venues</h3>
-            <p className="text-muted-foreground">Input venue details, capacity, amenities, and availability.</p>
+            <h3 className="text-2xl font-semibold mb-3">Step 2: Add Your Locations</h3>
+            <p className="text-muted-foreground">Input location details, capacity, amenities, and availability.</p>
           </div>
           
           <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
             <h3 className="text-2xl font-semibold mb-3">Step 3: Start Managing</h3>
-            <p className="text-muted-foreground">Begin accepting bookings and managing your venue operations.</p>
+            <p className="text-muted-foreground">Begin accepting bookings and managing your location operations.</p>
           </div>
         </div>
         

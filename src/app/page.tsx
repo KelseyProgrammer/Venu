@@ -14,9 +14,9 @@ export default function HomePage() {
             Artist Dashboard
           </Button>
         </Link>
-        <Link href="/venue">
+        <Link href="/location">
           <Button variant="outline" size="sm">
-            Venue Dashboard
+            Location Dashboard
           </Button>
         </Link>
         <Link href="/fan">

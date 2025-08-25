@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download } from "lucide-react"
 import Image from "next/image"
-import { getVenueDisplayName, getVenueImage } from "@/lib/venue-data"
+import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
 
 interface TicketPurchaseProps {
   eventId: string
@@ -21,8 +21,8 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
   const event = eventData || {
     id: 1,
     artist: "The Midnight Keys",
-    venue: "sarbez", // Use standardized venue key
-    location: "115 Anastasia Blvd, St. Augustine, FL 32080",
+    location: "sarbez", // Use standardized location key
+          address: "115 Anastasia Blvd, St. Augustine, FL 32080",
     date: "Sat, Oct 12",
     time: "8 PM doors",
     genre: "Jazz",
@@ -33,10 +33,10 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
     image: "/images/SARBEZ.jpg",
   }
 
-  // Get venue details from standardized data
-  const venueInfo = {
-    name: getVenueDisplayName(event.venue),
-    address: event.location,
+      // Get location details from standardized data
+    const locationInfo = {
+          name: getLocationDisplayName(event.location),
+      address: event.address,
     image: event.image
   }
 
@@ -62,7 +62,7 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
               <div className="text-center">
                 <h2 className="font-semibold text-foreground mb-2">{event.artist}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {venueInfo.name} • {event.date}
+                  {locationInfo.name} • {event.date}
                 </p>
               </div>
 
@@ -155,7 +155,7 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
             <div className="text-center space-y-4">
               <div>
                 <h3 className="font-semibold text-foreground text-lg">{event.artist}</h3>
-                <p className="text-muted-foreground">{venueInfo.name}</p>
+                <p className="text-muted-foreground">{locationInfo.name}</p>
                 <div className="flex items-center justify-center gap-4 mt-2 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
@@ -199,9 +199,9 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
           <Card className="p-4 bg-accent/10 border-accent/20">
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 text-accent" />
-              <span className="font-medium text-foreground">Venue Location</span>
+                              <span className="font-medium text-foreground">Location Address</span>
             </div>
-            <p className="text-sm text-muted-foreground">{venueInfo.address}</p>
+                          <p className="text-sm text-muted-foreground">{locationInfo.address}</p>
             <Button variant="ghost" size="sm" className="mt-2 text-accent">
               Get Directions
             </Button>
@@ -241,7 +241,7 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
           <div className="space-y-4">
             <div>
               <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{event.artist}</h2>
-              <p className="text-lg text-muted-foreground mb-3">{venueInfo.name}</p>
+                              <p className="text-lg text-muted-foreground mb-3">{locationInfo.name}</p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
@@ -250,7 +250,7 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
-                {venueInfo.address}
+                {locationInfo.address}
               </div>
             </div>
 

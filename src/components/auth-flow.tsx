@@ -14,7 +14,7 @@ import Image from "next/image"
 
 export function AuthFlow() {
   const [isSignUp, setIsSignUp] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<"artist" | "venue" | "promoter" | "fan" | null>(null)
+  const [selectedRole, setSelectedRole] = useState<"artist" | "location" | "promoter" | "fan" | null>(null)
   const [showProfileSetup, setShowProfileSetup] = useState(false)
   const [genres, setGenres] = useState<string[]>([])
   const [equipment, setEquipment] = useState<string[]>([])
@@ -29,16 +29,16 @@ export function AuthFlow() {
       description: "Discover gigs and build your fanbase",
     },
     {
-      id: "venue" as const,
+      id: "location" as const,
       icon: MapPin,
-      title: "Venue",
+      title: "Location",
       description: "Host events and manage bookings",
     },
     {
       id: "promoter" as const,
       icon: Users,
       title: "Promoter",
-      description: "Connect artists with venues",
+      description: "Connect artists with locations",
     },
     {
       id: "fan" as const,
@@ -95,8 +95,8 @@ export function AuthFlow() {
     // Navigate to appropriate dashboard based on role
     if (selectedRole === "artist") {
       window.location.href = "/artist"
-    } else if (selectedRole === "venue") {
-      window.location.href = "/venue"
+    } else if (selectedRole === "location") {
+      window.location.href = "/location"
     } else if (selectedRole === "fan") {
       window.location.href = "/fan"
     } else {
@@ -198,11 +198,11 @@ export function AuthFlow() {
               </div>
             )}
 
-            {selectedRole === "venue" && (
+            {selectedRole === "location" && (
               <div className="space-y-6">
                 <div>
                   <Label htmlFor="capacity" className="text-foreground">
-                    Venue Capacity
+                    Location Capacity
                   </Label>
                   <Input
                     id="capacity"
@@ -245,7 +245,7 @@ export function AuthFlow() {
 
                 <div>
                   <Label htmlFor="address" className="text-foreground">
-                    Venue Address
+                    Location Address
                   </Label>
                   <Input
                     id="address"
@@ -255,10 +255,10 @@ export function AuthFlow() {
                 </div>
 
                 <div>
-                  <Label className="text-foreground">Venue Photos</Label>
+                  <Label className="text-foreground">Location Photos</Label>
                   <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center">
                     <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Upload venue photos</p>
+                    <p className="text-sm text-muted-foreground">Upload location photos</p>
                     <Button variant="outline" size="sm" className="mt-2 bg-transparent">
                       Choose Files
                     </Button>
