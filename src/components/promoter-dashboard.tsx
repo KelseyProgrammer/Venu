@@ -51,6 +51,7 @@ export function PromoterDashboard() {
   const [bandEmail, setBandEmail] = useState("")
   
   const [guarantee, setGuarantee] = useState("")
+  const [numberOfBands, setNumberOfBands] = useState("")
 
   // Mock data for locations the promoter works with
   const myLocations = [
@@ -264,7 +265,7 @@ export function PromoterDashboard() {
   const canProceedToNext = () => {
     switch (currentStep) {
       case 1:
-        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig
+        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig && numberOfBands.trim()
         console.log('Step 1 validation:', {
           eventName: eventName.trim(),
           eventDate,
@@ -272,6 +273,7 @@ export function PromoterDashboard() {
           eventGenre,
           ticketCapacity: ticketCapacity.trim(),
           selectedLocationForGig,
+          numberOfBands: numberOfBands.trim(),
           isValid: step1Valid
         })
         return step1Valid
@@ -298,6 +300,7 @@ export function PromoterDashboard() {
     setEventGenre("")
     setTicketCapacity("")
             setSelectedLocationForGig("")
+    setNumberOfBands("")
     setSelectedDoorPerson("")
     setDoorPersonEmail("")
     setRequirements([])
@@ -315,6 +318,7 @@ export function PromoterDashboard() {
       eventGenre,
       ticketCapacity,
               selectedLocationForGig,
+      numberOfBands,
       selectedDoorPerson,
       doorPersonEmail,
       requirements,
@@ -541,6 +545,25 @@ export function PromoterDashboard() {
                       className="mt-2 bg-input border-border text-foreground"
                     />
                   </div>
+              
+              <div>
+                <Label htmlFor="numberOfBands" className="text-foreground">
+                  Number of Bands
+                </Label>
+                <Input
+                  id="numberOfBands"
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="e.g. 3"
+                  value={numberOfBands}
+                  onChange={(e) => setNumberOfBands(e.target.value)}
+                  className="mt-2 bg-input border-border text-foreground"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total number of bands expected for this gig
+                </p>
+              </div>
               </div>
             </Card>
           )}
@@ -551,6 +574,23 @@ export function PromoterDashboard() {
               <div className="space-y-4">
               <div>
                 <Label className="text-foreground">Bands/Artists</Label>
+                {numberOfBands && (
+                  <div className="mt-2 mb-4 p-3 bg-muted/20 rounded-lg border border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Expected bands:</span>
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                        {numberOfBands} {parseInt(numberOfBands) === 1 ? 'band' : 'bands'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm text-muted-foreground">Added so far:</span>
+                      <Badge variant={bands.length >= parseInt(numberOfBands) ? "default" : "secondary"} 
+                             className={bands.length >= parseInt(numberOfBands) ? "bg-green-600 text-white" : ""}>
+                        {bands.length} {bands.length === 1 ? 'band' : 'bands'}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-2 space-y-3">
                   <div className="space-y-3">
                     <Input
@@ -615,9 +655,9 @@ export function PromoterDashboard() {
                   <Button 
                     type="button" 
                     onClick={addBand} 
-                    variant="outline" 
+                    variant="default" 
                     size="sm"
-                    className="w-full"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                       disabled={!bandName.trim() || !bandGenre.trim() || !bandSetTime.trim() || !bandPercentage.trim() || !bandEmail.trim()}
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -745,6 +785,9 @@ export function PromoterDashboard() {
                     className="pl-10 bg-input border-border text-foreground"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  if no guarantee write 0
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -1298,10 +1341,10 @@ export function PromoterDashboard() {
                     </div>
 
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                      <Button variant="outline" size="sm" className="w-24 bg-transparent">
                         Decline
                       </Button>
-                      <Button variant="purple" size="sm" className="flex-1">
+                      <Button variant="purple" size="sm" className="w-24">
                         Accept
                       </Button>
                     </div>

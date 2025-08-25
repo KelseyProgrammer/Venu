@@ -86,6 +86,7 @@ export function LocationDashboard() {
   const [bandEmail, setBandEmail] = useState("")
   
   const [guarantee, setGuarantee] = useState("")
+  const [numberOfBands, setNumberOfBands] = useState("")
 
   // Memoized calculations
   const bandsTotal = useMemo(() => 
@@ -143,7 +144,7 @@ export function LocationDashboard() {
     {
       id: 1,
       artist: "The Midnight Keys",
-      date: "Sat, Oct 12",
+      date: "2024-10-12",
       time: "8 PM doors",
       genre: "Jazz",
       ticketsSold: 50,
@@ -157,7 +158,7 @@ export function LocationDashboard() {
     {
       id: 2,
       artist: "Electric Pulse",
-      date: "Fri, Oct 18",
+      date: "2024-10-18",
       time: "9 PM",
       genre: "Electronic",
       ticketsSold: 0,
@@ -171,7 +172,7 @@ export function LocationDashboard() {
     {
       id: 3,
       artist: "Acoustic Souls",
-      date: "Thu, Oct 3",
+      date: "2024-10-03",
       time: "7 PM",
       genre: "Folk",
       ticketsSold: 45,
@@ -303,6 +304,7 @@ export function LocationDashboard() {
     setEventTime("")
     setEventGenre("")
     setTicketCapacity("")
+    setNumberOfBands("")
     setSelectedPromoter("")
     setPromoterEmail("")
     setPromoterPercentage("")
@@ -322,6 +324,7 @@ export function LocationDashboard() {
       eventTime,
       eventGenre,
       ticketCapacity,
+      numberOfBands,
       selectedPromoter,
       promoterEmail,
       promoterPercentage,
@@ -542,6 +545,25 @@ export function LocationDashboard() {
                   className="mt-2 bg-input border-border text-foreground"
                 />
               </div>
+              
+              <div>
+                <Label htmlFor="numberOfBands" className="text-foreground">
+                  Number of Bands
+                </Label>
+                <Input
+                  id="numberOfBands"
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="e.g. 3"
+                  value={numberOfBands}
+                  onChange={(e) => setNumberOfBands(e.target.value)}
+                  className="mt-2 bg-input border-border text-foreground"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total number of bands expected for this gig
+                </p>
+              </div>
             </div>
           </Card>
           )}
@@ -552,6 +574,23 @@ export function LocationDashboard() {
               <div className="space-y-4">
                 <div>
                   <Label className="text-foreground">Bands/Artists</Label>
+                  {numberOfBands && (
+                    <div className="mt-2 mb-4 p-3 bg-muted/20 rounded-lg border border-border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Expected bands:</span>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                          {numberOfBands} {parseInt(numberOfBands) === 1 ? 'band' : 'bands'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm text-muted-foreground">Added so far:</span>
+                        <Badge variant={bands.length >= parseInt(numberOfBands) ? "default" : "secondary"} 
+                               className={bands.length >= parseInt(numberOfBands) ? "bg-green-600 text-white" : ""}>
+                          {bands.length} {bands.length === 1 ? 'band' : 'bands'}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-2 space-y-3">
                     <div className="space-y-3">
                       <Input
@@ -603,14 +642,14 @@ export function LocationDashboard() {
                         className="bg-input border-border text-foreground"
                       />
                     </div>
-                    <Button 
-                      type="button" 
-                      onClick={addBand} 
-                      variant="outline" 
-                      size="sm"
-                      className="w-full"
+                                      <Button 
+                    type="button" 
+                    onClick={addBand} 
+                    variant="default" 
+                    size="sm"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                       disabled={!bandName.trim() || !bandGenre.trim() || !bandSetTime.trim() || !bandPercentage.trim() || !bandEmail.trim()}
-                    >
+                  >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Band
                     </Button>
@@ -723,6 +762,9 @@ export function LocationDashboard() {
                       className="pl-10 bg-input border-border text-foreground"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    if no guarantee write 0
+                  </p>
                 </div>
 
                 <div className="space-y-3">
@@ -962,8 +1004,9 @@ export function LocationDashboard() {
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           {/* Events Tab */}
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
-            <TabsTrigger value="events" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Events</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-muted">
+            <TabsTrigger value="events" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">My Events</TabsTrigger>
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Schedule</TabsTrigger>
             <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Applications</TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Analytics</TabsTrigger>
           </TabsList>
@@ -991,7 +1034,11 @@ export function LocationDashboard() {
                           <h3 className="font-semibold text-foreground">{event.artist}</h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
-                            {event.date} • {event.time}
+                            {new Date(event.date).toLocaleDateString('en-US', { 
+                              weekday: 'short', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })} • {event.time}
                             <Badge variant="outline" className="text-xs">
                               {event.genre}
                             </Badge>
@@ -1027,10 +1074,10 @@ export function LocationDashboard() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
                           View Details
                         </Button>
-                        <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
                           Manage
                         </Button>
                       </div>
@@ -1039,6 +1086,148 @@ export function LocationDashboard() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Schedule Tab */}
+          <TabsContent value="schedule" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif font-bold text-xl">Schedule</h2>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="text-xs">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <Card className="p-6 bg-card border-border">
+              <div className="grid grid-cols-7 gap-1 mb-4">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-1">
+                {/* Generate calendar days for current month */}
+                {Array.from({ length: 35 }, (_, i) => {
+                  const day = i - 3; // Start from previous month to fill first week
+                  const currentDate = new Date();
+                  const currentMonth = currentDate.getMonth();
+                  const currentYear = currentDate.getFullYear();
+                  
+                  // Check if this date has an event
+                  const hasEvent = myEvents.some(event => {
+                    const eventDate = new Date(event.date);
+                    return eventDate.getDate() === day && 
+                           eventDate.getMonth() === currentMonth && 
+                           eventDate.getFullYear() === currentYear;
+                  });
+                  
+                  // Check if date is in the past
+                  const isPast = day < 1 || (day < currentDate.getDate() && currentMonth === currentDate.getMonth());
+                  
+                  // Check if date is today
+                  const isToday = day === currentDate.getDate();
+                  
+                  // Check if date is in current month
+                  const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
+                  
+                  if (!isCurrentMonth) {
+                    return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                  }
+                  
+                  return (
+                    <div 
+                      key={i} 
+                      className={`h-20 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md ${
+                        isToday 
+                          ? 'bg-purple-100 border-purple-300 shadow-md' 
+                          : hasEvent 
+                          ? 'bg-green-50 border-green-200' 
+                          : isPast 
+                          ? 'bg-muted/30 border-muted' 
+                          : 'bg-background border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className={`text-sm font-medium mb-1 ${
+                        isToday 
+                          ? 'text-purple-700' 
+                          : hasEvent 
+                          ? 'text-green-700' 
+                          : isPast 
+                          ? 'text-muted-foreground' 
+                          : 'text-foreground'
+                      }`}>
+                        {day}
+                      </div>
+                      
+                      {hasEvent && (
+                        <div className="space-y-1">
+                          {myEvents
+                            .filter(event => {
+                              const eventDate = new Date(event.date);
+                              return eventDate.getDate() === day && 
+                                     eventDate.getMonth() === currentMonth && 
+                                     eventDate.getFullYear() === currentYear;
+                            })
+                            .map((event, index) => (
+                              <div 
+                                key={event.id} 
+                                className={`text-xs p-1 rounded ${
+                                  event.status === 'live' 
+                                    ? 'bg-green-200 text-green-800' 
+                                    : event.status === 'posted' 
+                                    ? 'bg-blue-200 text-blue-800' 
+                                    : 'bg-gray-200 text-gray-800'
+                                }`}
+                              >
+                                {event.artist}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                      
+                      {!hasEvent && !isPast && (
+                        <div className="text-xs text-muted-foreground mt-2">
+                          Available
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Legend */}
+            <Card className="p-4 bg-card border-border">
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
+                  <span className="text-muted-foreground">Today</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                  <span className="text-muted-foreground">Event Scheduled</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-muted/30 border border-muted rounded"></div>
+                  <span className="text-muted-foreground">Past</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-background border border-border rounded"></div>
+                  <span className="text-muted-foreground">Available</span>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           {/* Applications Tab */}
@@ -1086,10 +1275,10 @@ export function LocationDashboard() {
                       <p className="text-sm text-muted-foreground line-clamp-2">{artist.bio}</p>
 
                       <div className="flex gap-2 pt-2">
-                        <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
                           Decline
                         </Button>
-                        <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
                           Accept
                         </Button>
                       </div>

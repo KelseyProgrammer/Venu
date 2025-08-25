@@ -120,7 +120,7 @@ export function ArtistDashboard() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
-            <span className="font-serif font-bold text-xl">venu</span>
+            <span className="font-serif font-bold text-xl">Artist Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
