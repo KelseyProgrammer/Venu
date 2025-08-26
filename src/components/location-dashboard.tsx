@@ -61,6 +61,23 @@ export function LocationDashboard() {
   const [showPostGig, setShowPostGig] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   
+  // Calendar state
+  const [currentDate, setCurrentDate] = useState(new Date())
+  
+  // More tab subcategory state
+  const [moreSubcategory, setMoreSubcategory] = useState("analytics")
+  
+  // Saved promoters state
+  const [savedPromoters, setSavedPromoters] = useState<Array<{ id: string; name: string; email: string; payoutPercentage: string }>>([])
+  const [newPromoterName, setNewPromoterName] = useState("")
+  const [newPromoterEmail, setNewPromoterEmail] = useState("")
+  const [newPromoterPayout, setNewPromoterPayout] = useState("")
+  
+  // Saved door persons state
+  const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [newDoorPersonName, setNewDoorPersonName] = useState("")
+  const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
+  
   // Form state
   const [eventName, setEventName] = useState("")
   const [eventDate, setEventDate] = useState("")
@@ -97,7 +114,10 @@ export function LocationDashboard() {
   const canProceedToNextStep = useMemo(() => {
     switch (currentStep) {
       case 1:
-        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedPromoter
+        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedPromoter && 
+               (selectedPromoter === "self" || 
+                savedPromoters.some(p => p.id === selectedPromoter) ||
+                (selectedPromoter === "add-by-email" && promoterEmail.trim()))
       case 2:
         return bands.length > 0
       case 3:
@@ -107,7 +127,7 @@ export function LocationDashboard() {
       default:
         return true
     }
-  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedPromoter, bands, guarantee, promoterPercentage, bandsTotal])
+  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedPromoter, promoterEmail, savedPromoters, bands, guarantee, promoterPercentage, bandsTotal])
 
   // Mock data for promoters the location works with
   const myPromoters = useMemo(() => [
@@ -345,6 +365,78 @@ export function LocationDashboard() {
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
+  // Calendar navigation functions
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() - 1)
+      return newDate
+    })
+  }, [])
+
+  const goToNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() + 1)
+      return newDate
+    })
+  }, [])
+
+  const goToToday = useCallback(() => {
+    setCurrentDate(new Date())
+  }, [])
+
+  // Promoter management functions
+  const addPromoter = useCallback(() => {
+    if (newPromoterName.trim() && newPromoterEmail.trim() && newPromoterPayout.trim()) {
+      const newPromoter = {
+        id: Date.now().toString(),
+        name: newPromoterName.trim(),
+        email: newPromoterEmail.trim(),
+        payoutPercentage: newPromoterPayout.trim()
+      }
+      setSavedPromoters(prev => [...prev, newPromoter])
+      setNewPromoterName("")
+      setNewPromoterEmail("")
+      setNewPromoterPayout("")
+    }
+  }, [newPromoterName, newPromoterEmail, newPromoterPayout])
+
+  const removePromoter = useCallback((id: string) => {
+    setSavedPromoters(prev => prev.filter(promoter => promoter.id !== id))
+  }, [])
+
+  // Handle promoter selection and auto-update payout percentage
+  const handlePromoterSelection = useCallback((promoterId: string) => {
+    setSelectedPromoter(promoterId)
+    if (promoterId !== "self" && promoterId !== "add-by-email") {
+      const selectedPromoterData = savedPromoters.find(p => p.id === promoterId)
+      if (selectedPromoterData) {
+        setPromoterPercentage(selectedPromoterData.payoutPercentage)
+      }
+    } else {
+      setPromoterPercentage("")
+    }
+  }, [savedPromoters])
+
+  // Door person management functions
+  const addDoorPerson = useCallback(() => {
+    if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
+      const newDoorPerson = {
+        id: Date.now().toString(),
+        name: newDoorPersonName.trim(),
+        email: newDoorPersonEmail.trim()
+      }
+      setSavedDoorPersons(prev => [...prev, newDoorPerson])
+      setNewDoorPersonName("")
+      setNewDoorPersonEmail("")
+    }
+  }, [newDoorPersonName, newDoorPersonEmail])
+
+  const removeDoorPerson = useCallback((id: string) => {
+    setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
+  }, [])
+
   if (showPostGig) {
     return (
       <div className="min-h-screen bg-background">
@@ -455,18 +547,41 @@ export function LocationDashboard() {
                 <Label htmlFor="promoter" className="text-foreground">
                   Promoter
                 </Label>
-                <Select value={selectedPromoter} onValueChange={setSelectedPromoter}>
+                <Select value={selectedPromoter} onValueChange={handlePromoterSelection}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                     <SelectValue placeholder="Select promoter" />
                   </SelectTrigger>
                   <SelectContent>
-                    {myPromoters.map((promoter) => (
+                    <SelectItem value="self">SELF</SelectItem>
+                    {savedPromoters.map((promoter) => (
                       <SelectItem key={promoter.id} value={promoter.id}>
-                        {promoter.name}
+                        {promoter.name} ({promoter.email})
                       </SelectItem>
                     ))}
+                    <SelectItem value="add-by-email">
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add by email
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {selectedPromoter === "add-by-email" && (
+                  <div className="mt-3">
+                    <Label htmlFor="promoter-email" className="text-sm text-muted-foreground">
+                      Promoter Email
+                    </Label>
+                    <Input
+                      id="promoter-email"
+                      type="email"
+                      placeholder="Enter promoter's email address"
+                      value={promoterEmail}
+                      onChange={(e) => setPromoterEmail(e.target.value)}
+                      className="mt-2 bg-input border-border text-foreground"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -767,6 +882,30 @@ export function LocationDashboard() {
                   </p>
                 </div>
 
+                {selectedPromoter && selectedPromoter !== "self" && (
+                  <div>
+                    <Label htmlFor="promoter-percentage" className="text-foreground">
+                      Promoter Percentage
+                    </Label>
+                    <div className="relative mt-2">
+                      <Input
+                        id="promoter-percentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="20"
+                        value={promoterPercentage}
+                        onChange={(e) => setPromoterPercentage(e.target.value)}
+                        className="bg-input border-border text-foreground"
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Percentage of revenue for the promoter
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <Label className="text-foreground">Payout Summary</Label>
                   <div className="p-3 bg-muted/30 rounded-lg space-y-2">
@@ -807,6 +946,11 @@ export function LocationDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="self">SELF</SelectItem>
+                        {savedDoorPersons.map((doorPerson) => (
+                          <SelectItem key={doorPerson.id} value={doorPerson.id}>
+                            {doorPerson.name} ({doorPerson.email})
+                          </SelectItem>
+                        ))}
                         <SelectItem value="add-by-email">
                           <div className="flex items-center gap-2">
                             <Plus className="w-4 h-4" />
@@ -899,7 +1043,9 @@ export function LocationDashboard() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Promoter:</span>
                     <span className="text-foreground font-medium">
-                      {myPromoters.find(p => p.id === selectedPromoter)?.name || 'Not selected'}
+                      {selectedPromoter === "self" ? "SELF" : 
+                       selectedPromoter === "add-by-email" ? promoterEmail : 
+                       savedPromoters.find(p => p.id === selectedPromoter)?.name || 'Not selected'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1008,7 +1154,7 @@ export function LocationDashboard() {
             <TabsTrigger value="events" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">My Events</TabsTrigger>
             <TabsTrigger value="schedule" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Schedule</TabsTrigger>
             <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Applications</TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Analytics</TabsTrigger>
+            <TabsTrigger value="more" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">More</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="space-y-4">
@@ -1092,22 +1238,36 @@ export function LocationDashboard() {
           <TabsContent value="schedule" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-serif font-bold text-xl">Schedule</h2>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-xs">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Today
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs">
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
 
             {/* Calendar Grid */}
             <Card className="p-6 bg-card border-border">
+              {/* Navigation Controls */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Button variant="outline" size="sm" onClick={goToPreviousMonth} className="text-xs">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="lg" 
+                  onClick={goToToday}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium"
+                >
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToNextMonth} className="text-xs">
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Month/Year Header */}
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-foreground">
+                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h3>
+              </div>
+              
               <div className="grid grid-cols-7 gap-1 mb-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                   <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
@@ -1120,7 +1280,7 @@ export function LocationDashboard() {
                 {/* Generate calendar days for current month */}
                 {Array.from({ length: 35 }, (_, i) => {
                   const day = i - 3; // Start from previous month to fill first week
-                  const currentDate = new Date();
+                  const today = new Date();
                   const currentMonth = currentDate.getMonth();
                   const currentYear = currentDate.getFullYear();
                   
@@ -1133,10 +1293,10 @@ export function LocationDashboard() {
                   });
                   
                   // Check if date is in the past
-                  const isPast = day < 1 || (day < currentDate.getDate() && currentMonth === currentDate.getMonth());
+                  const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
                   
                   // Check if date is today
-                  const isToday = day === currentDate.getDate();
+                  const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
                   
                   // Check if date is in current month
                   const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -1289,68 +1449,381 @@ export function LocationDashboard() {
             </div>
           </TabsContent>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="p-4 space-y-4">
-            <h2 className="font-serif font-bold text-xl">Location Analytics</h2>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="p-4 bg-card border-border text-center">
-                <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold text-foreground">87%</div>
-                <div className="text-sm text-muted-foreground">Avg Fill Rate</div>
-              </Card>
-
-              <Card className="p-4 bg-card border-border text-center">
-                <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-foreground">$2.4K</div>
-                <div className="text-sm text-muted-foreground">Monthly Revenue</div>
-              </Card>
+          {/* More Tab */}
+          <TabsContent value="more" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif font-bold text-xl">More</h2>
             </div>
 
-            <Card className="p-4 bg-card border-border">
-              <h3 className="font-semibold text-foreground mb-4">Popular Genres</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Jazz</span>
-                  <div className="flex items-center gap-2">
-                    <Progress value={85} className="w-20 h-2" />
-                    <span className="text-sm text-muted-foreground">85%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Rock</span>
-                  <div className="flex items-center gap-2">
-                    <Progress value={65} className="w-20 h-2" />
-                    <span className="text-sm text-muted-foreground">65%</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Electronic</span>
-                  <div className="flex items-center gap-2">
-                    <Progress value={45} className="w-20 h-2" />
-                    <span className="text-sm text-muted-foreground">45%</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            {/* Subcategory Navigation */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button 
+                variant={moreSubcategory === "analytics" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setMoreSubcategory("analytics")}
+                className={`whitespace-nowrap ${moreSubcategory === "analytics" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Analytics
+              </Button>
+              <Button 
+                variant={moreSubcategory === "settings" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setMoreSubcategory("settings")}
+                className={`whitespace-nowrap ${moreSubcategory === "settings" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <Building2 className="w-4 h-4 mr-1" />
+                Settings
+              </Button>
+              <Button 
+                variant={moreSubcategory === "reports" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setMoreSubcategory("reports")}
+                className={`whitespace-nowrap ${moreSubcategory === "reports" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Reports
+              </Button>
+              <Button 
+                variant={moreSubcategory === "support" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setMoreSubcategory("support")}
+                className={`whitespace-nowrap ${moreSubcategory === "support" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <Users className="w-4 h-4 mr-1" />
+                Support
+              </Button>
+            </div>
 
-            <Card className="p-4 bg-card border-border">
-              <h3 className="font-semibold text-foreground mb-4">Recent Performance</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last 30 days</span>
-                  <span className="text-green-400">+12% ticket sales</span>
+            {/* Analytics Subcategory */}
+            {moreSubcategory === "analytics" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Location Analytics</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="p-4 bg-card border-border text-center">
+                    <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-foreground">87%</div>
+                    <div className="text-sm text-muted-foreground">Avg Fill Rate</div>
+                  </Card>
+
+                  <Card className="p-4 bg-card border-border text-center">
+                    <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-foreground">$2.4K</div>
+                    <div className="text-sm text-muted-foreground">Monthly Revenue</div>
+                  </Card>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Artist satisfaction</span>
-                  <span className="text-foreground">4.8/5.0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Repeat bookings</span>
-                  <span className="text-foreground">23%</span>
+
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Popular Genres</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Jazz</span>
+                      <div className="flex items-center gap-2">
+                        <Progress value={85} className="w-20 h-2" />
+                        <span className="text-sm text-muted-foreground">85%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Rock</span>
+                      <div className="flex items-center gap-2">
+                        <Progress value={65} className="w-20 h-2" />
+                        <span className="text-sm text-muted-foreground">65%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Electronic</span>
+                      <div className="flex items-center gap-2">
+                        <Progress value={45} className="w-20 h-2" />
+                        <span className="text-sm text-muted-foreground">45%</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Recent Performance</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last 30 days</span>
+                      <span className="text-green-400">+12% ticket sales</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Artist satisfaction</span>
+                      <span className="text-foreground">4.8/5.0</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Repeat bookings</span>
+                      <span className="text-foreground">23%</span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Settings Subcategory */}
+            {moreSubcategory === "settings" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Location Settings</h3>
+                
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Venue Information</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-foreground">Venue Name</Label>
+                      <Input placeholder="The Blue Note" className="mt-1 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="text-foreground">Address</Label>
+                      <Input placeholder="123 Music Street, New York, NY" className="mt-1 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="text-foreground">Capacity</Label>
+                      <Input placeholder="100" type="number" className="mt-1 bg-input border-border text-foreground" />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Preferences</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Email notifications</span>
+                      <input type="checkbox" className="w-4 h-4 text-primary" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Auto-approve applications</span>
+                      <input type="checkbox" className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-foreground">Public profile</span>
+                      <input type="checkbox" className="w-4 h-4 text-primary" defaultChecked />
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Manage Promoters</h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-sm text-foreground">Promoter Name</Label>
+                        <Input 
+                          placeholder="Enter promoter name" 
+                          value={newPromoterName}
+                          onChange={(e) => setNewPromoterName(e.target.value)}
+                          className="mt-1 bg-input border-border text-foreground" 
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-foreground">Email Address</Label>
+                        <Input 
+                          placeholder="Enter email address" 
+                          type="email"
+                          value={newPromoterEmail}
+                          onChange={(e) => setNewPromoterEmail(e.target.value)}
+                          className="mt-1 bg-input border-border text-foreground" 
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-foreground">Payout %</Label>
+                        <Input 
+                          placeholder="e.g. 20" 
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={newPromoterPayout}
+                          onChange={(e) => setNewPromoterPayout(e.target.value)}
+                          className="mt-1 bg-input border-border text-foreground" 
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={addPromoter}
+                      disabled={!newPromoterName.trim() || !newPromoterEmail.trim() || !newPromoterPayout.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Promoter
+                    </Button>
+                    
+                    {savedPromoters.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Saved Promoters</Label>
+                        <div className="space-y-2">
+                          {savedPromoters.map((promoter) => (
+                            <div key={promoter.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div>
+                                <div className="font-medium text-foreground">{promoter.name}</div>
+                                <div className="text-sm text-muted-foreground">{promoter.email}</div>
+                                <div className="text-sm text-green-600 font-medium">{promoter.payoutPercentage}% payout</div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removePromoter(promoter.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-semibold text-foreground mb-4">Manage Door Persons</h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm text-foreground">Door Person Name</Label>
+                        <Input 
+                          placeholder="Enter door person name" 
+                          value={newDoorPersonName}
+                          onChange={(e) => setNewDoorPersonName(e.target.value)}
+                          className="mt-1 bg-input border-border text-foreground" 
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-foreground">Email Address</Label>
+                        <Input 
+                          placeholder="Enter email address" 
+                          type="email"
+                          value={newDoorPersonEmail}
+                          onChange={(e) => setNewDoorPersonEmail(e.target.value)}
+                          className="mt-1 bg-input border-border text-foreground" 
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={addDoorPerson}
+                      disabled={!newDoorPersonName.trim() || !newDoorPersonEmail.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Door Person
+                    </Button>
+                    
+                    {savedDoorPersons.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Saved Door Persons</Label>
+                        <div className="space-y-2">
+                          {savedDoorPersons.map((doorPerson) => (
+                            <div key={doorPerson.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div>
+                                <div className="font-medium text-foreground">{doorPerson.name}</div>
+                                <div className="text-sm text-muted-foreground">{doorPerson.email}</div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeDoorPerson(doorPerson.id)}
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Reports Subcategory */}
+            {moreSubcategory === "reports" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Reports</h3>
+                
+                <div className="grid gap-4">
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-foreground">Monthly Revenue Report</h4>
+                        <p className="text-sm text-muted-foreground">Detailed breakdown of earnings and expenses</p>
+                      </div>
+                      <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+                        Download
+                      </Button>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-foreground">Artist Performance Report</h4>
+                        <p className="text-sm text-muted-foreground">Attendance and satisfaction metrics by artist</p>
+                      </div>
+                      <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+                        Download
+                      </Button>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-foreground">Event History</h4>
+                        <p className="text-sm text-muted-foreground">Complete list of past events and outcomes</p>
+                      </div>
+                      <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+                        View
+                      </Button>
+                    </div>
+                  </Card>
                 </div>
               </div>
-            </Card>
+            )}
+
+            {/* Support Subcategory */}
+            {moreSubcategory === "support" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Support & Help</h3>
+                
+                <div className="grid gap-4">
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Contact Support</h4>
+                        <p className="text-sm text-muted-foreground">Get help from our support team</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Venue Guidelines</h4>
+                        <p className="text-sm text-muted-foreground">Best practices for venue management</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-card border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Star className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Feature Requests</h4>
+                        <p className="text-sm text-muted-foreground">Suggest new features for the platform</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

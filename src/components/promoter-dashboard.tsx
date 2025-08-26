@@ -52,6 +52,11 @@ export function PromoterDashboard() {
   
   const [guarantee, setGuarantee] = useState("")
   const [numberOfBands, setNumberOfBands] = useState("")
+  
+  // Saved door persons state
+  const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [newDoorPersonName, setNewDoorPersonName] = useState("")
+  const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
 
   // Mock data for locations the promoter works with
   const myLocations = [
@@ -263,6 +268,24 @@ export function PromoterDashboard() {
 
   const removeBand = (id: string) => {
     setBands(bands.filter(band => band.id !== id))
+  }
+
+  // Door person management functions
+  const addDoorPerson = () => {
+    if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
+      const newDoorPerson = {
+        id: Date.now().toString(),
+        name: newDoorPersonName.trim(),
+        email: newDoorPersonEmail.trim()
+      }
+      setSavedDoorPersons(prev => [...prev, newDoorPerson])
+      setNewDoorPersonName("")
+      setNewDoorPersonEmail("")
+    }
+  }
+
+  const removeDoorPerson = (id: string) => {
+    setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
   }
 
   const nextStep = () => {
@@ -845,6 +868,11 @@ export function PromoterDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="self">SELF</SelectItem>
+                    {savedDoorPersons.map((doorPerson) => (
+                      <SelectItem key={doorPerson.id} value={doorPerson.id}>
+                        {doorPerson.name} ({doorPerson.email})
+                      </SelectItem>
+                    ))}
                     <SelectItem value="add-by-email">
                       <div className="flex items-center gap-2">
                         <Plus className="w-4 h-4" />
@@ -1069,7 +1097,7 @@ export function PromoterDashboard() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
+        <TabsList className="w-full grid grid-cols-5 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="overview"
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
@@ -1093,6 +1121,12 @@ export function PromoterDashboard() {
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Analytics
+          </TabsTrigger>
+          <TabsTrigger
+            value="more"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+          >
+            More
           </TabsTrigger>
         </TabsList>
 
@@ -1534,6 +1568,70 @@ export function PromoterDashboard() {
                 <span className="text-muted-foreground">Average rating</span>
                 <span className="text-foreground">4.7/5.0</span>
               </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* More Tab */}
+        <TabsContent value="more" className="p-4 space-y-6">
+          <h2 className="font-serif font-bold text-xl">More</h2>
+          
+          <Card className="p-4 bg-card border-border">
+            <h3 className="font-semibold text-foreground mb-4">Manage Door Persons</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm text-foreground">Door Person Name</Label>
+                  <Input 
+                    placeholder="Enter door person name" 
+                    value={newDoorPersonName}
+                    onChange={(e) => setNewDoorPersonName(e.target.value)}
+                    className="mt-1 bg-input border-border text-foreground" 
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm text-foreground">Email Address</Label>
+                  <Input 
+                    placeholder="Enter email address" 
+                    type="email"
+                    value={newDoorPersonEmail}
+                    onChange={(e) => setNewDoorPersonEmail(e.target.value)}
+                    className="mt-1 bg-input border-border text-foreground" 
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={addDoorPerson}
+                disabled={!newDoorPersonName.trim() || !newDoorPersonEmail.trim()}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Door Person
+              </Button>
+              
+              {savedDoorPersons.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Saved Door Persons</Label>
+                  <div className="space-y-2">
+                    {savedDoorPersons.map((doorPerson) => (
+                      <div key={doorPerson.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                        <div>
+                          <div className="font-medium text-foreground">{doorPerson.name}</div>
+                          <div className="text-sm text-muted-foreground">{doorPerson.email}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDoorPerson(doorPerson.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </TabsContent>
