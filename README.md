@@ -1,134 +1,293 @@
 # VENU - Live Music Venue Booking Platform
 
-A comprehensive platform for managing live music events, connecting artists, promoters, venues, and fans. Built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui.
+A comprehensive platform for managing live music events, connecting artists, promoters, venues, and fans. Built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui with mobile support via Capacitor.
 
 ## 🎵 What is VENU?
 
-VENU is "The Transparent Booking Platform for Live Music" that streamlines the entire process of organizing and attending live music events. From initial booking to door management, VENU provides tools for every stakeholder in the live music ecosystem.
+VENU is "The Transparent Booking Platform for Live Music" that streamlines the entire process of organizing and attending live music events. From initial booking to door management, VENU provides tools for every stakeholder in the live music ecosystem with a focus on transparency, efficiency, and user experience.
 
 ## ✨ Features
 
 ### For Artists
-- Artist dashboard for managing gigs and performances
-- Set time and percentage tracking
-- Genre and requirement management
-- Performance scheduling and coordination
+- **Artist Dashboard**: Comprehensive gig management and performance tracking
+- **Gig Discovery**: Browse available opportunities with detailed requirements
+- **Set Time Management**: Schedule performances with automatic time slot coordination
+- **Revenue Tracking**: Monitor earnings, guarantees, and percentage-based payouts
+- **Application System**: Apply to gigs with portfolio and requirements matching
+- **Performance Analytics**: Track attendance, ratings, and repeat booking rates
 
 ### For Promoters
-- Promoter dashboard for event management
-- Band booking and coordination
-- Revenue sharing and guarantee management
-- Event promotion tools
+- **Multi-Venue Management**: Handle multiple venues from a single dashboard
+- **Gig Posting System**: Create detailed events with band requirements and payout structures
+- **Artist Coordination**: Manage applications, confirmations, and communication
+- **Revenue Management**: Set guarantees, bonus tiers, and percentage distributions
+- **Cross-Venue Analytics**: Consolidated performance metrics across all venues
+- **Event Promotion**: Built-in tools for marketing and ticket sales tracking
 
-### For Venues
-- Location dashboard for venue management
-- Capacity and scheduling management
-- Equipment and requirement tracking
-- Door person coordination
+### For Venues (Locations)
+- **Location Dashboard**: Complete venue management with calendar integration
+- **Event Scheduling**: Visual calendar with availability tracking and conflict detection
+- **Capacity Management**: Real-time ticket sales and occupancy monitoring
+- **Staff Coordination**: Door person assignment and communication tools
+- **Equipment Tracking**: Manage technical requirements and availability
+- **Performance Analytics**: Detailed insights into venue performance and profitability
+- **Promoter Management**: Maintain relationships with multiple promoters and their payout structures
 
 ### For Fans
-- Ticket purchasing system
-- Event discovery and information
-- Seamless booking experience
+- **Event Discovery**: Browse upcoming shows with filtering by genre, date, and location
+- **Ticket Purchasing**: Seamless booking experience with secure payment processing
+- **Event Information**: Detailed show information including lineup, times, and venue details
+- **Favorites System**: Save preferred artists and venues for personalized recommendations
+- **Ticket Management**: Digital ticket storage and easy access for events
 
 ### For Door Staff
-- Door scanner application
-- Ticket validation and entry management
-- Real-time attendance tracking
+- **Door Scanner App**: Mobile application for ticket validation and entry management
+- **Real-Time Attendance**: Live tracking of ticket sales and venue capacity
+- **Guest List Management**: Handle VIP lists and special access requirements
+- **Event Coordination**: Access to event details, timing, and special instructions
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- **Node.js 18+** (Recommended: Node.js 20+)
+- **npm** or **yarn** package manager
+- **Git** for version control
+- **Android Studio** (for Android mobile development)
+- **Xcode** (for iOS mobile development, macOS only)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <your-repo-url>
 cd VENU
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Run the development server:
+3. **Run the development server:**
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. **Open your browser:**
+Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
+
+### Mobile Development Setup
+
+For mobile app development with Capacitor:
+
+1. **Install Capacitor CLI:**
+```bash
+npm install -g @capacitor/cli
+```
+
+2. **Build the web app:**
+```bash
+npm run build
+```
+
+3. **Add mobile platforms:**
+```bash
+npx cap add android
+npx cap add ios
+```
+
+4. **Sync and run:**
+```bash
+npx cap sync
+npx cap run android  # For Android
+npx cap run ios      # For iOS
+```
 
 ## 📱 Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
+### Development
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build optimized production bundle
 - `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint for code quality checks
+
+### Mobile Development
+- `npx cap sync` - Sync web assets to mobile platforms
+- `npx cap run android` - Run on Android device/emulator
+- `npx cap run ios` - Run on iOS device/simulator
+- `npx cap build android` - Build Android APK
+- `npx cap build ios` - Build iOS app
 
 ## 🏗️ Project Structure
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── artist/            # Artist dashboard pages
-│   ├── promoter/          # Promoter dashboard pages
-│   ├── location/          # Venue management pages
-│   ├── fan/               # Fan experience pages
-│   ├── door/              # Door scanner application
-│   ├── ticket/            # Ticket purchasing system
-│   ├── get-started/       # Onboarding flow
-│   ├── learn-more/        # Information pages
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page with splash screen
-├── components/             # Reusable components
-│   ├── ui/                # shadcn/ui components
-│   ├── artist-dashboard.tsx
-│   ├── promoter-dashboard.tsx
-│   ├── location-dashboard.tsx
-│   ├── fan-dashboard.tsx
-│   ├── door-scanner.tsx
-│   ├── ticket-purchase.tsx
-│   ├── onboarding-flow.tsx
-│   ├── auth-flow.tsx
-│   └── splash-screen.tsx
-└── lib/                   # Utility functions and types
-    ├── types.ts           # Core business logic types
-    ├── location-data.ts   # Venue data
-    └── utils.ts           # Utility functions
+VENU/
+├── src/                           # Source code
+│   ├── app/                       # Next.js App Router
+│   │   ├── artist/               # Artist dashboard pages
+│   │   ├── promoter/             # Promoter dashboard pages
+│   │   ├── location/             # Venue management pages
+│   │   ├── fan/                  # Fan experience pages
+│   │   ├── door/                 # Door scanner application
+│   │   ├── ticket/[id]/          # Dynamic ticket pages
+│   │   ├── get-started/          # Onboarding flow
+│   │   ├── learn-more/           # Information pages
+│   │   ├── globals.css           # Global styles and CSS variables
+│   │   ├── layout.tsx            # Root layout with providers
+│   │   └── page.tsx              # Home page with splash screen
+│   ├── components/               # Reusable React components
+│   │   ├── ui/                   # shadcn/ui component library
+│   │   │   ├── button.tsx        # Custom button component
+│   │   │   ├── card.tsx          # Card layout component
+│   │   │   ├── input.tsx         # Form input component
+│   │   │   ├── tabs.tsx          # Tab navigation component
+│   │   │   └── ...               # Other UI components
+│   │   ├── artist-dashboard.tsx  # Artist management interface
+│   │   ├── promoter-dashboard.tsx # Promoter multi-venue management
+│   │   ├── location-dashboard.tsx # Venue management with gig posting
+│   │   ├── fan-dashboard.tsx     # Fan event discovery and tickets
+│   │   ├── door-scanner.tsx      # Mobile door management app
+│   │   ├── ticket-purchase.tsx   # Ticket buying interface
+│   │   ├── onboarding-flow.tsx   # User registration and setup
+│   │   ├── auth-flow.tsx         # Authentication and role selection
+│   │   ├── splash-screen.tsx     # App loading and introduction
+│   │   └── gig-details.tsx       # Detailed event information
+│   └── lib/                      # Utility functions and shared data
+│       ├── types.ts              # TypeScript type definitions
+│       ├── location-data.ts      # Standardized venue information
+│       └── utils.ts              # Helper functions and utilities
+├── frontend/                     # Mobile app configuration
+│   ├── android/                  # Android-specific files
+│   ├── ios/                      # iOS-specific files
+│   └── capacitor.config.ts       # Capacitor configuration
+├── backend/                      # Backend API (Node.js/Express)
+│   ├── src/
+│   │   ├── routes/              # API route handlers
+│   │   ├── shared/              # Shared backend types
+│   │   └── server.ts            # Express server setup
+│   └── package.json             # Backend dependencies
+├── public/                       # Static assets
+│   └── images/                  # Image assets (logos, venue photos)
+├── components.json               # shadcn/ui configuration
+├── tailwind.config.js           # Tailwind CSS configuration
+├── tsconfig.json                # TypeScript configuration
+└── package.json                 # Main project dependencies
 ```
 
 ## 🎨 Design System
 
-- **Colors**: Purple variant with white font for all non-navigation buttons
+### Visual Identity
+- **Primary Color**: Purple (#9333ea) with white text for all non-navigation buttons
+- **Typography**: Geist font family with serif headings and sans-serif body text
 - **Components**: Built with shadcn/ui for consistency and accessibility
-- **Styling**: Tailwind CSS with custom design tokens
-- **Theme**: Dark mode support with next-themes
+- **Styling**: Tailwind CSS with custom design tokens and CSS variables
+- **Theme**: Dark mode support with next-themes integration
+
+### Component Standards
+- **Buttons**: Purple variant with white font for all action buttons
+- **Navigation**: Tabs use purple variant with white font for active states
+- **Cards**: Consistent border radius, shadows, and spacing
+- **Forms**: Unified input styling with proper focus states
+- **Images**: Standardized fallback system with proper aspect ratios
+
+### Responsive Design
+- **Mobile-First**: Optimized for mobile devices with progressive enhancement
+- **Breakpoints**: Tailwind's responsive breakpoints (sm, md, lg, xl, 2xl)
+- **Touch-Friendly**: Appropriate touch targets and spacing for mobile interaction
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **Framework**: Next.js 14.2.32 with App Router
+- **Language**: TypeScript 5+ with strict mode
+- **Styling**: Tailwind CSS 3.4+ with custom design system
+- **UI Components**: shadcn/ui built on Radix UI primitives
+- **Icons**: Lucide React for consistent iconography
+- **Forms**: React Hook Form with Zod validation
+- **State Management**: React hooks (useState, useEffect, useMemo, useCallback)
+- **Date Handling**: date-fns for date manipulation
+- **Charts**: Recharts for data visualization
+
+### Mobile Development
+- **Framework**: Capacitor for cross-platform mobile apps
+- **Platforms**: Android and iOS support
+- **Build Tools**: Android Studio and Xcode integration
+- **Native Features**: Camera, file system, and device APIs
+
+### Backend
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript for type safety
+- **API**: RESTful API design with proper error handling
+- **Database**: (To be implemented) PostgreSQL or MongoDB
+- **Authentication**: (To be implemented) JWT-based authentication
+
+### Development Tools
+- **Package Manager**: npm with lock file for dependency management
+- **Linting**: ESLint for code quality
+- **Type Checking**: TypeScript compiler with strict configuration
+- **Build Tool**: Next.js built-in bundler with optimization
+- **Version Control**: Git with conventional commit messages
 
 ## 🔧 Adding shadcn/ui Components
 
 To add new shadcn/ui components:
 
-1. Use the shadcn CLI:
+1. **Use the shadcn CLI:**
 ```bash
 npx shadcn@latest add [component-name]
 ```
 
-2. Or manually create components following the shadcn/ui patterns in the `src/components/ui/` directory.
+2. **Or manually create components** following the shadcn/ui patterns in the `src/components/ui/` directory.
+
+3. **Import and use** the component in your React components:
+```tsx
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+```
 
 ## 📊 Core Business Logic
 
-The platform manages:
+The platform manages comprehensive event lifecycle data:
+
+### Event Management
 - **Gigs**: Complete event information including bands, requirements, and logistics
-- **Bands**: Artist information, set times, and revenue sharing
-- **Requirements**: Equipment and technical needs for events
-- **Tickets**: Capacity management and sales tracking
-- **Locations**: Venue details and availability
+- **Bands**: Artist information, set times, and revenue sharing percentages
+- **Requirements**: Equipment and technical needs with dynamic checklist system
+- **Tickets**: Capacity management, sales tracking, and real-time availability
+- **Locations**: Venue details, availability, and capacity management
+
+### Financial Management
+- **Guarantees**: Minimum payment structures for artists
+- **Revenue Sharing**: Percentage-based payout systems
+- **Bonus Tiers**: Performance-based incentive structures
+- **Promoter Fees**: Configurable percentage allocations
+
+### User Management
+- **Multi-Role Support**: Artists, promoters, venues, fans, and door staff
+- **Role-Based Dashboards**: Specialized interfaces for each user type
+- **Cross-Venue Management**: Promoters can manage multiple venues
+- **Staff Coordination**: Door person assignment and communication
+
+## ⚡ Performance Optimizations
+
+### React Performance
+- **useMemo**: Expensive calculations are memoized (band totals, validation logic)
+- **useCallback**: Event handlers are memoized to prevent unnecessary re-renders
+- **Functional State Updates**: Array operations use functional updates to prevent stale closures
+- **Memoized Mock Data**: Static data arrays are memoized to prevent recreation
+
+### Code Quality
+- **Eliminated Duplication**: Shared constants for repeated options (TIME_OPTIONS, GENRE_OPTIONS)
+- **Simplified Logic**: Complex conditionals replaced with helper functions
+- **Consistent Patterns**: Uniform approach applied across all similar functionality
+- **Type Safety**: Full TypeScript coverage with strict mode enabled
+
+### Bundle Optimization
+- **Next.js Optimization**: Built-in code splitting and image optimization
+- **Tree Shaking**: Unused code elimination through ES modules
+- **Lazy Loading**: Components loaded on demand for better initial load times
+- **Image Optimization**: Next.js Image component with proper fallbacks
 
 ## 🎯 Key Workflows
 
@@ -138,19 +297,77 @@ The platform manages:
 4. **Ticket Sales**: Fans purchase tickets through the platform
 5. **Event Execution**: Door staff scan tickets and manage entry
 
-## 🚀 Mobile Support
+## 📱 Mobile Support
 
-- Capacitor integration for cross-platform mobile development
-- Android and iOS builds configured
-- Responsive web design for all screen sizes
+### Cross-Platform Development
+- **Capacitor Integration**: Native mobile app development for Android and iOS
+- **Shared Codebase**: Single codebase for web and mobile applications
+- **Native Features**: Access to device APIs (camera, file system, notifications)
+- **Performance**: Optimized for mobile devices with efficient rendering
+
+### Mobile-Specific Features
+- **Door Scanner App**: Dedicated mobile interface for door staff
+- **Touch-Optimized UI**: Large touch targets and gesture support
+- **Offline Capability**: Basic functionality available without internet connection
+- **Push Notifications**: Real-time updates for events and bookings
+
+### Development Workflow
+- **Hot Reload**: Instant updates during development
+- **Device Testing**: Live testing on physical devices and simulators
+- **App Store Ready**: Configured for both Google Play Store and Apple App Store
+- **Responsive Design**: Seamless experience across all screen sizes
+
+## 🚀 Development Guidelines
+
+### Code Standards
+- **TypeScript**: Strict mode enabled with proper type definitions
+- **Component Structure**: Functional components with hooks
+- **Styling**: Tailwind CSS with consistent design tokens
+- **State Management**: React hooks with proper dependency arrays
+- **Performance**: Memoization for expensive operations
+
+### Git Workflow
+- **Branching**: Feature branches for new development
+- **Commits**: Conventional commit messages for clear history
+- **Code Review**: All changes require review before merging
+- **Testing**: Comprehensive testing before deployment
+
+### File Organization
+- **Components**: Organized by feature with clear naming conventions
+- **Types**: Centralized type definitions in `lib/types.ts`
+- **Utilities**: Shared functions in `lib/utils.ts`
+- **Assets**: Optimized images with proper fallbacks
 
 ## 📚 Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [shadcn/ui Documentation](https://ui.shadcn.com/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Capacitor Documentation](https://capacitorjs.com/docs)
+### Documentation
+- [Next.js Documentation](https://nextjs.org/docs) - Framework documentation
+- [shadcn/ui Documentation](https://ui.shadcn.com/) - UI component library
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Styling framework
+- [Capacitor Documentation](https://capacitorjs.com/docs) - Mobile development
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/) - Type system
+
+### Community Resources
+- [React Documentation](https://react.dev/) - React framework guide
+- [Radix UI Documentation](https://www.radix-ui.com/) - UI primitives
+- [Lucide Icons](https://lucide.dev/) - Icon library
+- [date-fns Documentation](https://date-fns.org/) - Date utilities
+
+## 🤝 Contributing
+
+We welcome contributions to VENU! Please see our contributing guidelines for:
+- Code style and standards
+- Pull request process
+- Issue reporting
+- Feature requests
 
 ## 📄 License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/) and [React](https://react.dev/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Icons by [Lucide](https://lucide.dev/)
+- Mobile development with [Capacitor](https://capacitorjs.com/) 
