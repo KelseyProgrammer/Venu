@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin } from "lucide-react"
+import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 
 // Step configuration
@@ -57,12 +57,15 @@ const getTimeLabel = (timeValue: string): string => {
 }
 
 export function LocationDashboard() {
-  const [activeTab, setActiveTab] = useState("events")
+  const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date())
+  
+  // Schedule tab subcategory state
+  const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   
   // More tab subcategory state
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
@@ -242,6 +245,100 @@ export function LocationDashboard() {
       followers: "8.7K",
       bio: "High-octane rock band with a loyal following. Known for electrifying performances and crowd engagement.",
       image: "/images/BandFallBack.PNG",
+    },
+  ], [])
+
+  // Mock data for local artists in Discover tab
+  const localArtists = useMemo(() => [
+    {
+      id: "local1",
+      artist: "The Blue Notes",
+      genre: "Jazz",
+      rating: 4.7,
+      followers: "3.2K",
+      bio: "Local jazz ensemble specializing in smooth jazz and contemporary arrangements. Regular performers at downtown venues.",
+      image: "/images/BandFallBack.PNG",
+      location: "Downtown",
+      priceRange: "$200-400",
+      availability: "Available this month",
+      instagram: "@thebluenotesjazz",
+      spotify: "https://open.spotify.com/artist/thebluenotes",
+      appleMusic: "https://music.apple.com/artist/the-blue-notes/123456789",
+    },
+    {
+      id: "local2",
+      artist: "Urban Beats",
+      genre: "Hip-Hop",
+      rating: 4.5,
+      followers: "4.8K",
+      bio: "Dynamic hip-hop collective bringing fresh beats and powerful lyrics. Known for high-energy performances.",
+      image: "/images/BandFallBack.PNG",
+      location: "East Side",
+      priceRange: "$300-500",
+      availability: "Available next week",
+      instagram: "@urbanbeatscrew",
+      spotify: "https://open.spotify.com/artist/urbanbeats",
+      appleMusic: "https://music.apple.com/artist/urban-beats/987654321",
+    },
+    {
+      id: "local3",
+      artist: "The Acoustic Trio",
+      genre: "Folk",
+      rating: 4.9,
+      followers: "2.1K",
+      bio: "Intimate acoustic performances with beautiful harmonies. Perfect for smaller venues and intimate settings.",
+      image: "/images/BandFallBack.PNG",
+      location: "West End",
+      priceRange: "$150-300",
+      availability: "Available this weekend",
+      instagram: "@acoustictrio",
+      spotify: "https://open.spotify.com/artist/acoustictrio",
+      appleMusic: "https://music.apple.com/artist/the-acoustic-trio/456789123",
+    },
+    {
+      id: "local4",
+      artist: "Electric Storm",
+      genre: "Electronic",
+      rating: 4.6,
+      followers: "6.7K",
+      bio: "Electronic music producers and DJs creating immersive soundscapes. Perfect for late-night events.",
+      image: "/images/BandFallBack.PNG",
+      location: "Midtown",
+      priceRange: "$400-600",
+      availability: "Available next month",
+      instagram: "@electricstormmusic",
+      spotify: "https://open.spotify.com/artist/electricstorm",
+      appleMusic: "https://music.apple.com/artist/electric-storm/789123456",
+    },
+    {
+      id: "local5",
+      artist: "The Soul Collective",
+      genre: "R&B",
+      rating: 4.8,
+      followers: "5.4K",
+      bio: "Soulful R&B group with powerful vocals and smooth instrumentals. Brings the house down every performance.",
+      image: "/images/BandFallBack.PNG",
+      location: "South Side",
+      priceRange: "$350-550",
+      availability: "Available in 2 weeks",
+      instagram: "@soulcollective",
+      spotify: "https://open.spotify.com/artist/soulcollective",
+      appleMusic: "https://music.apple.com/artist/the-soul-collective/321654987",
+    },
+    {
+      id: "local6",
+      artist: "Indie Dreams",
+      genre: "Indie Rock",
+      rating: 4.4,
+      followers: "3.9K",
+      bio: "Indie rock band with catchy melodies and thoughtful lyrics. Great for alternative music lovers.",
+      image: "/images/BandFallBack.PNG",
+      location: "North District",
+      priceRange: "$250-450",
+      availability: "Available this month",
+      instagram: "@indiedreamsband",
+      spotify: "https://open.spotify.com/artist/indiedreams",
+      appleMusic: "https://music.apple.com/artist/indie-dreams/654321987",
     },
   ], [])
 
@@ -1149,26 +1246,38 @@ export function LocationDashboard() {
       {/* Main Content */}
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          {/* Events Tab */}
+          {/* Main Tabs */}
           <TabsList className="grid w-full grid-cols-4 bg-muted">
-            <TabsTrigger value="events" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">My Events</TabsTrigger>
+            <TabsTrigger value="discover" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Discover</TabsTrigger>
             <TabsTrigger value="schedule" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Schedule</TabsTrigger>
             <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Applications</TabsTrigger>
             <TabsTrigger value="more" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">More</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="events" className="space-y-4">
+          {/* Discover Tab */}
+          <TabsContent value="discover" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif font-bold text-xl">My Events</h2>
+              <h2 className="font-serif font-bold text-xl">Discover Local Artists</h2>
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search artists..." 
+                  className="w-64 bg-input border-border text-foreground"
+                />
+                <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600">
+                  <Filter className="w-4 h-4 mr-1" />
+                  Filter
+                </Button>
+              </div>
             </div>
 
             <div className="grid gap-4">
-              {myEvents.map((event) => (
-                <Card key={event.id} className="p-4 bg-card border-border">
+              {localArtists.map((artist) => (
+                <Card key={artist.id} className="p-4 bg-card border-border">
                   <div className="flex items-start gap-4">
                     <Image
-                      src={event.image || "/images/BandFallBack.PNG"}
-                      alt={event.artist}
+                      src={artist.image || "/images/BandFallBack.PNG"}
+                      alt={artist.artist}
                       width={80}
                       height={80}
                       className="rounded-lg object-cover"
@@ -1177,45 +1286,73 @@ export function LocationDashboard() {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-semibold text-foreground">{event.artist}</h3>
+                          <h3 className="font-semibold text-foreground">{artist.artist}</h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(event.date).toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })} • {event.time}
                             <Badge variant="outline" className="text-xs">
-                              {event.genre}
+                              {artist.genre}
                             </Badge>
+                            <span className="flex items-center gap-1">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm text-foreground">{artist.rating}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span className="text-sm text-foreground">{artist.location}</span>
+                            </span>
                           </div>
                         </div>
-                        <Badge 
-                          variant={event.status === 'live' ? 'default' : event.status === 'posted' ? 'secondary' : 'outline'}
-                          className="text-xs"
-                        >
-                          {event.status}
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {artist.followers}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {artist.priceRange}
+                        </span>
+                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                          {artist.availability}
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Tickets:</span>
-                          <div className="font-medium text-foreground">
-                            {event.ticketsSold}/{event.totalTickets}
+                      <p className="text-sm text-muted-foreground line-clamp-2">{artist.bio}</p>
+
+                      {/* Social Media Links */}
+                      <div className="flex items-center gap-4 pt-2 pb-2">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Instagram className="w-4 h-4" />
+                          <a 
+                            href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-600 hover:text-purple-700 hover:underline"
+                          >
+                            {artist.instagram}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Music className="w-4 h-4" />
+                          <div className="flex gap-2">
+                            <a 
+                              href={artist.spotify}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-700 hover:underline"
+                            >
+                              Spotify
+                            </a>
+                            <span className="text-muted-foreground">•</span>
+                            <a 
+                              href={artist.appleMusic}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-red-600 hover:text-red-700 hover:underline"
+                            >
+                              Apple Music
+                            </a>
                           </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Guarantee:</span>
-                          <div className="font-medium text-foreground">${event.guarantee}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Earnings:</span>
-                          <div className="font-medium text-foreground">${event.currentEarnings}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Applications:</span>
-                          <div className="font-medium text-foreground">{event.applications}</div>
                         </div>
                       </div>
 
@@ -1223,8 +1360,8 @@ export function LocationDashboard() {
                         <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
                           View Details
                         </Button>
-                        <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
-                          Manage
+                        <Button variant="default" size="sm" className="w-20 bg-purple-600 hover:bg-purple-700 text-white">
+                          Book
                         </Button>
                       </div>
                     </div>
@@ -1240,154 +1377,261 @@ export function LocationDashboard() {
               <h2 className="font-serif font-bold text-xl">Schedule</h2>
             </div>
 
-            {/* Calendar Grid */}
-            <Card className="p-6 bg-card border-border">
-              {/* Navigation Controls */}
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Button variant="outline" size="sm" onClick={goToPreviousMonth} className="text-xs">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="lg" 
-                  onClick={goToToday}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium"
-                >
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Today
-                </Button>
-                <Button variant="outline" size="sm" onClick={goToNextMonth} className="text-xs">
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+            {/* Schedule Subcategory Navigation */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button 
+                variant={scheduleSubcategory === "list" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setScheduleSubcategory("list")}
+                className={`whitespace-nowrap ${scheduleSubcategory === "list" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <BarChart3 className="w-4 h-4 mr-1" />
+                List View
+              </Button>
+              <Button 
+                variant={scheduleSubcategory === "calendar" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setScheduleSubcategory("calendar")}
+                className={`whitespace-nowrap ${scheduleSubcategory === "calendar" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                <Calendar className="w-4 h-4 mr-1" />
+                Calendar View
+              </Button>
+            </div>
+
+            {/* List View Subcategory */}
+            {scheduleSubcategory === "list" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">My Events</h3>
+
+                <div className="grid gap-4">
+                  {myEvents.map((event) => (
+                    <Card key={event.id} className="p-4 bg-card border-border">
+                      <div className="flex items-start gap-4">
+                        <Image
+                          src={event.image || "/images/BandFallBack.PNG"}
+                          alt={event.artist}
+                          width={80}
+                          height={80}
+                          className="rounded-lg object-cover"
+                        />
+                        
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-semibold text-foreground">{event.artist}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="w-4 h-4" />
+                                {new Date(event.date).toLocaleDateString('en-US', { 
+                                  weekday: 'short', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })} • {event.time}
+                                <Badge variant="outline" className="text-xs">
+                                  {event.genre}
+                                </Badge>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={event.status === 'live' ? 'default' : event.status === 'posted' ? 'secondary' : 'outline'}
+                              className="text-xs"
+                            >
+                              {event.status}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Tickets:</span>
+                              <div className="font-medium text-foreground">
+                                {event.ticketsSold}/{event.totalTickets}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Guarantee:</span>
+                              <div className="font-medium text-foreground">${event.guarantee}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Earnings:</span>
+                              <div className="font-medium text-foreground">${event.currentEarnings}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Applications:</span>
+                              <div className="font-medium text-foreground">{event.applications}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                              View Details
+                            </Button>
+                            <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
+                              Manage
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </div>
-              
-              {/* Month/Year Header */}
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold text-foreground">
-                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </h3>
-              </div>
-              
-              <div className="grid grid-cols-7 gap-1 mb-4">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              <div className="grid grid-cols-7 gap-1">
-                {/* Generate calendar days for current month */}
-                {Array.from({ length: 35 }, (_, i) => {
-                  const day = i - 3; // Start from previous month to fill first week
-                  const today = new Date();
-                  const currentMonth = currentDate.getMonth();
-                  const currentYear = currentDate.getFullYear();
-                  
-                  // Check if this date has an event
-                  const hasEvent = myEvents.some(event => {
-                    const eventDate = new Date(event.date);
-                    return eventDate.getDate() === day && 
-                           eventDate.getMonth() === currentMonth && 
-                           eventDate.getFullYear() === currentYear;
-                  });
-                  
-                  // Check if date is in the past
-                  const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-                  
-                  // Check if date is today
-                  const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-                  
-                  // Check if date is in current month
-                  const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
-                  
-                  if (!isCurrentMonth) {
-                    return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                  }
-                  
-                  return (
-                    <div 
-                      key={i} 
-                      className={`h-20 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                        isToday 
-                          ? 'bg-purple-100 border-purple-300 shadow-md' 
-                          : hasEvent 
-                          ? 'bg-green-50 border-green-200' 
-                          : isPast 
-                          ? 'bg-muted/30 border-muted' 
-                          : 'bg-background border-border hover:border-primary/50'
-                      }`}
+            )}
+
+            {/* Calendar View Subcategory */}
+            {scheduleSubcategory === "calendar" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Calendar View</h3>
+
+                {/* Calendar Grid */}
+                <Card className="p-6 bg-card border-border">
+                  {/* Navigation Controls */}
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Button variant="outline" size="sm" onClick={goToPreviousMonth} className="text-xs">
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="lg" 
+                      onClick={goToToday}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium"
                     >
-                      <div className={`text-sm font-medium mb-1 ${
-                        isToday 
-                          ? 'text-purple-700' 
-                          : hasEvent 
-                          ? 'text-green-700' 
-                          : isPast 
-                          ? 'text-muted-foreground' 
-                          : 'text-foreground'
-                      }`}>
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Today
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={goToNextMonth} className="text-xs">
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Month/Year Header */}
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-semibold text-foreground">
+                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-1 mb-4">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                      <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                         {day}
                       </div>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-1">
+                    {/* Generate calendar days for current month */}
+                    {Array.from({ length: 35 }, (_, i) => {
+                      const day = i - 3; // Start from previous month to fill first week
+                      const today = new Date();
+                      const currentMonth = currentDate.getMonth();
+                      const currentYear = currentDate.getFullYear();
                       
-                      {hasEvent && (
-                        <div className="space-y-1">
-                          {myEvents
-                            .filter(event => {
-                              const eventDate = new Date(event.date);
-                              return eventDate.getDate() === day && 
-                                     eventDate.getMonth() === currentMonth && 
-                                     eventDate.getFullYear() === currentYear;
-                            })
-                            .map((event, index) => (
-                              <div 
-                                key={event.id} 
-                                className={`text-xs p-1 rounded ${
-                                  event.status === 'live' 
-                                    ? 'bg-green-200 text-green-800' 
-                                    : event.status === 'posted' 
-                                    ? 'bg-blue-200 text-blue-800' 
-                                    : 'bg-gray-200 text-gray-800'
-                                }`}
-                              >
-                                {event.artist}
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                      // Check if this date has an event
+                      const hasEvent = myEvents.some(event => {
+                        const eventDate = new Date(event.date);
+                        return eventDate.getDate() === day && 
+                               eventDate.getMonth() === currentMonth && 
+                               eventDate.getFullYear() === currentYear;
+                      });
                       
-                      {!hasEvent && !isPast && (
-                        <div className="text-xs text-muted-foreground mt-2">
-                          Available
+                      // Check if date is in the past
+                      const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+                      
+                      // Check if date is today
+                      const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                      
+                      // Check if date is in current month
+                      const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
+                      
+                      if (!isCurrentMonth) {
+                        return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                      }
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          className={`h-20 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md ${
+                            isToday 
+                              ? 'bg-purple-100 border-purple-300 shadow-md' 
+                              : hasEvent 
+                              ? 'bg-green-50 border-green-200' 
+                              : isPast 
+                              ? 'bg-muted/30 border-muted' 
+                              : 'bg-background border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className={`text-sm font-medium mb-1 ${
+                            isToday 
+                              ? 'text-purple-700' 
+                              : hasEvent 
+                              ? 'text-green-700' 
+                              : isPast 
+                              ? 'text-muted-foreground' 
+                              : 'text-foreground'
+                          }`}>
+                            {day}
+                          </div>
+                          
+                          {hasEvent && (
+                            <div className="space-y-1">
+                              {myEvents
+                                .filter(event => {
+                                  const eventDate = new Date(event.date);
+                                  return eventDate.getDate() === day && 
+                                         eventDate.getMonth() === currentMonth && 
+                                         eventDate.getFullYear() === currentYear;
+                                })
+                                .map((event, index) => (
+                                  <div 
+                                    key={event.id} 
+                                    className={`text-xs p-1 rounded ${
+                                      event.status === 'live' 
+                                        ? 'bg-green-200 text-green-800' 
+                                        : event.status === 'posted' 
+                                        ? 'bg-blue-200 text-blue-800' 
+                                        : 'bg-gray-200 text-gray-800'
+                                    }`}
+                                  >
+                                    {event.artist}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                          
+                          {!hasEvent && !isPast && (
+                            <div className="text-xs text-muted-foreground mt-2">
+                              Available
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+                      );
+                    })}
+                  </div>
+                </Card>
 
-            {/* Legend */}
-            <Card className="p-4 bg-card border-border">
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
-                  <span className="text-muted-foreground">Today</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
-                  <span className="text-muted-foreground">Event Scheduled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-muted/30 border border-muted rounded"></div>
-                  <span className="text-muted-foreground">Past</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-background border border-border rounded"></div>
-                  <span className="text-muted-foreground">Available</span>
-                </div>
+                {/* Legend */}
+                <Card className="p-4 bg-card border-border">
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
+                      <span className="text-muted-foreground">Today</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+                      <span className="text-muted-foreground">Event Scheduled</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-muted/30 border border-muted rounded"></div>
+                      <span className="text-muted-foreground">Past</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-background border border-border rounded"></div>
+                      <span className="text-muted-foreground">Available</span>
+                    </div>
+                  </div>
+                </Card>
               </div>
-            </Card>
+            )}
           </TabsContent>
 
           {/* Applications Tab */}

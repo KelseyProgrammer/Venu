@@ -1,70 +1,324 @@
-# Getting Started with Create React App
+# VENU Backend API - Node.js/Express Server
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is the backend API server for VENU, built with Node.js, Express.js, and TypeScript. It provides RESTful API endpoints for the live music venue booking platform.
 
-## Available Scripts
+## 🚀 Getting Started
 
-In the project directory, you can run:
+### Prerequisites
 
-### `npm start`
+- **Node.js 18+** (Recommended: Node.js 20+)
+- **npm** or **yarn** package manager
+- **MongoDB** (for database, when implemented)
+- **Git** for version control
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Installation
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. **Navigate to backend directory:**
+```bash
+cd backend
+```
 
-### `npm test`
+2. **Install dependencies:**
+```bash
+npm install
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+3. **Set up environment variables:**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-### `npm run build`
+4. **Run the development server:**
+```bash
+npm run dev
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+5. **The API will be available at:**
+```
+http://localhost:3001
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📁 Project Structure
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+backend/
+├── src/
+│   ├── routes/                   # API route handlers
+│   │   ├── loginRoutes.ts       # Authentication routes
+│   │   └── users.routes.ts      # User management routes
+│   ├── shared/                  # Shared backend utilities
+│   │   └── types.ts            # Backend type definitions
+│   ├── tests/                   # Test files
+│   │   ├── integration test/    # Integration tests
+│   │   └── unittest/           # Unit tests
+│   ├── server.ts               # Express server setup
+│   └── types.ts                # Main type definitions
+├── package.json                # Dependencies and scripts
+├── tsconfig.json              # TypeScript configuration
+└── README.md                  # This file
+```
 
-### `npm run eject`
+## 🛠️ Technology Stack
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Backend Framework
+- **Node.js**: JavaScript runtime environment
+- **Express.js 5.1.0**: Web application framework
+- **TypeScript 5.9.2**: Type-safe development
+- **ES Modules**: Modern JavaScript module system
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Database & Storage
+- **MongoDB**: NoSQL database (via Mongoose)
+- **Mongoose 8.17.1**: MongoDB object modeling
+- **LRU Cache**: In-memory caching for performance
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Development Tools
+- **tsx**: TypeScript execution for development
+- **nodemon**: Auto-restart on file changes
+- **ts-node**: TypeScript execution environment
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Key Dependencies
+- **cors**: Cross-Origin Resource Sharing
+- **dotenv**: Environment variable management
+- **express-session**: Session management
+- **url**: URL parsing utilities
 
-## Learn More
+## 📊 Available Scripts
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Development
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build TypeScript to JavaScript
+- `npm run start` - Start production server
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Testing
+- `npm test` - Run unit tests
+- `npm run test:integration` - Run integration tests
+- `npm run test:watch` - Run tests in watch mode
 
-### Code Splitting
+## 🔌 API Endpoints
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Authentication Routes (`/api/auth`)
+- `POST /login` - User authentication
+- `POST /logout` - User logout
+- `POST /register` - User registration
+- `GET /verify` - Token verification
 
-### Analyzing the Bundle Size
+### User Routes (`/api/users`)
+- `GET /` - Get all users
+- `GET /:id` - Get user by ID
+- `POST /` - Create new user
+- `PUT /:id` - Update user
+- `DELETE /:id` - Delete user
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Event Routes (`/api/events`) - *To be implemented*
+- `GET /` - Get all events
+- `GET /:id` - Get event by ID
+- `POST /` - Create new event
+- `PUT /:id` - Update event
+- `DELETE /:id` - Delete event
 
-### Making a Progressive Web App
+### Venue Routes (`/api/venues`) - *To be implemented*
+- `GET /` - Get all venues
+- `GET /:id` - Get venue by ID
+- `POST /` - Create new venue
+- `PUT /:id` - Update venue
+- `DELETE /:id` - Delete venue
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🗄️ Database Schema
 
-### Advanced Configuration
+### User Schema
+```typescript
+interface User {
+  _id: string
+  email: string
+  password: string
+  role: 'artist' | 'promoter' | 'venue' | 'fan' | 'door'
+  profile: {
+    name: string
+    bio?: string
+    image?: string
+    contact?: {
+      phone?: string
+      social?: {
+        instagram?: string
+        twitter?: string
+        facebook?: string
+      }
+    }
+  }
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Event Schema - *To be implemented*
+```typescript
+interface Event {
+  _id: string
+  name: string
+  venue: string
+  date: Date
+  time: string
+  genre: string
+  capacity: number
+  numberOfBands: number
+  doorPerson: string
+  guarantee: number
+  bonusTiers: Array<{
+    threshold: number
+    bonus: number
+    color: string
+  }>
+  requirements: Array<{
+    id: string
+    text: string
+    checked: boolean
+  }>
+  bands: Array<{
+    id: string
+    name: string
+    genre: string
+    setTime: string
+    percentage: number
+    email: string
+  }>
+  status: 'draft' | 'published' | 'cancelled'
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
-### Deployment
+## 🔧 Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Environment Variables
+```bash
+# Server Configuration
+PORT=3001
+NODE_ENV=development
 
-### `npm run build` fails to minify
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/venu
+MONGODB_TEST_URI=mongodb://localhost:27017/venu_test
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# Authentication
+JWT_SECRET=your-jwt-secret-key
+SESSION_SECRET=your-session-secret
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3000
+```
+
+### TypeScript Configuration
+The project uses strict TypeScript configuration with:
+- **Strict mode**: Enabled for type safety
+- **ES Modules**: Modern module system
+- **Path mapping**: Absolute imports with `@/` prefix
+- **Source maps**: For debugging
+
+## 🧪 Testing
+
+### Test Structure
+- **Unit Tests**: Test individual functions and modules
+- **Integration Tests**: Test API endpoints and database interactions
+- **Test Database**: Separate test database for isolated testing
+
+### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run integration tests
+npm run test:integration
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+## 🚀 Deployment
+
+### Production Build
+```bash
+# Build the project
+npm run build
+
+# Start production server
+npm start
+```
+
+### Environment Setup
+1. **Set production environment variables**
+2. **Configure database connection**
+3. **Set up reverse proxy (nginx)**
+4. **Configure SSL certificates**
+5. **Set up monitoring and logging**
+
+## 📚 API Documentation
+
+### Request/Response Format
+All API responses follow a consistent format:
+
+```typescript
+// Success Response
+{
+  success: true,
+  data: any,
+  message?: string
+}
+
+// Error Response
+{
+  success: false,
+  error: string,
+  details?: any
+}
+```
+
+### Authentication
+- **JWT Tokens**: For stateless authentication
+- **Session Management**: For user sessions
+- **Role-Based Access**: Different permissions for different user types
+
+### Error Handling
+- **HTTP Status Codes**: Proper status codes for different scenarios
+- **Error Messages**: Clear, descriptive error messages
+- **Validation**: Input validation with detailed error responses
+
+## 🔒 Security
+
+### Security Measures
+- **CORS**: Configured for specific origins
+- **Input Validation**: All inputs validated and sanitized
+- **Authentication**: Secure user authentication
+- **Rate Limiting**: API rate limiting (to be implemented)
+- **HTTPS**: SSL/TLS encryption (in production)
+
+### Best Practices
+- **Environment Variables**: Sensitive data in environment variables
+- **Password Hashing**: Secure password storage
+- **SQL Injection Prevention**: Parameterized queries
+- **XSS Protection**: Input sanitization
+
+## 🤝 Contributing
+
+When contributing to the backend:
+
+1. **Follow TypeScript best practices**
+2. **Write comprehensive tests**
+3. **Document API endpoints**
+4. **Follow RESTful API conventions**
+5. **Ensure proper error handling**
+6. **Update documentation for changes**
+
+## 📄 License
+
+This project is licensed under the MIT License - see the main project LICENSE file for details.
+
+## 🔗 Related Documentation
+
+- [Express.js Documentation](https://expressjs.com/)
+- [Mongoose Documentation](https://mongoosejs.com/)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [Node.js Documentation](https://nodejs.org/docs/)
