@@ -1097,7 +1097,7 @@ export function PromoterDashboard() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-5 bg-card border-b border-border rounded-none h-12">
+        <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="overview"
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
@@ -1115,12 +1115,6 @@ export function PromoterDashboard() {
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             Applications
-          </TabsTrigger>
-          <TabsTrigger
-            value="analytics"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
-          >
-            Analytics
           </TabsTrigger>
           <TabsTrigger
             value="more"
@@ -1443,138 +1437,140 @@ export function PromoterDashboard() {
           </div>
         </TabsContent>
 
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="p-4 space-y-6">
-          <h2 className="font-serif font-bold text-xl">Cross-Location Analytics</h2>
 
-          {/* Overall Performance */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-4 bg-card border-border text-center">
-              <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">
-                {selectedLocation === "all" ? "92%" : "85%"}
-              </div>
-              <div className="text-sm text-muted-foreground">Avg Fill Rate</div>
-            </Card>
-            <Card className="p-4 bg-card border-border text-center">
-              <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">
-                ${filteredLocations.reduce((sum, location) => {
-                  const revenue = parseFloat(location.revenue.replace(/[$,]/g, ''))
-                  return sum + revenue
-                }, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Revenue</div>
-            </Card>
-            <Card className="p-4 bg-card border-border text-center">
-              <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">
-                {filteredUpcomingEvents.reduce((sum, event) => sum + event.ticketsSold, 0).toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Tickets Sold</div>
-            </Card>
-          </div>
-
-          {/* Location Performance Comparison */}
-          <Card className="p-4 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Location Performance</h3>
-            <div className="space-y-4">
-              {filteredLocations.map((location) => (
-                <div key={location.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Image
-                      src={location.image}
-                      alt={location.name}
-                      width={32}
-                      height={32}
-                      className="rounded-lg object-cover w-8 h-8"
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-foreground">{location.name}</span>
-                      <div className="text-xs text-muted-foreground">{location.location}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="text-center">
-                      <div className="font-medium text-foreground">{location.eventsCount}</div>
-                      <div className="text-muted-foreground">Events</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-green-400">{location.revenue}</div>
-                      <div className="text-muted-foreground">Revenue</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-foreground">85%</div>
-                      <div className="text-muted-foreground">Fill Rate</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Genre Performance */}
-          <Card className="p-4 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Genre Performance Across Locations</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Jazz</span>
-                <div className="flex items-center gap-2">
-                  <Progress value={88} className="w-20 h-2" />
-                  <span className="text-sm text-muted-foreground">88%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Rock</span>
-                <div className="flex items-center gap-2">
-                  <Progress value={72} className="w-20 h-2" />
-                  <span className="text-sm text-muted-foreground">72%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Electronic</span>
-                <div className="flex items-center gap-2">
-                  <Progress value={65} className="w-20 h-2" />
-                  <span className="text-sm text-muted-foreground">65%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Folk</span>
-                <div className="flex items-center gap-2">
-                  <Progress value={78} className="w-20 h-2" />
-                  <span className="text-sm text-muted-foreground">78%</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Monthly Trends */}
-          <Card className="p-4 bg-card border-border">
-            <h3 className="font-semibold text-foreground mb-4">Monthly Trends</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Revenue growth</span>
-                <span className="text-green-400">+18% vs last month</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Event count</span>
-                <span className="text-blue-400">+5 new events</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Artist applications</span>
-                <span className="text-yellow-400">+23% increase</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Average rating</span>
-                <span className="text-foreground">4.7/5.0</span>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
 
         {/* More Tab */}
         <TabsContent value="more" className="p-4 space-y-6">
           <h2 className="font-serif font-bold text-xl">More</h2>
+          
+          {/* Analytics Section */}
+          <div className="space-y-6">
+            <h3 className="font-semibold text-lg text-foreground">Analytics</h3>
+
+            {/* Overall Performance */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-4 bg-card border-border text-center">
+                <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
+                <div className="text-2xl font-bold text-foreground">
+                  {selectedLocation === "all" ? "92%" : "85%"}
+                </div>
+                <div className="text-sm text-muted-foreground">Avg Fill Rate</div>
+              </Card>
+              <Card className="p-4 bg-card border-border text-center">
+                <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-foreground">
+                  ${filteredLocations.reduce((sum, location) => {
+                    const revenue = parseFloat(location.revenue.replace(/[$,]/g, ''))
+                    return sum + revenue
+                  }, 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Revenue</div>
+              </Card>
+              <Card className="p-4 bg-card border-border text-center">
+                <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-foreground">
+                  {filteredUpcomingEvents.reduce((sum, event) => sum + event.ticketsSold, 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Tickets Sold</div>
+              </Card>
+            </div>
+
+            {/* Location Performance Comparison */}
+            <Card className="p-4 bg-card border-border">
+              <h4 className="font-semibold text-foreground mb-4">Location Performance</h4>
+              <div className="space-y-4">
+                {filteredLocations.map((location) => (
+                  <div key={location.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src={location.image}
+                        alt={location.name}
+                        width={32}
+                        height={32}
+                        className="rounded-lg object-cover w-8 h-8"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-foreground">{location.name}</span>
+                        <div className="text-xs text-muted-foreground">{location.location}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="text-center">
+                        <div className="font-medium text-foreground">{location.eventsCount}</div>
+                        <div className="text-muted-foreground">Events</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-medium text-green-400">{location.revenue}</div>
+                        <div className="text-muted-foreground">Revenue</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-medium text-foreground">85%</div>
+                        <div className="text-muted-foreground">Fill Rate</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Genre Performance */}
+            <Card className="p-4 bg-card border-border">
+              <h4 className="font-semibold text-foreground mb-4">Genre Performance Across Locations</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Jazz</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={88} className="w-20 h-2" />
+                    <span className="text-sm text-muted-foreground">88%</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Rock</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={72} className="w-20 h-2" />
+                    <span className="text-sm text-muted-foreground">72%</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Electronic</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={65} className="w-20 h-2" />
+                    <span className="text-sm text-muted-foreground">65%</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Folk</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={78} className="w-20 h-2" />
+                    <span className="text-sm text-muted-foreground">78%</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Monthly Trends */}
+            <Card className="p-4 bg-card border-border">
+              <h4 className="font-semibold text-foreground mb-4">Monthly Trends</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Revenue growth</span>
+                  <span className="text-green-400">+18% vs last month</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Event count</span>
+                  <span className="text-blue-400">+5 new events</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Artist applications</span>
+                  <span className="text-yellow-400">+23% increase</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Average rating</span>
+                  <span className="text-foreground">4.7/5.0</span>
+                </div>
+              </div>
+            </Card>
+          </div>
           
           <Card className="p-4 bg-card border-border">
             <h3 className="font-semibold text-foreground mb-4">Manage Door Persons</h3>
