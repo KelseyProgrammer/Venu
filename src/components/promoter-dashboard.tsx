@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin } from "lucide-react"
+import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 
@@ -20,6 +20,36 @@ export function PromoterDashboard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  
+  // Schedule tab subcategory state
+  const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
+  
+  // Filter state for schedule views
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands"
+  
+  // Calendar state
+  const [currentDate, setCurrentDate] = useState(new Date())
+  
+  // Unavailable dates state (dates when venues are closed or unavailable)
+  const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('promoter-unavailable-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (e) {
+          // Failed to parse saved unavailable dates, using defaults
+        }
+      }
+    }
+    // Default unavailable dates for current month
+    return [
+      "2024-12-05",
+      "2024-12-12", 
+      "2024-12-19"
+    ]
+  })
   
   // Form state
   const [eventName, setEventName] = useState("")
@@ -103,60 +133,74 @@ export function PromoterDashboard() {
   ], [])
 
   // Memoized mock data for upcoming events across all locations
-  const upcomingEvents = useMemo(() => [
-    {
-      id: 1,
-      artist: "The Midnight Keys",
-      location: "The Blue Note",
-      date: "Sat, Oct 12",
-      time: "8 PM doors",
-      genre: "Jazz",
-      ticketsSold: 50,
-      totalTickets: 75,
-      status: "live",
-      revenue: "$600",
-      image: "/images/venu-logo.png",
-    },
-    {
-      id: 2,
-      artist: "Electric Pulse",
-      location: "Electric Factory",
-      date: "Fri, Oct 18",
-      time: "9 PM",
-      genre: "Electronic",
-      ticketsSold: 0,
-      totalTickets: 100,
-      status: "posted",
-      revenue: "$0",
-      image: "/images/venu-logo.png",
-    },
-    {
-      id: 3,
-      artist: "Acoustic Souls",
-      location: "The Basement",
-      date: "Thu, Oct 3",
-      time: "7 PM",
-      genre: "Folk",
-      ticketsSold: 45,
-      totalTickets: 60,
-      status: "completed",
-      revenue: "$350",
-      image: "/images/venu-logo.png",
-    },
-    {
-      id: 4,
-      artist: "Luna & The Waves",
-      location: "The Blue Note",
-      date: "Sun, Oct 20",
-      time: "7:30 PM",
-      genre: "Indie Rock",
-      ticketsSold: 12,
-      totalTickets: 80,
-      status: "posted",
-      revenue: "$120",
-      image: "/images/venu-logo.png",
-    },
-  ], [])
+  const upcomingEvents = useMemo(() => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    
+    return [
+      {
+        id: 1,
+        artist: "The Midnight Keys",
+        location: "The Blue Note",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
+        time: "8 PM doors",
+        genre: "Jazz",
+        ticketsSold: 50,
+        totalTickets: 75,
+        status: "live",
+        revenue: "$600",
+        image: "/images/venu-logo.png",
+        expectedBands: 3,
+        confirmedBands: 3,
+      },
+      {
+        id: 2,
+        artist: "Electric Pulse",
+        location: "Electric Factory",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-22`,
+        time: "9 PM",
+        genre: "Electronic",
+        ticketsSold: 0,
+        totalTickets: 100,
+        status: "posted",
+        revenue: "$0",
+        image: "/images/venu-logo.png",
+        expectedBands: 4,
+        confirmedBands: 2,
+      },
+      {
+        id: 3,
+        artist: "Acoustic Souls",
+        location: "The Basement",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-08`,
+        time: "7 PM",
+        genre: "Folk",
+        ticketsSold: 45,
+        totalTickets: 60,
+        status: "completed",
+        revenue: "$350",
+        image: "/images/venu-logo.png",
+        expectedBands: 2,
+        confirmedBands: 2,
+      },
+      {
+        id: 4,
+        artist: "Luna & The Waves",
+        location: "The Blue Note",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-28`,
+        time: "7:30 PM",
+        genre: "Indie Rock",
+        ticketsSold: 12,
+        totalTickets: 80,
+        status: "posted",
+        revenue: "$120",
+        image: "/images/venu-logo.png",
+        expectedBands: 3,
+        confirmedBands: 1,
+      },
+    ];
+  }, [])
 
   // Memoized mock data for artist applications across all locations
   const artistApplications = useMemo(() => [
@@ -198,16 +242,89 @@ export function PromoterDashboard() {
     },
   ], [])
 
-  // Memoized filter events based on selected location and search query
+  // Mock data for local artists in Discover tab
+  const localArtists = useMemo(() => [
+    {
+      id: "local1",
+      artist: "The Blue Notes",
+      genre: "Jazz",
+      rating: 4.7,
+      followers: "3.2K",
+      bio: "Local jazz ensemble specializing in smooth jazz and contemporary arrangements. Regular performers at downtown venues.",
+      image: "/images/BandFallBack.PNG",
+      location: "Downtown",
+      priceRange: "$200-400",
+      availability: "Available this month",
+      instagram: "@thebluenotesjazz",
+      spotify: "https://open.spotify.com/artist/thebluenotes",
+      appleMusic: "https://music.apple.com/artist/the-blue-notes/123456789",
+    },
+    {
+      id: "local2",
+      artist: "Urban Beats",
+      genre: "Hip-Hop",
+      rating: 4.5,
+      followers: "5.1K",
+      bio: "Dynamic hip-hop collective bringing fresh beats and powerful lyrics. Known for high-energy performances.",
+      image: "/images/BandFallBack.PNG",
+      location: "Midtown",
+      priceRange: "$300-500",
+      availability: "Available next week",
+      instagram: "@urbanbeatscrew",
+      spotify: "https://open.spotify.com/artist/urbanbeats",
+      appleMusic: "https://music.apple.com/artist/urban-beats/987654321",
+    },
+    {
+      id: "local3",
+      artist: "Acoustic Soul",
+      genre: "Folk",
+      rating: 4.8,
+      followers: "2.8K",
+      bio: "Intimate folk duo with haunting harmonies and storytelling lyrics. Perfect for intimate venue settings.",
+      image: "/images/BandFallBack.PNG",
+      location: "Westside",
+      priceRange: "$150-300",
+      availability: "Available this month",
+      instagram: "@acousticsoulmusic",
+      spotify: "https://open.spotify.com/artist/acousticsoul",
+      appleMusic: "https://music.apple.com/artist/acoustic-soul/456789123",
+    },
+    {
+      id: "local4",
+      artist: "Electric Dreams",
+      genre: "Electronic",
+      rating: 4.6,
+      followers: "4.2K",
+      bio: "Ambient electronic music with live instrumentation. Creates immersive soundscapes for modern venues.",
+      image: "/images/BandFallBack.PNG",
+      location: "Eastside",
+      priceRange: "$250-450",
+      availability: "Available next month",
+      instagram: "@electricdreamsband",
+      spotify: "https://open.spotify.com/artist/electricdreams",
+      appleMusic: "https://music.apple.com/artist/electric-dreams/789123456",
+    },
+  ], [])
+
+  // Memoized filter events based on selected location, search query, and schedule filter
   const filteredEvents = useMemo(() => {
-    return upcomingEvents.filter(event => {
+    let events = upcomingEvents.filter(event => {
       const locationMatch = selectedLocation === "all" || event.location === myLocations.find(v => v.id === selectedLocation)?.name
       const searchMatch = event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          event.genre.toLowerCase().includes(searchQuery.toLowerCase())
       return locationMatch && searchMatch
     })
-  }, [upcomingEvents, selectedLocation, searchQuery, myLocations])
+
+    // Apply schedule filter
+    if (scheduleFilter === "complete") {
+      events = events.filter(event => event.status === "completed" || event.status === "live")
+    } else if (scheduleFilter === "needs-bands") {
+      events = events.filter(event => event.status === "posted" && event.ticketsSold === 0)
+    }
+
+    return events
+  }, [upcomingEvents, selectedLocation, searchQuery, myLocations, scheduleFilter])
 
   // Memoized filter applications based on selected location and search query
   const filteredApplications = useMemo(() => {
@@ -245,11 +362,11 @@ export function PromoterDashboard() {
           text: text,
           checked: false
         }
-        setRequirements([...requirements, newRequirement])
+        setRequirements(prevRequirements => [...prevRequirements, newRequirement])
         setRequirementsInput("")
       }
     }
-  }, [requirementsInput, requirements])
+  }, [requirementsInput])
 
   const toggleRequirement = useCallback((id: string) => {
     setRequirements(prevRequirements => 
@@ -273,17 +390,21 @@ export function PromoterDashboard() {
         percentage: bandPercentage.trim(),
         email: bandEmail.trim()
       }
-      const updatedBands = [...bands, newBand]
-      // Sort bands by time
-      updatedBands.sort((a, b) => a.setTime.localeCompare(b.setTime))
-      setBands(updatedBands)
+      
+      // Use functional update to prevent stale closure issues
+      setBands(prevBands => {
+        const updatedBands = [...prevBands, newBand]
+        return updatedBands.sort((a, b) => a.setTime.localeCompare(b.setTime))
+      })
+      
+      // Reset form fields
       setBandName("")
       setBandGenre("")
       setBandSetTime("")
       setBandPercentage("")
       setBandEmail("")
     }
-  }, [bandName, bandGenre, bandSetTime, bandPercentage, bandEmail, bands])
+  }, [bandName, bandGenre, bandSetTime, bandPercentage, bandEmail])
 
   const removeBand = useCallback((id: string) => {
     setBands(prevBands => prevBands.filter(band => band.id !== id))
@@ -348,6 +469,48 @@ export function PromoterDashboard() {
     resetForm()
     setShowPostGig(false)
   }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedLocationForGig, numberOfBands, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
+
+  // Calendar navigation functions
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() - 1)
+      return newDate
+    })
+  }, [])
+
+  const goToNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() + 1)
+      return newDate
+    })
+  }, [])
+
+  const goToToday = useCallback(() => {
+    setCurrentDate(new Date())
+  }, [])
+
+  // Toggle date availability
+  const toggleDateAvailability = useCallback((dateString: string) => {
+    setUnavailableDates(prevDates => {
+      let newDates: string[]
+      if (prevDates.includes(dateString)) {
+        // Remove from unavailable dates (make available)
+        newDates = prevDates.filter(date => date !== dateString)
+      } else {
+        // Add to unavailable dates (make unavailable)
+        newDates = [...prevDates, dateString]
+      }
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
+      }
+      
+      return newDates
+    })
+  }, [])
 
   if (showPostGig) {
     return (
@@ -1090,29 +1253,47 @@ export function PromoterDashboard() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
+        <TabsList className="w-full grid grid-cols-6 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="overview"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
+            <BarChart3 className="h-4 w-4" />
             Overview
           </TabsTrigger>
           <TabsTrigger
-            value="events"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            value="discover"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
-            My Events
+            <Search className="h-4 w-4" />
+            Discover
+          </TabsTrigger>
+          <TabsTrigger
+            value="schedule"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Schedule
           </TabsTrigger>
           <TabsTrigger
             value="applications"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
+            <FileText className="h-4 w-4" />
             Applications
           </TabsTrigger>
           <TabsTrigger
-            value="more"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            value="chat"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
+            <MessageCircle className="h-4 w-4" />
+            Chat
+          </TabsTrigger>
+          <TabsTrigger
+            value="more"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
+          >
+            <MoreHorizontal className="h-4 w-4" />
             More
           </TabsTrigger>
         </TabsList>
@@ -1261,97 +1442,554 @@ export function PromoterDashboard() {
           </div>
         </TabsContent>
 
-        {/* Events Tab */}
-        <TabsContent value="events" className="p-4 space-y-4">
+        {/* Discover Tab */}
+        <TabsContent value="discover" className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-xl">All Events</h2>
+            <h2 className="font-serif font-bold text-xl">Discover Local Artists</h2>
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select>
-                <SelectTrigger className="w-32 bg-background">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Events</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
-                  <SelectItem value="posted">Posted</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search artists..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 bg-input border-border text-foreground"
+              />
+              <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600">
+                <Filter className="w-4 h-4 mr-1" />
+                Filter
+              </Button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {filteredEvents.map((event) => {
-              const progress = (event.ticketsSold / event.totalTickets) * 100
-
-              return (
-                <Card key={event.id} className="p-4 bg-card border-border">
-                  <div className="flex gap-4">
-                    <Image
-                      src={event.image}
-                      alt={event.artist}
-                      width={80}
-                      height={80}
-                      className="rounded-lg object-cover w-20 h-20"
-                    />
-
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{event.artist}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Building2 className="w-4 h-4" />
-                            {event.location}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            {event.date} - {event.time}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge
-                            variant={
-                              event.status === "live" ? "default" : event.status === "completed" ? "secondary" : "outline"
-                            }
-                            className={
-                              event.status === "live" ? "bg-green-600" : event.status === "posted" ? "bg-primary" : ""
-                            }
-                          >
-                            {event.status}
+          <div className="grid gap-4">
+            {localArtists.map((artist) => (
+              <Card key={artist.id} className="p-4 bg-card border-border">
+                <div className="flex items-start gap-4">
+                  <Image
+                    src={artist.image || "/images/BandFallBack.PNG"}
+                    alt={artist.artist}
+                    width={80}
+                    height={80}
+                    className="rounded-lg object-cover"
+                  />
+                  
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{artist.artist}</h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">
+                            {artist.genre}
                           </Badge>
-                          <div className="text-sm text-green-400 font-medium mt-1">
-                            {event.revenue}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Ticket Sales Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Ticket Sales</span>
-                          <span className="text-foreground font-medium">
-                            {event.ticketsSold}/{event.totalTickets}
+                          <span className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm text-foreground">{artist.rating}</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm text-foreground">{artist.location}</span>
                           </span>
                         </div>
-                        <Progress value={progress} className="h-2" />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs">
-                          {event.genre}
-                        </Badge>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Details
-                        </Button>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {artist.followers}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4" />
+                        {artist.priceRange}
+                      </span>
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                        {artist.availability}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground line-clamp-2">{artist.bio}</p>
+
+                    {/* Social Media Links */}
+                    <div className="flex items-center gap-4 pt-2 pb-2">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Instagram className="w-4 h-4" />
+                        <a 
+                          href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-600 hover:text-purple-700 hover:underline"
+                        >
+                          {artist.instagram}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Music className="w-4 h-4" />
+                        <div className="flex gap-2">
+                          <a 
+                            href={artist.spotify}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-700 hover:underline"
+                          >
+                            Spotify
+                          </a>
+                          <span className="text-muted-foreground">•</span>
+                          <a 
+                            href={artist.appleMusic}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white hover:text-gray-200 hover:underline"
+                          >
+                            Apple Music
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                        View Details
+                      </Button>
+                      <Button variant="default" size="sm" className="w-20 bg-purple-600 hover:bg-purple-700 text-white">
+                        Book
+                      </Button>
+                    </div>
                   </div>
-                </Card>
-              )
-            })}
+                </div>
+              </Card>
+            ))}
           </div>
+        </TabsContent>
+
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">Schedule</h2>
+          </div>
+
+          {/* Schedule Subcategory Navigation */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={scheduleSubcategory === "list" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleSubcategory("list")}
+              className={`whitespace-nowrap ${scheduleSubcategory === "list" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              <BarChart3 className="w-4 h-4 mr-1" />
+              List View
+            </Button>
+            <Button 
+              variant={scheduleSubcategory === "calendar" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleSubcategory("calendar")}
+              className={`whitespace-nowrap ${scheduleSubcategory === "calendar" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              <Calendar className="w-4 h-4 mr-1" />
+              Calendar View
+            </Button>
+          </div>
+
+          {/* Filter Buttons */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={scheduleFilter === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("all")}
+              className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              All Events
+            </Button>
+            <Button 
+              variant={scheduleFilter === "complete" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("complete")}
+              className={`whitespace-nowrap ${scheduleFilter === "complete" ? "bg-green-600 hover:bg-green-700 text-white" : "border-green-200 text-green-700 hover:bg-green-50"}`}
+            >
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              Complete
+            </Button>
+            <Button 
+              variant={scheduleFilter === "needs-bands" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("needs-bands")}
+              className={`whitespace-nowrap ${scheduleFilter === "needs-bands" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "border-yellow-200 text-yellow-700 hover:bg-yellow-50"}`}
+            >
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+              Needs Bands
+            </Button>
+          </div>
+
+          {/* List View Subcategory */}
+          {scheduleSubcategory === "list" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-foreground">My Events</h3>
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredEvents.length} of {upcomingEvents.length} events
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {filteredEvents.map((event) => {
+                  const progress = (event.ticketsSold / event.totalTickets) * 100
+                  const isComplete = event.status === "completed" || event.status === "live"
+                  const needsBands = event.status === "posted" && event.ticketsSold === 0
+
+                  return (
+                    <Card key={event.id} className="p-4 bg-card border-border">
+                      <div className="flex gap-4">
+                        <Image
+                          src={event.image}
+                          alt={event.artist}
+                          width={80}
+                          height={80}
+                          className="rounded-lg object-cover w-20 h-20"
+                        />
+
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold text-foreground">{event.artist}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Building2 className="w-4 h-4" />
+                                {event.location}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="w-4 h-4" />
+                                {event.date} - {event.time}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge
+                                variant={
+                                  event.status === "live" ? "default" : event.status === "completed" ? "secondary" : "outline"
+                                }
+                                className={
+                                  event.status === "live" ? "bg-green-600" : event.status === "posted" ? "bg-primary" : ""
+                                }
+                              >
+                                {event.status}
+                              </Badge>
+                              <div className="text-sm text-green-400 font-medium mt-1">
+                                {event.revenue}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Ticket Sales Progress */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Ticket Sales</span>
+                              <span className="text-foreground font-medium">
+                                {event.ticketsSold}/{event.totalTickets}
+                              </span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                              {event.genre}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Calendar View Subcategory */}
+          {scheduleSubcategory === "calendar" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-foreground">Calendar View</h3>
+                <div className="text-sm text-muted-foreground">
+                  {scheduleFilter === "unavailable" 
+                    ? `Showing ${unavailableDates.length} unavailable dates`
+                    : scheduleFilter === "available"
+                    ? `Showing available dates`
+                    : scheduleFilter === "all"
+                    ? `Showing all dates (available and unavailable)`
+                    : `Showing ${filteredEvents.length} of ${upcomingEvents.length} events`
+                  }
+                </div>
+              </div>
+
+              {/* Calendar-specific filters */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <Button 
+                  variant={scheduleFilter === "all" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setScheduleFilter("all")}
+                  className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+                >
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
+                  All Dates
+                </Button>
+                <Button 
+                  variant={scheduleFilter === "unavailable" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setScheduleFilter("unavailable")}
+                  className={`whitespace-nowrap ${scheduleFilter === "unavailable" ? "bg-red-600 hover:bg-red-700 text-white" : "border-red-200 text-red-700 hover:bg-red-50"}`}
+                >
+                  <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                  Unavailable
+                </Button>
+                <Button 
+                  variant={scheduleFilter === "available" ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setScheduleFilter("available")}
+                  className={`whitespace-nowrap ${scheduleFilter === "available" ? "bg-gray-600 hover:bg-gray-700 text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                >
+                  <div className="w-2 h-2 bg-gray-500 rounded-full mr-1"></div>
+                  Available
+                </Button>
+              </div>
+
+              {/* Calendar Grid */}
+              <Card className="p-6 bg-card border-border">
+                {/* Navigation Controls */}
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToPreviousMonth} 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                  >
+                    <ArrowLeft className="w-6 h-6" />
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToToday}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium min-h-[48px] touch-manipulation"
+                  >
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Today
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToNextMonth} 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                  >
+                    <ArrowRight className="w-6 h-6" />
+                  </Button>
+                </div>
+                
+                {/* Month/Year Header */}
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Events from {selectedLocation === "all" ? "all locations" : myLocations.find(v => v.id === selectedLocation)?.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click on available dates to mark them as unavailable
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Generate calendar days for current month */}
+                  {Array.from({ length: 35 }, (_, i) => {
+                    const day = i - 3; // Start from previous month to fill first week
+                    const today = new Date();
+                    const currentMonth = currentDate.getMonth();
+                    const currentYear = currentDate.getFullYear();
+                    
+                    // Check if this date has an event (considering filter)
+                    const eventOnDate = filteredEvents.find(event => {
+                      const eventDate = new Date(event.date);
+                      return eventDate.getDate() === day && 
+                             eventDate.getMonth() === currentMonth && 
+                             eventDate.getFullYear() === currentYear;
+                    });
+                    
+                    // Check if date is unavailable
+                    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isUnavailable = unavailableDates.includes(dateString);
+                    
+                    // Check if date is in the past
+                    const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+                    
+                    // Check if date is today
+                    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                    
+                    // Check if date is in current month
+                    const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
+                    
+                    // Determine if event needs more bands
+                    const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
+                    
+                    // For unavailable filter, only show unavailable days
+                    if (scheduleFilter === "unavailable" && !isUnavailable) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    // For available filter, only show available days (no events, not unavailable, not past)
+                    if (scheduleFilter === "available" && (eventOnDate || isUnavailable || isPast)) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    if (!isCurrentMonth) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    return (
+                      <div 
+                        key={i} 
+                        onClick={() => {
+                          // Only allow toggling availability for future dates that don't have events
+                          if (!isPast && !eventOnDate) {
+                            toggleDateAvailability(dateString)
+                          }
+                        }}
+                        className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
+                          !isPast && !eventOnDate 
+                            ? 'cursor-pointer hover:shadow-md' 
+                            : 'cursor-default'
+                        } ${
+                          isToday 
+                            ? 'bg-purple-600 border-purple-600 shadow-md' 
+                            : isUnavailable
+                            ? scheduleFilter === "unavailable"
+                              ? 'bg-red-50 border-red-300 shadow-md' 
+                              : 'bg-white border-red-200'
+                            : eventOnDate && needsMoreBands
+                            ? 'bg-white border-yellow-200'
+                            : eventOnDate
+                            ? 'bg-white border-green-200' 
+                            : isPast 
+                            ? 'bg-white border-muted' 
+                            : 'bg-white border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className={`text-sm font-medium mb-1 relative z-10 ${
+                          isToday 
+                            ? 'text-white' 
+                            : isUnavailable
+                            ? scheduleFilter === "unavailable"
+                              ? 'text-red-700 font-bold'
+                              : 'text-red-600'
+                            : eventOnDate && needsMoreBands
+                            ? 'text-yellow-600'
+                            : eventOnDate 
+                            ? 'text-green-600' 
+                            : isPast 
+                            ? 'text-muted-foreground' 
+                            : 'text-gray-900 font-semibold'
+                        }`}>
+                          {day}
+                        </div>
+                        
+                        {eventOnDate && (
+                          <div className="space-y-1">
+                            {filteredEvents
+                              .filter(event => {
+                                const eventDate = new Date(event.date);
+                                return eventDate.getDate() === day && 
+                                       eventDate.getMonth() === currentMonth && 
+                                       eventDate.getFullYear() === currentYear;
+                              })
+                              .map((event, index) => (
+                                <div 
+                                  key={event.id} 
+                                  className={`text-xs p-1 rounded ${
+                                    needsMoreBands
+                                      ? 'bg-yellow-200 text-yellow-800' 
+                                      : 'bg-green-200 text-green-800'
+                                  }`}
+                                >
+                                  <div className="font-medium">{event.artist}</div>
+                                  <div className="text-xs text-muted-foreground">{event.location}</div>
+                                  {needsMoreBands && (
+                                    <div className="text-xs font-bold mt-0.5">
+                                      Need {event.expectedBands - event.confirmedBands} more
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                        
+                        {!eventOnDate && !isPast && !isUnavailable && (
+                          <div className={`text-xs mt-1 font-medium ${
+                            isToday ? 'text-white' : 'text-gray-600'
+                          }`}>
+                            Available
+                          </div>
+                        )}
+                        
+                        {!eventOnDate && !isPast && isUnavailable && (
+                          <div className={`text-xs mt-2 font-medium ${
+                            isToday 
+                              ? 'text-white'
+                              : scheduleFilter === "unavailable"
+                              ? 'text-red-700 font-bold'
+                              : 'text-red-600'
+                          }`}>
+                            Unavailable
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Legend */}
+              <Card className="p-4 bg-card border-border">
+                <div className="mb-3">
+                  <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Click on available dates (white with gray border) to toggle availability
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-purple-300 rounded"></div>
+                    <span className="text-purple-600 font-medium">Today</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-200 rounded"></div>
+                    <span className="text-green-600 font-medium">Complete</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+                    <span className="text-yellow-600 font-medium">Bands Still Needed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-200 rounded"></div>
+                    <span className="text-red-600 font-medium">Date Unavailable</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                    <span className="text-muted-foreground">Past</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                    <span className="text-black font-medium">Available (Clickable)</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
         </TabsContent>
 
         {/* Applications Tab */}
@@ -1430,7 +2068,157 @@ export function PromoterDashboard() {
           </div>
         </TabsContent>
 
+        {/* Chat Tab */}
+        <TabsContent value="chat" className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                {selectedLocation === "all" ? "All Venues" : myLocations.find(v => v.id === selectedLocation)?.name}
+              </Badge>
+            </div>
+          </div>
 
+          {/* Chat Messages */}
+          <div className="space-y-4">
+            <Card className="p-4 bg-card border-border">
+              <div className="space-y-4">
+                {selectedLocation === "all" ? (
+                  <div className="text-center py-8">
+                    <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="font-semibold text-foreground mb-2">Select a Venue</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Choose a specific venue from the location filter to view venue-specific chat messages.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Sample Chat Messages */}
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">JD</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-foreground">John Doe</span>
+                            <span className="text-xs text-muted-foreground">2 hours ago</span>
+                          </div>
+                          <div className="bg-muted/30 rounded-lg p-3">
+                            <p className="text-sm text-foreground">
+                              Hey! Just wanted to confirm the sound check time for tomorrow's jazz night. 
+                              Can we get in at 6 PM?
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 justify-end">
+                        <div className="flex-1 max-w-xs">
+                          <div className="flex items-center gap-2 mb-1 justify-end">
+                            <span className="text-xs text-muted-foreground">1 hour ago</span>
+                            <span className="text-sm font-medium text-foreground">You</span>
+                          </div>
+                          <div className="bg-purple-600 text-white rounded-lg p-3">
+                            <p className="text-sm">
+                              Absolutely! 6 PM works perfectly. The sound system will be ready and tested by then.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-white">P</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">SM</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-foreground">Sarah Manager</span>
+                            <span className="text-xs text-muted-foreground">30 minutes ago</span>
+                          </div>
+                          <div className="bg-muted/30 rounded-lg p-3">
+                            <p className="text-sm text-foreground">
+                              Thanks for the quick response! Also, we have a new artist interested in 
+                              playing next month. Should I send you their demo?
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message Input */}
+                    <div className="border-t border-border pt-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Type your message..."
+                          className="flex-1 bg-background"
+                        />
+                        <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {/* Recent Conversations */}
+            {selectedLocation !== "all" && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Recent Conversations</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      id: 1,
+                      name: "The Blue Note Team",
+                      lastMessage: "Sound check confirmed for 6 PM",
+                      time: "2 hours ago",
+                      unread: 0,
+                    },
+                    {
+                      id: 2,
+                      name: "Electric Factory Staff",
+                      lastMessage: "New artist demo ready for review",
+                      time: "1 day ago",
+                      unread: 2,
+                    },
+                    {
+                      id: 3,
+                      name: "The Basement Crew",
+                      lastMessage: "Equipment list updated",
+                      time: "3 days ago",
+                      unread: 0,
+                    },
+                  ].map((conversation) => (
+                    <Card key={conversation.id} className="p-4 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-foreground">{conversation.name}</h4>
+                            {conversation.unread > 0 && (
+                              <Badge variant="default" className="bg-purple-600 text-white text-xs">
+                                {conversation.unread}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-1">{conversation.lastMessage}</p>
+                          <span className="text-xs text-muted-foreground">{conversation.time}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
 
         {/* More Tab */}
         <TabsContent value="more" className="p-4 space-y-6">
