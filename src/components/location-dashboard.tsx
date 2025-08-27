@@ -40,7 +40,7 @@ export function LocationDashboard() {
         try {
           return JSON.parse(saved)
         } catch (e) {
-          console.warn('Failed to parse saved unavailable dates, using defaults')
+          // Failed to parse saved unavailable dates, using defaults
         }
       }
     }
@@ -1615,6 +1615,8 @@ export function LocationDashboard() {
                       ? `Showing ${unavailableDates.length} unavailable dates`
                       : scheduleFilter === "available"
                       ? `Showing available dates`
+                      : scheduleFilter === "all"
+                      ? `Showing all dates (available and unavailable)`
                       : `Showing ${filteredEvents.length} of ${myEvents.length} events`
                     }
                   </div>
@@ -1622,6 +1624,15 @@ export function LocationDashboard() {
 
                 {/* Calendar-specific filters */}
                 <div className="flex gap-2 overflow-x-auto pb-2">
+                  <Button 
+                    variant={scheduleFilter === "all" ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => setScheduleFilter("all")}
+                    className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+                  >
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
+                    All Dates
+                  </Button>
                   <Button 
                     variant={scheduleFilter === "unavailable" ? "default" : "outline"} 
                     size="sm"
@@ -1752,7 +1763,7 @@ export function LocationDashboard() {
                               : 'cursor-default'
                           } ${
                             isToday 
-                              ? 'bg-white border-purple-300 shadow-md' 
+                              ? 'bg-purple-600 border-purple-600 shadow-md' 
                               : isUnavailable
                               ? scheduleFilter === "unavailable"
                                 ? 'bg-red-50 border-red-300 shadow-md' 
@@ -1766,9 +1777,9 @@ export function LocationDashboard() {
                               : 'bg-white border-border hover:border-primary/50'
                           }`}
                         >
-                          <div className={`text-sm font-medium mb-1 ${
+                          <div className={`text-sm font-medium mb-1 relative z-10 ${
                             isToday 
-                              ? 'text-purple-600' 
+                              ? 'text-white' 
                               : isUnavailable
                               ? scheduleFilter === "unavailable"
                                 ? 'text-red-700 font-bold'
@@ -1779,7 +1790,7 @@ export function LocationDashboard() {
                               ? 'text-green-600' 
                               : isPast 
                               ? 'text-muted-foreground' 
-                              : 'text-foreground'
+                              : 'text-gray-900 font-semibold'
                           }`}>
                             {day}
                           </div>
@@ -1814,14 +1825,18 @@ export function LocationDashboard() {
                           )}
                           
                           {!eventOnDate && !isPast && !isUnavailable && (
-                            <div className="text-xs text-black mt-2 font-medium">
+                            <div className={`text-xs mt-1 font-medium ${
+                              isToday ? 'text-white' : 'text-gray-600'
+                            }`}>
                               Available
                             </div>
                           )}
                           
                           {!eventOnDate && !isPast && isUnavailable && (
                             <div className={`text-xs mt-2 font-medium ${
-                              scheduleFilter === "unavailable"
+                              isToday 
+                                ? 'text-white'
+                                : scheduleFilter === "unavailable"
                                 ? 'text-red-700 font-bold'
                                 : 'text-red-600'
                             }`}>

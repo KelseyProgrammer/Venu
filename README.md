@@ -313,14 +313,15 @@ The location dashboard features a comprehensive calendar system for venue manage
 
 #### **Smart Filtering**
 - **List View Filters**: Event-focused filters for managing bookings and applications
-- **Calendar View Filters**: Includes date availability filters (Available, Unavailable) in addition to event filters
+- **Calendar View Filters**: Includes date availability filters (All Dates, Available, Unavailable) in addition to event filters
 - **Filter Logic**: 
+  - **All Dates Filter**: Shows both available and unavailable dates with clear visual distinction
   - **Available Filter**: Shows only free dates (no events, not unavailable, not past)
   - **Unavailable Filter**: Shows only blocked dates with enhanced styling
   - **Event Filters**: Filter by completion status and band requirements
 
 #### **Visual States**
-- **Today**: Purple border with shadow for current date
+- **Today**: Purple square background with white text (matches "Today" button styling)
 - **Available**: White background with gray border, "Available" text in black
 - **Unavailable**: White background with red border, "Unavailable" text in red
 - **Events (Complete)**: White background with green border
@@ -331,6 +332,9 @@ The location dashboard features a comprehensive calendar system for venue manage
 - **Bands Progress**: Yellow event days display exact number of bands still needed
 - **Legend System**: Solid colored squares showing all calendar day states
 - **Month Navigation**: Previous/Next month buttons with "Today" quick navigation
+- **Today Integration**: Current day uses purple square background with white text to match "Today" button
+- **All Dates Filter**: Comprehensive filter showing both available and unavailable dates
+- **Enhanced Visibility**: Improved day number visibility with better contrast and positioning
 - **Responsive Design**: Calendar adapts to different screen sizes with proper touch targets
 - **Real-time Updates**: Changes are immediately reflected across all views
 
@@ -427,13 +431,15 @@ The location dashboard features a comprehensive calendar system for venue manage
 ### Current Development Status
 - **Location Dashboard**: ✅ Fully functional with gig posting capabilities and comprehensive calendar system
 - **Calendar System**: ✅ Complete calendar functionality with availability management and filtering
-- **Performance Optimizations**: ✅ All major improvements implemented
-- **Button Styling**: ✅ Purple variant with white font compliance
-- **Mobile Development**: ✅ Capacitor integration ready
-- **Code Quality**: ✅ Shared constants and helper functions implemented
+- **Calendar Enhancements**: ✅ All Dates filter, Today integration, and enhanced visibility implemented
+- **Performance Optimizations**: ✅ All major improvements implemented and production-ready
+- **Button Styling**: ✅ Purple variant with white font compliance across all components
+- **Mobile Development**: ✅ Capacitor integration ready for cross-platform deployment
+- **Code Quality**: ✅ Shared constants, helper functions, and clean code practices implemented
 - **Data Persistence**: ✅ localStorage integration for calendar availability changes
 - **Shared Constants System**: ✅ Centralized form options and helper functions in `src/lib/constants.ts`
 - **Code Organization**: ✅ Eliminated duplication with shared TIME_OPTIONS and GENRE_OPTIONS
+- **Production Readiness**: ✅ Console statements removed, optimized performance, clean code structure
 
 ## 📚 Learn More
 
