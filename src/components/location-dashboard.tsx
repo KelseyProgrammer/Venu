@@ -6,11 +6,12 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music } from "lucide-react"
+import { Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, BarChart3, Clock, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 
@@ -1302,11 +1303,27 @@ export function LocationDashboard() {
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           {/* Main Tabs */}
-          <TabsList className="grid w-full grid-cols-4 bg-muted">
-            <TabsTrigger value="discover" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Discover</TabsTrigger>
-            <TabsTrigger value="schedule" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Schedule</TabsTrigger>
-            <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">Applications</TabsTrigger>
-            <TabsTrigger value="more" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground">More</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 bg-muted">
+            <TabsTrigger value="discover" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Discover
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Schedule
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Applications
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="more" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
+              <MoreHorizontal className="h-4 w-4" />
+              More
+            </TabsTrigger>
           </TabsList>
 
           {/* Discover Tab */}
@@ -1947,6 +1964,92 @@ export function LocationDashboard() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-muted-foreground">Connected users only</span>
+              </div>
+            </div>
+
+            {/* Chat Messages */}
+            <Card className="h-96 overflow-hidden">
+              <div className="h-full flex flex-col">
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {/* Sample messages - will be replaced with real chat data */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      V
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">Venue Manager</span>
+                        <span className="text-xs text-muted-foreground">2:30 PM</span>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                        Welcome to the venue chat! Only connected users can participate in this conversation.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 justify-end">
+                    <div className="flex-1 max-w-xs">
+                      <div className="flex items-center gap-2 mb-1 justify-end">
+                        <span className="text-xs text-muted-foreground">2:32 PM</span>
+                        <span className="font-medium text-sm">You</span>
+                      </div>
+                      <div className="bg-purple-600 text-white rounded-lg p-3 text-sm">
+                        Thanks! Looking forward to connecting with other venue staff.
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      Y
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      D
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">Door Staff</span>
+                        <span className="text-xs text-muted-foreground">2:35 PM</span>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                        Ready for tonight's event! Everything looks good on our end.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message Input */}
+                <div className="border-t border-border p-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Type your message..."
+                      className="flex-1"
+                      disabled
+                    />
+                    <Button 
+                      variant="default" 
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      disabled
+                    >
+                      Send
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Chat feature coming soon with Socket.io integration
+                  </p>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           {/* More Tab */}
