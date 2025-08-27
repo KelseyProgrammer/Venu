@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,15 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin } from "lucide-react"
 import Image from "next/image"
-
-// Step configuration
-const GIG_STEPS = [
-  { id: 1, title: "Event Details", description: "Basic event information" },
-  { id: 2, title: "Lineup", description: "Bands and scheduling" },
-  { id: 3, title: "Payout", description: "Financial structure" },
-  { id: 4, title: "Staff & Requirements", description: "Team and artist needs" },
-  { id: 5, title: "Review", description: "Final review and publish" }
-]
+import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -58,8 +50,29 @@ export function PromoterDashboard() {
   const [newDoorPersonName, setNewDoorPersonName] = useState("")
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
 
-  // Mock data for locations the promoter works with
-  const myLocations = [
+  // Memoized calculations
+  const bandsTotal = useMemo(() => 
+    bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0), 
+    [bands]
+  )
+
+  const canProceedToNextStep = useMemo(() => {
+    switch (currentStep) {
+      case 1:
+        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig && numberOfBands.trim()
+      case 2:
+        return bands.length > 0
+      case 3:
+        return guarantee.trim() && bandsTotal <= 100
+      case 4:
+        return true // Optional step
+      default:
+        return true
+    }
+  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedLocationForGig, numberOfBands, bands, guarantee, bandsTotal])
+
+  // Memoized mock data for locations the promoter works with
+  const myLocations = useMemo(() => [
     {
       id: "location1",
       name: "The Blue Note",
@@ -87,10 +100,10 @@ export function PromoterDashboard() {
       revenue: "$6.8K",
       image: "/images/venu-logo.png",
     },
-  ]
+  ], [])
 
-  // Mock data for upcoming events across all locations
-  const upcomingEvents = [
+  // Memoized mock data for upcoming events across all locations
+  const upcomingEvents = useMemo(() => [
     {
       id: 1,
       artist: "The Midnight Keys",
@@ -143,10 +156,10 @@ export function PromoterDashboard() {
       revenue: "$120",
       image: "/images/venu-logo.png",
     },
-  ]
+  ], [])
 
-  // Mock data for artist applications across all locations
-  const artistApplications = [
+  // Memoized mock data for artist applications across all locations
+  const artistApplications = useMemo(() => [
     {
       id: 1,
       artist: "Luna & The Waves",
@@ -183,25 +196,29 @@ export function PromoterDashboard() {
       status: "pending",
       image: "/images/venu-logo.png",
     },
-  ]
+  ], [])
 
-  // Filter events based on selected location and search query
-  const filteredEvents = upcomingEvents.filter(event => {
-    const locationMatch = selectedLocation === "all" || event.location === myLocations.find(v => v.id === selectedLocation)?.name
-    const searchMatch = event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       event.genre.toLowerCase().includes(searchQuery.toLowerCase())
-    return locationMatch && searchMatch
-  })
+  // Memoized filter events based on selected location and search query
+  const filteredEvents = useMemo(() => {
+    return upcomingEvents.filter(event => {
+      const locationMatch = selectedLocation === "all" || event.location === myLocations.find(v => v.id === selectedLocation)?.name
+      const searchMatch = event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         event.genre.toLowerCase().includes(searchQuery.toLowerCase())
+      return locationMatch && searchMatch
+    })
+  }, [upcomingEvents, selectedLocation, searchQuery, myLocations])
 
-  // Filter applications based on selected location and search query
-  const filteredApplications = artistApplications.filter(app => {
-    const locationMatch = selectedLocation === "all" || app.location === myLocations.find(v => v.id === selectedLocation)?.name
-    const searchMatch = app.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       app.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       app.genre.toLowerCase().includes(searchQuery.toLowerCase())
-    return locationMatch && searchMatch
-  })
+  // Memoized filter applications based on selected location and search query
+  const filteredApplications = useMemo(() => {
+    return artistApplications.filter(app => {
+      const locationMatch = selectedLocation === "all" || app.location === myLocations.find(v => v.id === selectedLocation)?.name
+      const searchMatch = app.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         app.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         app.genre.toLowerCase().includes(searchQuery.toLowerCase())
+      return locationMatch && searchMatch
+    })
+  }, [artistApplications, selectedLocation, searchQuery, myLocations])
 
   // Filter locations based on selected location
   const filteredLocations = selectedLocation === "all" 
@@ -218,7 +235,7 @@ export function PromoterDashboard() {
     ? artistApplications 
     : artistApplications.filter(app => app.location === myLocations.find(v => v.id === selectedLocation)?.name)
 
-  const handleRequirementsKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleRequirementsKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       const text = requirementsInput.trim()
@@ -232,19 +249,21 @@ export function PromoterDashboard() {
         setRequirementsInput("")
       }
     }
-  }
+  }, [requirementsInput, requirements])
 
-  const toggleRequirement = (id: string) => {
-    setRequirements(requirements.map(req => 
-      req.id === id ? { ...req, checked: !req.checked } : req
-    ))
-  }
+  const toggleRequirement = useCallback((id: string) => {
+    setRequirements(prevRequirements => 
+      prevRequirements.map(req => 
+        req.id === id ? { ...req, checked: !req.checked } : req
+      )
+    )
+  }, [])
 
-  const removeRequirement = (id: string) => {
-    setRequirements(requirements.filter(req => req.id !== id))
-  }
+  const removeRequirement = useCallback((id: string) => {
+    setRequirements(prevRequirements => prevRequirements.filter(req => req.id !== id))
+  }, [])
 
-  const addBand = () => {
+  const addBand = useCallback(() => {
     if (bandName.trim() && bandGenre.trim() && bandSetTime.trim() && bandPercentage.trim() && bandEmail.trim()) {
       const newBand = {
         id: Date.now().toString(),
@@ -264,14 +283,14 @@ export function PromoterDashboard() {
       setBandPercentage("")
       setBandEmail("")
     }
-  }
+  }, [bandName, bandGenre, bandSetTime, bandPercentage, bandEmail, bands])
 
-  const removeBand = (id: string) => {
-    setBands(bands.filter(band => band.id !== id))
-  }
+  const removeBand = useCallback((id: string) => {
+    setBands(prevBands => prevBands.filter(band => band.id !== id))
+  }, [])
 
   // Door person management functions
-  const addDoorPerson = () => {
+  const addDoorPerson = useCallback(() => {
     if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
       const newDoorPerson = {
         id: Date.now().toString(),
@@ -282,62 +301,36 @@ export function PromoterDashboard() {
       setNewDoorPersonName("")
       setNewDoorPersonEmail("")
     }
-  }
+  }, [newDoorPersonName, newDoorPersonEmail])
 
-  const removeDoorPerson = (id: string) => {
+  const removeDoorPerson = useCallback((id: string) => {
     setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
-  }
+  }, [])
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     if (currentStep < GIG_STEPS.length) {
       setCurrentStep(currentStep + 1)
     }
-  }
+  }, [currentStep])
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
-  }
+  }, [currentStep])
 
-  const canProceedToNext = () => {
-    switch (currentStep) {
-      case 1:
-        const step1Valid = eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig && numberOfBands.trim()
-        console.log('Step 1 validation:', {
-          eventName: eventName.trim(),
-          eventDate,
-          eventTime,
-          eventGenre,
-          ticketCapacity: ticketCapacity.trim(),
-          selectedLocationForGig,
-          numberOfBands: numberOfBands.trim(),
-          isValid: step1Valid
-        })
-        return step1Valid
-      case 2:
-        const step2Valid = bands.length > 0
-        console.log('Step 2 validation:', { bandsLength: bands.length, isValid: step2Valid })
-        return step2Valid
-      case 3:
-        const step3Valid = guarantee.trim() && bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0) <= 100
-        console.log('Step 3 validation:', { guarantee, bandsTotal: bands.reduce((sum, band) => sum + (parseFloat(band.percentage) || 0), 0), isValid: step3Valid })
-        return step3Valid
-      case 4:
-        return true // Optional step
-      default:
-        return true
-    }
-  }
+  const canProceedToNext = useCallback(() => {
+    return canProceedToNextStep
+  }, [canProceedToNextStep])
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setCurrentStep(1)
     setEventName("")
     setEventDate("")
     setEventTime("")
     setEventGenre("")
     setTicketCapacity("")
-            setSelectedLocationForGig("")
+    setSelectedLocationForGig("")
     setNumberOfBands("")
     setSelectedDoorPerson("")
     setDoorPersonEmail("")
@@ -345,32 +338,16 @@ export function PromoterDashboard() {
     setBands([])
     setGuarantee("")
     setBandEmail("")
-  }
+  }, [])
 
-  const handlePublish = () => {
+  const handlePublish = useCallback(() => {
     // Here you would typically send the data to your backend
-    console.log("Publishing gig:", {
-      eventName,
-      eventDate,
-      eventTime,
-      eventGenre,
-      ticketCapacity,
-              selectedLocationForGig,
-      numberOfBands,
-      selectedDoorPerson,
-      doorPersonEmail,
-      requirements,
-      bands: bands.map(band => ({
-        ...band,
-        email: band.email
-      })),
-      guarantee
-    })
+    // Data would be sent to backend API here
     
     // Reset and close
     resetForm()
     setShowPostGig(false)
-  }
+  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedLocationForGig, numberOfBands, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
 
   if (showPostGig) {
     return (

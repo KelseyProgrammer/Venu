@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,8 +18,8 @@ export function FanDashboard() {
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<number>>(new Set())
 
-  // Mock events data
-  const allEvents = [
+  // Memoized mock events data
+  const allEvents = useMemo(() => [
     {
       id: 1,
       artist: "Uncle Marty",
@@ -100,9 +100,9 @@ export function FanDashboard() {
       image: "/images/SARBEZ.jpg",
       tags: ["Blues", "Riverfront", "Sunset"],
     },
-  ]
+  ], [])
 
-  const myTickets = [
+  const myTickets = useMemo(() => [
     {
       id: 1,
       artist: "The Midnight Keys",
@@ -127,23 +127,27 @@ export function FanDashboard() {
       qrCode: "ticket-456",
       image: "/images/SARBEZ.jpg",
     },
-  ]
+  ], [])
 
-  const toggleFavorite = (eventId: number) => {
-    const newFavorites = new Set(favoriteEvents)
-    if (newFavorites.has(eventId)) {
-      newFavorites.delete(eventId)
-    } else {
-      newFavorites.add(eventId)
-    }
-    setFavoriteEvents(newFavorites)
-  }
+  const toggleFavorite = useCallback((eventId: number) => {
+    setFavoriteEvents(prevFavorites => {
+      const newFavorites = new Set(prevFavorites)
+      if (newFavorites.has(eventId)) {
+        newFavorites.delete(eventId)
+      } else {
+        newFavorites.add(eventId)
+      }
+      return newFavorites
+    })
+  }, [])
 
-  const filteredEvents = allEvents.filter(event =>
-    event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            getLocationDisplayName(event.location).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.genre.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredEvents = useMemo(() => {
+    return allEvents.filter(event =>
+      event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getLocationDisplayName(event.location).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.genre.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [allEvents, searchQuery])
 
   if (showTicketPurchase && selectedEvent) {
     const event = allEvents.find(e => e.id.toString() === selectedEvent)

@@ -12,49 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
-
-// Step configuration
-const GIG_STEPS = [
-  { id: 1, title: "Event Details", description: "Basic event information" },
-  { id: 2, title: "Lineup", description: "Bands and scheduling" },
-  { id: 3, title: "Payout", description: "Financial structure" },
-  { id: 4, title: "Staff & Requirements", description: "Team and artist needs" },
-  { id: 5, title: "Review", description: "Final review and publish" }
-]
-
-// Shared data constants
-const TIME_OPTIONS = [
-  { value: "19:00", label: "7:00 PM - Doors Open" },
-  { value: "19:30", label: "7:30 PM - First Act" },
-  { value: "20:00", label: "8:00 PM" },
-  { value: "20:30", label: "8:30 PM" },
-  { value: "21:00", label: "9:00 PM" },
-  { value: "21:30", label: "9:30 PM" },
-  { value: "22:00", label: "10:00 PM" },
-  { value: "22:30", label: "10:30 PM" },
-  { value: "23:00", label: "11:00 PM" },
-  { value: "23:30", label: "11:30 PM" },
-  { value: "00:00", label: "12:00 AM" },
-  { value: "00:30", label: "12:30 AM" },
-  { value: "01:00", label: "1:00 AM" },
-  { value: "01:30", label: "1:30 AM" }
-]
-
-const GENRE_OPTIONS = [
-  { value: "jazz", label: "Jazz" },
-  { value: "rock", label: "Rock" },
-  { value: "electronic", label: "Electronic" },
-  { value: "folk", label: "Folk" },
-  { value: "blues", label: "Blues" },
-  { value: "pop", label: "Pop" },
-  { value: "hip-hop", label: "Hip-Hop" },
-  { value: "country", label: "Country" }
-]
-
-// Helper function to get time label
-const getTimeLabel = (timeValue: string): string => {
-  return TIME_OPTIONS.find(option => option.value === timeValue)?.label || timeValue
-}
+import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 
 export function LocationDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -513,25 +471,7 @@ export function LocationDashboard() {
 
   const handlePublish = useCallback(() => {
     // Here you would typically send the data to your backend
-    console.log("Publishing gig:", {
-      eventName,
-      eventDate,
-      eventTime,
-      eventGenre,
-      ticketCapacity,
-      numberOfBands,
-      selectedPromoter,
-      promoterEmail,
-      promoterPercentage,
-      selectedDoorPerson,
-      doorPersonEmail,
-      requirements,
-      bands: bands.map(band => ({
-        ...band,
-        email: band.email
-      })),
-      guarantee
-    })
+    // Data would be sent to backend API here
     
     // Reset and close
     resetForm()

@@ -160,6 +160,7 @@ VENU/
 │   └── lib/                      # Utility functions and shared data
 │       ├── types.ts              # TypeScript type definitions
 │       ├── location-data.ts      # Standardized venue information
+│       ├── constants.ts          # Shared form options and helper functions
 │       └── utils.ts              # Helper functions and utilities
 ├── frontend/                     # Mobile app configuration
 │   ├── android/                  # Android-specific files
@@ -250,6 +251,41 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 ```
 
+## 🔧 Shared Constants System
+
+### Centralized Form Options
+VENU uses a centralized constants system in `src/lib/constants.ts` to ensure consistency across all dashboards:
+
+```typescript
+// Time options for all time pickers
+export const TIME_OPTIONS = [
+  { value: "19:00", label: "7:00 PM - Doors Open" },
+  { value: "19:30", label: "7:30 PM - First Act" },
+  { value: "20:00", label: "8:00 PM" },
+  // ... more options
+]
+
+// Genre options for all genre selectors
+export const GENRE_OPTIONS = [
+  { value: "jazz", label: "Jazz" },
+  { value: "rock", label: "Rock" },
+  { value: "electronic", label: "Electronic" },
+  // ... more options
+]
+
+// Helper function for consistent time display
+export const getTimeLabel = (timeValue: string): string => {
+  return TIME_OPTIONS.find(option => option.value === timeValue)?.label || timeValue
+}
+```
+
+### Benefits
+- **Consistency**: Same options and labels across all dashboards
+- **Maintainability**: Update options in one place
+- **Performance**: Memoized constants prevent recreation
+- **Type Safety**: Centralized type definitions
+- **Code Quality**: Eliminates duplication and hardcoded values
+
 ## 📊 Core Business Logic
 
 The platform manages comprehensive event lifecycle data:
@@ -319,10 +355,11 @@ The location dashboard features a comprehensive calendar system for venue manage
 - **Memoized Mock Data**: Static data arrays are memoized to prevent recreation
 
 ### Code Quality
-- **Eliminated Duplication**: Shared constants for repeated options (TIME_OPTIONS, GENRE_OPTIONS)
-- **Simplified Logic**: Complex conditionals replaced with helper functions
+- **Eliminated Duplication**: Shared constants for repeated options (TIME_OPTIONS, GENRE_OPTIONS) in `src/lib/constants.ts`
+- **Simplified Logic**: Complex conditionals replaced with helper functions like `getTimeLabel()`
 - **Consistent Patterns**: Uniform approach applied across all similar functionality
 - **Type Safety**: Full TypeScript coverage with strict mode enabled
+- **Centralized Configuration**: All form options and step configurations in one place
 
 ### Bundle Optimization
 - **Next.js Optimization**: Built-in code splitting and image optimization
@@ -335,6 +372,8 @@ The location dashboard features a comprehensive calendar system for venue manage
 - **Form Validation**: Memoized validation logic for faster user interactions
 - **State Management**: Optimized with proper dependency arrays and functional updates
 - **Code Reuse**: Extracted shared constants and helper functions for maintainability
+- **Constants System**: Centralized form options in `src/lib/constants.ts` for consistency and performance
+- **Helper Functions**: `getTimeLabel()` and similar utilities for consistent data display
 
 ## 🎯 Key Workflows
 
@@ -393,6 +432,8 @@ The location dashboard features a comprehensive calendar system for venue manage
 - **Mobile Development**: ✅ Capacitor integration ready
 - **Code Quality**: ✅ Shared constants and helper functions implemented
 - **Data Persistence**: ✅ localStorage integration for calendar availability changes
+- **Shared Constants System**: ✅ Centralized form options and helper functions in `src/lib/constants.ts`
+- **Code Organization**: ✅ Eliminated duplication with shared TIME_OPTIONS and GENRE_OPTIONS
 
 ## 📚 Learn More
 

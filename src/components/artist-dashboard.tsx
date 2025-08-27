@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,7 +20,7 @@ export function ArtistDashboard() {
   const goalAmount = 300
   const progressPercentage = (totalEarnings / goalAmount) * 100
 
-  const mockGigs = [
+  const mockGigs = useMemo(() => [
     {
       id: 1,
       location: "muggys", // Use standardized location key
@@ -72,9 +72,9 @@ export function ArtistDashboard() {
       requirements: ["Acoustic preferred", "PA system"],
       image: "/images/Alfreds.jpg",
     },
-  ]
+  ], [])
 
-  const myBookings = [
+  const myBookings = useMemo(() => [
     {
       id: 1,
       location: "muggys", // Use standardized location key
@@ -97,16 +97,16 @@ export function ArtistDashboard() {
       earnings: 350,
       image: "/images/SARBEZ.jpg",
     },
-  ]
+  ], [])
 
-  const calculateProgress = (sold: number, total: number) => (sold / total) * 100
+  const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
-  const getCurrentTier = (gig: (typeof mockGigs)[0]) => {
+  const getCurrentTier = useCallback((gig: (typeof mockGigs)[0]) => {
     if (gig.ticketsSold >= gig.tier3.threshold) return { ...gig.tier3, name: "Tier 3" }
     if (gig.ticketsSold >= gig.tier2.threshold) return { ...gig.tier2, name: "Tier 2" }
     if (gig.ticketsSold >= gig.tier1.threshold) return { ...gig.tier1, name: "Tier 1" }
     return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
-  }
+  }, [])
 
   if (selectedGig) {
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)

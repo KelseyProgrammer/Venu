@@ -13,8 +13,8 @@ export function SplashScreen() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log("Video autoplay failed:", error)
+      videoRef.current.play().catch(() => {
+        // Video autoplay failed, continue with normal flow
       })
       
       // Listen for video end to show logo
