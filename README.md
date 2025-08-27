@@ -1,6 +1,6 @@
 # VENU - Live Music Venue Booking Platform
 
-A comprehensive platform for managing live music events, connecting artists, promoters, venues, and fans. Built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui with mobile support via Capacitor.
+A comprehensive platform for managing live music events, connecting artists, promoters, venues, and fans. Built with Next.js 14, TypeScript, Tailwind CSS, and shadcn/ui for modern web development.
 
 ## 🎵 What is VENU?
 
@@ -81,32 +81,37 @@ npm run dev
 4. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
 
-### Mobile Development Setup
+### Web Development Setup
 
-For mobile app development with Capacitor:
+For web application development:
 
-1. **Install Capacitor CLI:**
-```bash
-npm install -g @capacitor/cli
-```
-
-2. **Build the web app:**
+1. **Build the web app:**
 ```bash
 npm run build
 ```
 
-3. **Add mobile platforms:**
+2. **Start production server:**
 ```bash
-npx cap add android
-npx cap add ios
+npm run start
 ```
 
-4. **Sync and run:**
-```bash
-npx cap sync
-npx cap run android  # For Android
-npx cap run ios      # For iOS
-```
+### 🌐 Web Development Strategy
+
+**Current Status**: VENU is built as a modern web application using Next.js 14 with responsive design for optimal cross-device compatibility.
+
+#### Web-First Approach
+- **Responsive Design**: Mobile-first approach with progressive enhancement
+- **Cross-Device Compatibility**: Works seamlessly across desktop, tablet, and mobile browsers
+- **Modern Web Standards**: Built with latest web technologies and best practices
+- **Performance Optimized**: Fast loading and smooth user experience
+
+#### Development Benefits
+- **Single Codebase**: One codebase for all devices and screen sizes
+- **Better Performance**: Optimized for web with no mobile framework overhead
+- **Easier Maintenance**: Simpler debugging and development workflow
+- **Future Flexibility**: Can easily add PWA features or native app wrappers if needed
+
+
 
 ## 📱 Available Scripts
 
@@ -116,12 +121,10 @@ npx cap run ios      # For iOS
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint for code quality checks
 
-### Mobile Development
-- `npx cap sync` - Sync web assets to mobile platforms
-- `npx cap run android` - Run on Android device/emulator
-- `npx cap run ios` - Run on iOS device/simulator
-- `npx cap build android` - Build Android APK
-- `npx cap build ios` - Build iOS app
+### Web Development
+- Modern web application with responsive design
+- Cross-device compatibility with mobile-first approach
+- Progressive Web App capabilities for enhanced mobile experience
 
 ## 🏗️ Project Structure
 
@@ -162,10 +165,11 @@ VENU/
 │       ├── location-data.ts      # Standardized venue information
 │       ├── constants.ts          # Shared form options and helper functions
 │       └── utils.ts              # Helper functions and utilities
-├── frontend/                     # Mobile app configuration
-│   ├── android/                  # Android-specific files
-│   ├── ios/                      # iOS-specific files
-│   └── capacitor.config.ts       # Capacitor configuration
+├── frontend/                     # Web application
+│   ├── src/                      # Source code
+│   ├── public/                   # Static assets
+│   ├── next.config.ts            # Next.js configuration
+│   └── package.json              # Dependencies
 ├── backend/                      # Backend API (Node.js/Express)
 │   ├── src/
 │   │   ├── routes/              # API route handlers
@@ -214,11 +218,11 @@ VENU/
 - **Date Handling**: date-fns for date manipulation
 - **Charts**: Recharts for data visualization
 
-### Mobile Development
-- **Framework**: Capacitor for cross-platform mobile apps
-- **Platforms**: Android and iOS support
-- **Build Tools**: Android Studio and Xcode integration
-- **Native Features**: Camera, file system, and device APIs
+### Web Development
+- **Framework**: Next.js 14 with App Router
+- **Platforms**: Web browsers with responsive design
+- **Build Tools**: Next.js built-in bundler with optimization
+- **Web Features**: PWA capabilities, offline support, and modern web APIs
 
 ### Backend
 - **Runtime**: Node.js with Express.js
@@ -393,23 +397,23 @@ The location dashboard features a comprehensive calendar system for venue manage
 
 ## 📱 Mobile Support
 
-### Cross-Platform Development
-- **Capacitor Integration**: Native mobile app development for Android and iOS
-- **Shared Codebase**: Single codebase for web and mobile applications
-- **Native Features**: Access to device APIs (camera, file system, notifications)
-- **Performance**: Optimized for mobile devices with efficient rendering
+### Responsive Web Design
+- **Mobile-First Approach**: Optimized for mobile devices with progressive enhancement
+- **Cross-Device Compatibility**: Seamless experience across desktop, tablet, and mobile
+- **Touch-Optimized UI**: Large touch targets and gesture support for mobile users
+- **Performance**: Optimized for mobile networks and devices
 
 ### Mobile-Specific Features
-- **Door Scanner App**: Dedicated mobile interface for door staff
-- **Touch-Optimized UI**: Large touch targets and gesture support
+- **Door Scanner Interface**: Mobile-optimized interface for door staff
+- **Touch-Friendly Navigation**: Intuitive mobile navigation and interactions
 - **Offline Capability**: Basic functionality available without internet connection
-- **Push Notifications**: Real-time updates for events and bookings
+- **PWA Features**: Progressive Web App capabilities for enhanced mobile experience
 
 ### Development Workflow
 - **Hot Reload**: Instant updates during development
-- **Device Testing**: Live testing on physical devices and simulators
-- **App Store Ready**: Configured for both Google Play Store and Apple App Store
-- **Responsive Design**: Seamless experience across all screen sizes
+- **Responsive Testing**: Test across different screen sizes and devices
+- **Browser Testing**: Test in mobile browsers and responsive design mode
+- **Performance Optimization**: Optimized for mobile networks and devices
 
 ## 🚀 Development Guidelines
 
@@ -441,7 +445,7 @@ The location dashboard features a comprehensive calendar system for venue manage
 - **Calendar Enhancements**: ✅ All Dates filter, Today integration, and enhanced visibility implemented
 - **Performance Optimizations**: ✅ All major improvements implemented and production-ready
 - **Button Styling**: ✅ Purple variant with white font compliance across all components
-- **Mobile Development**: ✅ Capacitor integration ready for cross-platform deployment
+- **Mobile Development**: ✅ Responsive web design with mobile-first approach
 - **Code Quality**: ✅ Shared constants, helper functions, and clean code practices implemented
 - **Data Persistence**: ✅ localStorage integration for calendar availability changes
 - **Shared Constants System**: ✅ Centralized form options and helper functions in `src/lib/constants.ts`
@@ -455,7 +459,7 @@ The location dashboard features a comprehensive calendar system for venue manage
 - [Next.js Documentation](https://nextjs.org/docs) - Framework documentation
 - [shadcn/ui Documentation](https://ui.shadcn.com/) - UI component library
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Styling framework
-- [Capacitor Documentation](https://capacitorjs.com/docs) - Mobile development
+- [Progressive Web Apps](https://web.dev/progressive-web-apps/) - PWA development
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/) - Type system
 
 ### Community Resources
@@ -481,4 +485,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with [Next.js](https://nextjs.org/) and [React](https://react.dev/)
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - Icons by [Lucide](https://lucide.dev/)
-- Mobile development with [Capacitor](https://capacitorjs.com/) 
+- Mobile development with [Expo](https://expo.dev/) 
