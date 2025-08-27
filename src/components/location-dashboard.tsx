@@ -67,8 +67,34 @@ export function LocationDashboard() {
   // Schedule tab subcategory state
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   
+  // Filter state for schedule views
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
+  
   // More tab subcategory state
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
+  
+  // Unavailable dates state (dates when venue is closed or unavailable)
+  const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('venue-unavailable-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (e) {
+          console.warn('Failed to parse saved unavailable dates, using defaults')
+        }
+      }
+    }
+    // Default unavailable dates for current month
+    return [
+      "2024-12-05",
+      "2024-12-12", 
+      "2024-12-19"
+    ]
+  })
+
+
   
   // Saved promoters state
   const [savedPromoters, setSavedPromoters] = useState<Array<{ id: string; name: string; email: string; payoutPercentage: string }>>([])
@@ -163,50 +189,102 @@ export function LocationDashboard() {
     },
   ], [])
 
-  const myEvents = useMemo(() => [
-    {
-      id: 1,
-      artist: "The Midnight Keys",
-      date: "2024-10-12",
-      time: "8 PM doors",
-      genre: "Jazz",
-      ticketsSold: 50,
-      totalTickets: 75,
-      guarantee: 400,
-      currentEarnings: 600,
-      status: "live",
-      applications: 3,
-      image: "",
-    },
-    {
-      id: 2,
-      artist: "Electric Pulse",
-      date: "2024-10-18",
-      time: "9 PM",
-      genre: "Electronic",
-      ticketsSold: 0,
-      totalTickets: 100,
-      guarantee: 300,
-      currentEarnings: 0,
-      status: "posted",
-      applications: 7,
-      image: "",
-    },
-    {
-      id: 3,
-      artist: "Acoustic Souls",
-      date: "2024-10-03",
-      time: "7 PM",
-      genre: "Folk",
-      ticketsSold: 45,
-      totalTickets: 60,
-      guarantee: 250,
-      currentEarnings: 350,
-      status: "completed",
-      applications: 0,
-      image: "",
-    },
-  ], [])
+  const myEvents = useMemo(() => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    
+    return [
+      {
+        id: 1,
+        artist: "The Midnight Keys",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
+        time: "8 PM doors",
+        genre: "Jazz",
+        ticketsSold: 50,
+        totalTickets: 75,
+        guarantee: 400,
+        currentEarnings: 600,
+        status: "live",
+        applications: 3,
+        image: "",
+        expectedBands: 3,
+        confirmedBands: 3,
+      },
+      {
+        id: 2,
+        artist: "Electric Pulse",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-22`,
+        time: "9 PM",
+        genre: "Electronic",
+        ticketsSold: 0,
+        totalTickets: 100,
+        guarantee: 300,
+        currentEarnings: 0,
+        status: "posted",
+        applications: 7,
+        image: "",
+        expectedBands: 4,
+        confirmedBands: 2,
+      },
+      {
+        id: 3,
+        artist: "Acoustic Souls",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-08`,
+        time: "7 PM",
+        genre: "Folk",
+        ticketsSold: 45,
+        totalTickets: 60,
+        guarantee: 250,
+        currentEarnings: 350,
+        status: "completed",
+        applications: 0,
+        image: "",
+        expectedBands: 2,
+        confirmedBands: 2,
+      },
+      {
+        id: 4,
+        artist: "Rock Nation",
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-28`,
+        time: "8 PM",
+        genre: "Rock",
+        ticketsSold: 0,
+        totalTickets: 80,
+        guarantee: 500,
+        currentEarnings: 0,
+        status: "posted",
+        applications: 2,
+        image: "",
+        expectedBands: 3,
+        confirmedBands: 1,
+      },
+    ];
+  }, [])
+
+  // Filter events based on selected filter
+  const filteredEvents = useMemo(() => {
+    if (scheduleFilter === "all") return myEvents;
+    
+    return myEvents.filter(event => {
+      switch (scheduleFilter) {
+        case "complete":
+          return event.expectedBands <= event.confirmedBands;
+        case "needs-bands":
+          return event.expectedBands > event.confirmedBands;
+        case "unavailable":
+          // For unavailable filter, we don't filter events - we show all events
+          // The calendar will handle showing unavailable dates separately
+          return true;
+        case "available":
+          // For available filter, we don't filter events - we show all events
+          // The calendar will handle showing available dates separately
+          return true;
+        default:
+          return true;
+      }
+    });
+  }, [myEvents, scheduleFilter, unavailableDates])
 
   // Mock data for artist applications
   const artistApplications = useMemo(() => [
@@ -476,6 +554,27 @@ export function LocationDashboard() {
       const newDate = new Date(prevDate)
       newDate.setMonth(newDate.getMonth() + 1)
       return newDate
+    })
+  }, [])
+
+  // Toggle date availability
+  const toggleDateAvailability = useCallback((dateString: string) => {
+    setUnavailableDates(prevDates => {
+      let newDates: string[]
+      if (prevDates.includes(dateString)) {
+        // Remove from unavailable dates (make available)
+        newDates = prevDates.filter(date => date !== dateString)
+      } else {
+        // Add to unavailable dates (make unavailable)
+        newDates = [...prevDates, dateString]
+      }
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
+      }
+      
+      return newDates
     })
   }, [])
 
@@ -801,6 +900,14 @@ export function LocationDashboard() {
                           {bands.length} {bands.length === 1 ? 'band' : 'bands'}
                         </Badge>
                       </div>
+                      {parseInt(numberOfBands) > bands.length && (
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                          <span className="text-sm text-muted-foreground">Bands still needed:</span>
+                          <Badge variant="destructive" className="bg-orange-100 text-orange-700 border-orange-200">
+                            {parseInt(numberOfBands) - bands.length} {parseInt(numberOfBands) - bands.length === 1 ? 'band' : 'bands'}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="mt-2 space-y-3">
@@ -1161,6 +1268,14 @@ export function LocationDashboard() {
                     <span className="text-muted-foreground">Bands:</span>
                     <span className="text-foreground font-medium">{bands.length} artists</span>
                   </div>
+                  {numberOfBands && parseInt(numberOfBands) > bands.length && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Bands still needed:</span>
+                      <span className="text-orange-600 font-medium">
+                        {parseInt(numberOfBands) - bands.length} {parseInt(numberOfBands) - bands.length === 1 ? 'band' : 'bands'}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guarantee:</span>
                     <span className="text-foreground font-medium">${guarantee || 0}</span>
@@ -1348,7 +1463,7 @@ export function LocationDashboard() {
                               href={artist.appleMusic}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-red-600 hover:text-red-700 hover:underline"
+                              className="text-white hover:text-gray-200 hover:underline"
                             >
                               Apple Music
                             </a>
@@ -1399,14 +1514,72 @@ export function LocationDashboard() {
               </Button>
             </div>
 
+            {/* Filter Navigation */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button 
+                variant={scheduleFilter === "all" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setScheduleFilter("all")}
+                className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+              >
+                All Events
+              </Button>
+              <Button 
+                variant={scheduleFilter === "complete" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setScheduleFilter("complete")}
+                className={`whitespace-nowrap ${scheduleFilter === "complete" ? "bg-green-600 hover:bg-green-700 text-white" : "border-green-200 text-green-700 hover:bg-green-50"}`}
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                Complete
+              </Button>
+              <Button 
+                variant={scheduleFilter === "needs-bands" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setScheduleFilter("needs-bands")}
+                className={`whitespace-nowrap ${scheduleFilter === "needs-bands" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "border-yellow-200 text-yellow-700 hover:bg-yellow-50"}`}
+              >
+                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                Needs Bands
+              </Button>
+            </div>
+
             {/* List View Subcategory */}
             {scheduleSubcategory === "list" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg text-foreground">My Events</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg text-foreground">My Events</h3>
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredEvents.length} of {myEvents.length} events
+                  </div>
+                </div>
+
+                {/* Color Key Legend for List View */}
+                <Card className="p-4 bg-card border-border">
+                  <h4 className="font-medium text-foreground mb-3">Event Status Legend</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      </div>
+                      <span className="text-muted-foreground">Lineup Complete</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      </div>
+                      <span className="text-muted-foreground">Bands Still Needed</span>
+                    </div>
+                  </div>
+                </Card>
 
                 <div className="grid gap-4">
-                  {myEvents.map((event) => (
-                    <Card key={event.id} className="p-4 bg-card border-border">
+                  {filteredEvents.map((event) => (
+                    <Card key={event.id} className={`p-4 bg-card ${
+                      event.expectedBands > event.confirmedBands 
+                        ? 'border-yellow-200 border-2' 
+                        : 'border-green-200 border-2'
+                    }`}>
                       <div className="flex items-start gap-4">
                         <Image
                           src={event.image || "/images/BandFallBack.PNG"}
@@ -1438,6 +1611,21 @@ export function LocationDashboard() {
                             >
                               {event.status}
                             </Badge>
+                          </div>
+
+                          {/* Status Indicator */}
+                          <div className="flex items-center gap-2 mb-3">
+                            {event.expectedBands > event.confirmedBands ? (
+                              <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                Bands Still Needed ({event.confirmedBands}/{event.expectedBands})
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                Lineup Complete ({event.confirmedBands}/{event.expectedBands})
+                              </div>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1480,34 +1668,79 @@ export function LocationDashboard() {
             {/* Calendar View Subcategory */}
             {scheduleSubcategory === "calendar" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg text-foreground">Calendar View</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg text-foreground">Calendar View</h3>
+                  <div className="text-sm text-muted-foreground">
+                    {scheduleFilter === "unavailable" 
+                      ? `Showing ${unavailableDates.length} unavailable dates`
+                      : scheduleFilter === "available"
+                      ? `Showing available dates`
+                      : `Showing ${filteredEvents.length} of ${myEvents.length} events`
+                    }
+                  </div>
+                </div>
+
+                {/* Calendar-specific filters */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  <Button 
+                    variant={scheduleFilter === "unavailable" ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => setScheduleFilter("unavailable")}
+                    className={`whitespace-nowrap ${scheduleFilter === "unavailable" ? "bg-red-600 hover:bg-red-700 text-white" : "border-red-200 text-red-700 hover:bg-red-50"}`}
+                  >
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                    Unavailable
+                  </Button>
+                  <Button 
+                    variant={scheduleFilter === "available" ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => setScheduleFilter("available")}
+                    className={`whitespace-nowrap ${scheduleFilter === "available" ? "bg-gray-600 hover:bg-gray-700 text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                  >
+                    <div className="w-2 h-2 bg-gray-500 rounded-full mr-1"></div>
+                    Available
+                  </Button>
+                </div>
 
                 {/* Calendar Grid */}
                 <Card className="p-6 bg-card border-border">
                   {/* Navigation Controls */}
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Button variant="outline" size="sm" onClick={goToPreviousMonth} className="text-xs">
-                      <ArrowLeft className="w-4 h-4" />
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <Button 
+                      variant="default" 
+                      size="lg" 
+                      onClick={goToPreviousMonth} 
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                    >
+                      <ArrowLeft className="w-6 h-6" />
                     </Button>
                     <Button 
                       variant="default" 
                       size="lg" 
                       onClick={goToToday}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium"
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium min-h-[48px] touch-manipulation"
                     >
                       <Calendar className="w-5 h-5 mr-2" />
                       Today
                     </Button>
-                    <Button variant="outline" size="sm" onClick={goToNextMonth} className="text-xs">
-                      <ArrowRight className="w-4 h-4" />
+                    <Button 
+                      variant="default" 
+                      size="lg" 
+                      onClick={goToNextMonth} 
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                    >
+                      <ArrowRight className="w-6 h-6" />
                     </Button>
                   </div>
                   
                   {/* Month/Year Header */}
-                  <div className="text-center mb-6">
+                  <div className="text-center mb-4">
                     <h3 className="text-xl font-semibold text-foreground">
                       {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Click on available dates to mark them as unavailable
+                    </p>
                   </div>
                   
                   <div className="grid grid-cols-7 gap-1 mb-4">
@@ -1526,13 +1759,17 @@ export function LocationDashboard() {
                       const currentMonth = currentDate.getMonth();
                       const currentYear = currentDate.getFullYear();
                       
-                      // Check if this date has an event
-                      const hasEvent = myEvents.some(event => {
+                      // Check if this date has an event (considering filter)
+                      const eventOnDate = filteredEvents.find(event => {
                         const eventDate = new Date(event.date);
                         return eventDate.getDate() === day && 
                                eventDate.getMonth() === currentMonth && 
                                eventDate.getFullYear() === currentYear;
                       });
+                      
+                      // Check if date is unavailable
+                      const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const isUnavailable = unavailableDates.includes(dateString);
                       
                       // Check if date is in the past
                       const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
@@ -1543,6 +1780,19 @@ export function LocationDashboard() {
                       // Check if date is in current month
                       const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
                       
+                      // Determine if event needs more bands
+                      const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
+                      
+                      // For unavailable filter, only show unavailable days
+                      if (scheduleFilter === "unavailable" && !isUnavailable) {
+                        return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                      }
+                      
+                      // For available filter, only show available days (no events, not unavailable, not past)
+                      if (scheduleFilter === "available" && (eventOnDate || isUnavailable || isPast)) {
+                        return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                      }
+                      
                       if (!isCurrentMonth) {
                         return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
                       }
@@ -1550,21 +1800,43 @@ export function LocationDashboard() {
                       return (
                         <div 
                           key={i} 
-                          className={`h-20 p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md ${
+                          onClick={() => {
+                            // Only allow toggling availability for future dates that don't have events
+                            if (!isPast && !eventOnDate) {
+                              toggleDateAvailability(dateString)
+                            }
+                          }}
+                          className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
+                            !isPast && !eventOnDate 
+                              ? 'cursor-pointer hover:shadow-md' 
+                              : 'cursor-default'
+                          } ${
                             isToday 
-                              ? 'bg-purple-100 border-purple-300 shadow-md' 
-                              : hasEvent 
-                              ? 'bg-green-50 border-green-200' 
+                              ? 'bg-white border-purple-300 shadow-md' 
+                              : isUnavailable
+                              ? scheduleFilter === "unavailable"
+                                ? 'bg-red-50 border-red-300 shadow-md' 
+                                : 'bg-white border-red-200'
+                              : eventOnDate && needsMoreBands
+                              ? 'bg-white border-yellow-200'
+                              : eventOnDate
+                              ? 'bg-white border-green-200' 
                               : isPast 
-                              ? 'bg-muted/30 border-muted' 
-                              : 'bg-background border-border hover:border-primary/50'
+                              ? 'bg-white border-muted' 
+                              : 'bg-white border-border hover:border-primary/50'
                           }`}
                         >
                           <div className={`text-sm font-medium mb-1 ${
                             isToday 
-                              ? 'text-purple-700' 
-                              : hasEvent 
-                              ? 'text-green-700' 
+                              ? 'text-purple-600' 
+                              : isUnavailable
+                              ? scheduleFilter === "unavailable"
+                                ? 'text-red-700 font-bold'
+                                : 'text-red-600'
+                              : eventOnDate && needsMoreBands
+                              ? 'text-yellow-600'
+                              : eventOnDate 
+                              ? 'text-green-600' 
                               : isPast 
                               ? 'text-muted-foreground' 
                               : 'text-foreground'
@@ -1572,9 +1844,9 @@ export function LocationDashboard() {
                             {day}
                           </div>
                           
-                          {hasEvent && (
+                          {eventOnDate && (
                             <div className="space-y-1">
-                              {myEvents
+                              {filteredEvents
                                 .filter(event => {
                                   const eventDate = new Date(event.date);
                                   return eventDate.getDate() === day && 
@@ -1585,24 +1857,39 @@ export function LocationDashboard() {
                                   <div 
                                     key={event.id} 
                                     className={`text-xs p-1 rounded ${
-                                      event.status === 'live' 
-                                        ? 'bg-green-200 text-green-800' 
-                                        : event.status === 'posted' 
-                                        ? 'bg-blue-200 text-blue-800' 
-                                        : 'bg-gray-200 text-gray-800'
+                                      needsMoreBands
+                                        ? 'bg-yellow-200 text-yellow-800' 
+                                        : 'bg-green-200 text-green-800'
                                     }`}
                                   >
-                                    {event.artist}
+                                    <div className="font-medium">{event.artist}</div>
+                                    {needsMoreBands && (
+                                      <div className="text-xs font-bold mt-0.5">
+                                        Need {event.expectedBands - event.confirmedBands} more
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                             </div>
                           )}
                           
-                          {!hasEvent && !isPast && (
-                            <div className="text-xs text-muted-foreground mt-2">
+                          {!eventOnDate && !isPast && !isUnavailable && (
+                            <div className="text-xs text-black mt-2 font-medium">
                               Available
                             </div>
                           )}
+                          
+                          {!eventOnDate && !isPast && isUnavailable && (
+                            <div className={`text-xs mt-2 font-medium ${
+                              scheduleFilter === "unavailable"
+                                ? 'text-red-700 font-bold'
+                                : 'text-red-600'
+                            }`}>
+                              Unavailable
+                            </div>
+                          )}
+                          
+
                         </div>
                       );
                     })}
@@ -1611,22 +1898,36 @@ export function LocationDashboard() {
 
                 {/* Legend */}
                 <Card className="p-4 bg-card border-border">
-                  <div className="flex items-center gap-6 text-sm">
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Click on available dates (white with gray border) to toggle availability
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
-                      <span className="text-muted-foreground">Today</span>
+                      <div className="w-4 h-4 bg-purple-300 rounded"></div>
+                      <span className="text-purple-600 font-medium">Today</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
-                      <span className="text-muted-foreground">Event Scheduled</span>
+                      <div className="w-4 h-4 bg-green-200 rounded"></div>
+                      <span className="text-green-600 font-medium">Complete</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-muted/30 border border-muted rounded"></div>
+                      <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+                      <span className="text-yellow-600 font-medium">Bands Still Needed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-red-200 rounded"></div>
+                      <span className="text-red-600 font-medium">Date Unavailable</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-300 rounded"></div>
                       <span className="text-muted-foreground">Past</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-background border border-border rounded"></div>
-                      <span className="text-muted-foreground">Available</span>
+                      <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                      <span className="text-black font-medium">Available (Clickable)</span>
                     </div>
                   </div>
                 </Card>

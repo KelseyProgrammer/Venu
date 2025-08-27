@@ -25,8 +25,12 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 - **Event Promotion**: Built-in tools for marketing and ticket sales tracking
 
 ### For Venues (Locations)
-- **Location Dashboard**: Complete venue management with calendar integration
+- **Location Dashboard**: Complete venue management with comprehensive calendar system
+- **Calendar Views**: List view for event management and visual calendar view for scheduling
+- **Availability Management**: Click-to-toggle date availability with persistent storage
 - **Event Scheduling**: Visual calendar with availability tracking and conflict detection
+- **Smart Filtering**: Separate filters for List view (event-focused) and Calendar view (includes date availability)
+- **Band Management**: Track expected vs. confirmed bands with visual progress indicators
 - **Capacity Management**: Real-time ticket sales and occupancy monitoring
 - **Staff Coordination**: Door person assignment and communication tools
 - **Equipment Tracking**: Manage technical requirements and availability
@@ -257,6 +261,43 @@ The platform manages comprehensive event lifecycle data:
 - **Tickets**: Capacity management, sales tracking, and real-time availability
 - **Locations**: Venue details, availability, and capacity management
 
+## 📅 Calendar System
+
+### Venue Calendar Management
+The location dashboard features a comprehensive calendar system for venue management:
+
+#### **Dual View System**
+- **List View**: Traditional event list with event-focused filtering (All Events, Complete, Needs Bands)
+- **Calendar View**: Visual calendar grid with month navigation and day-by-day event display
+
+#### **Availability Management**
+- **Click-to-Toggle**: Days without shows can be clicked to toggle availability (available ↔ unavailable)
+- **Persistent Storage**: All availability changes are automatically saved to localStorage
+- **Visual Feedback**: Clear visual indicators for available, unavailable, and event days
+
+#### **Smart Filtering**
+- **List View Filters**: Event-focused filters for managing bookings and applications
+- **Calendar View Filters**: Includes date availability filters (Available, Unavailable) in addition to event filters
+- **Filter Logic**: 
+  - **Available Filter**: Shows only free dates (no events, not unavailable, not past)
+  - **Unavailable Filter**: Shows only blocked dates with enhanced styling
+  - **Event Filters**: Filter by completion status and band requirements
+
+#### **Visual States**
+- **Today**: Purple border with shadow for current date
+- **Available**: White background with gray border, "Available" text in black
+- **Unavailable**: White background with red border, "Unavailable" text in red
+- **Events (Complete)**: White background with green border
+- **Events (Needs Bands)**: White background with yellow border, shows "Need X more" bands
+- **Past Dates**: Muted styling, non-interactive
+
+#### **Enhanced Features**
+- **Bands Progress**: Yellow event days display exact number of bands still needed
+- **Legend System**: Solid colored squares showing all calendar day states
+- **Month Navigation**: Previous/Next month buttons with "Today" quick navigation
+- **Responsive Design**: Calendar adapts to different screen sizes with proper touch targets
+- **Real-time Updates**: Changes are immediately reflected across all views
+
 ### Financial Management
 - **Guarantees**: Minimum payment structures for artists
 - **Revenue Sharing**: Percentage-based payout systems
@@ -345,11 +386,13 @@ The platform manages comprehensive event lifecycle data:
 - **Assets**: Optimized images with proper fallbacks
 
 ### Current Development Status
-- **Location Dashboard**: ✅ Fully functional with gig posting capabilities
+- **Location Dashboard**: ✅ Fully functional with gig posting capabilities and comprehensive calendar system
+- **Calendar System**: ✅ Complete calendar functionality with availability management and filtering
 - **Performance Optimizations**: ✅ All major improvements implemented
 - **Button Styling**: ✅ Purple variant with white font compliance
 - **Mobile Development**: ✅ Capacitor integration ready
 - **Code Quality**: ✅ Shared constants and helper functions implemented
+- **Data Persistence**: ✅ localStorage integration for calendar availability changes
 
 ## 📚 Learn More
 

@@ -627,6 +627,14 @@ export function PromoterDashboard() {
                         {bands.length} {bands.length === 1 ? 'band' : 'bands'}
                       </Badge>
                     </div>
+                    {parseInt(numberOfBands) > bands.length && (
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                        <span className="text-sm text-muted-foreground">Bands still needed:</span>
+                        <Badge variant="destructive" className="bg-orange-100 text-orange-700 border-orange-200">
+                          {parseInt(numberOfBands) - bands.length} {parseInt(numberOfBands) - bands.length === 1 ? 'band' : 'bands'}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="mt-2 space-y-3">
@@ -984,6 +992,14 @@ export function PromoterDashboard() {
                     <span className="text-muted-foreground">Bands:</span>
                     <span className="text-foreground font-medium">{bands.length} artists</span>
                   </div>
+                  {numberOfBands && parseInt(numberOfBands) > bands.length && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Bands still needed:</span>
+                      <span className="text-orange-600 font-medium">
+                        {parseInt(numberOfBands) - bands.length} {parseInt(numberOfBands) - bands.length === 1 ? 'band' : 'bands'}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guarantee:</span>
                     <span className="text-foreground font-medium">${guarantee || 0}</span>
