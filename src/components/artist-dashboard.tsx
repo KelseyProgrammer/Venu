@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, MapPin, Calendar, Star, TrendingUp, Share2 } from "lucide-react"
+import { Search, Filter, MapPin, Calendar, Star, TrendingUp, Share2, BarChart3, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
@@ -135,30 +135,41 @@ export function ArtistDashboard() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 bg-card border-b border-border rounded-none h-12">
+        <TabsList className="w-full grid grid-cols-5 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="discover"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
+            <Search className="h-4 w-4" />
             Discover
           </TabsTrigger>
           <TabsTrigger
-            value="bookings"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            value="schedule"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
-            Bookings
+            <Calendar className="h-4 w-4" />
+            Schedule
           </TabsTrigger>
           <TabsTrigger
-            value="earnings"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            value="applications"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
-            Earnings
+            <FileText className="h-4 w-4" />
+            Applications
           </TabsTrigger>
           <TabsTrigger
-            value="tools"
-            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+            value="chat"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
           >
-            Tools
+            <MessageCircle className="h-4 w-4" />
+            Chat
+          </TabsTrigger>
+          <TabsTrigger
+            value="more"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            More
           </TabsTrigger>
         </TabsList>
 
@@ -269,9 +280,11 @@ export function ArtistDashboard() {
           </div>
         </TabsContent>
 
-        {/* My Bookings Tab */}
-        <TabsContent value="bookings" className="p-4 space-y-4">
-          <h2 className="font-serif font-bold text-xl">My Bookings</h2>
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">My Schedule</h2>
+          </div>
 
           <div className="space-y-4">
             {myBookings.map((booking) => (
@@ -310,62 +323,187 @@ export function ArtistDashboard() {
           </div>
         </TabsContent>
 
-        {/* Earnings Tab */}
-        <TabsContent value="earnings" className="p-4 space-y-4">
-          <h2 className="font-serif font-bold text-xl">Earnings Tracker</h2>
+        {/* Applications Tab */}
+        <TabsContent value="applications" className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">My Applications</h2>
+          </div>
 
-          <Card className="p-6 bg-card border-border">
-            <div className="text-center space-y-4">
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">${totalEarnings}</div>
-                  <div className="text-sm text-muted-foreground">of ${goalAmount} goal</div>
-                  <div className="text-xs text-primary font-medium">{Math.round(progressPercentage)}%</div>
-                </div>
-                
-                {/* Progress bar using shadcn/ui Progress component */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Progress to goal</span>
-                    <span>{Math.round(Math.min(progressPercentage, 100))}%</span>
+          <div className="space-y-4">
+            <Card className="p-4 bg-card border-border">
+              <div className="flex gap-4">
+                <Image
+                  src="/images/MUGS.jpeg"
+                  alt="Muggy's"
+                  width={60}
+                  height={60}
+                  className="rounded-lg object-cover w-15 h-15"
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground">Muggy's</h3>
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                      Pending
+                    </Badge>
                   </div>
-                  <Progress value={Math.min(progressPercentage, 100)} className="h-3" />
+                  <div className="text-sm text-muted-foreground">
+                    Applied for: Rock Night - Oct 12
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Applied 2 days ago
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-card border-border">
+              <div className="flex gap-4">
+                <Image
+                  src="/images/SARBEZ.jpg"
+                  alt="Sarbez"
+                  width={60}
+                  height={60}
+                  className="rounded-lg object-cover w-15 h-15"
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground">Sarbez</h3>
+                    <Badge variant="default" className="bg-green-600">
+                      Accepted
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Applied for: Rock Show - Oct 16
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Accepted 1 week ago
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Chat Tab */}
+        <TabsContent value="chat" className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
+          </div>
+
+          <Card className="p-4 bg-card border-border">
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">JD</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-foreground">John Doe - Muggy's</span>
+                      <span className="text-xs text-muted-foreground">2 hours ago</span>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-sm text-foreground">
+                        Hey! Just wanted to confirm the sound check time for tomorrow's show. 
+                        Can we get in at 6 PM?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <div className="flex-1 max-w-xs">
+                    <div className="flex items-center gap-2 mb-1 justify-end">
+                      <span className="text-xs text-muted-foreground">1 hour ago</span>
+                      <span className="text-sm font-medium text-foreground">You</span>
+                    </div>
+                    <div className="bg-purple-600 text-white rounded-lg p-3">
+                      <p className="text-sm">
+                        Absolutely! 6 PM works perfectly. The sound system will be ready and tested by then.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">A</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">Upcoming payouts</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Oct 12</span>
-                    <span className="text-green-400">$400 pending</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Oct 5</span>
-                    <span className="text-green-400">$200 paid</span>
-                  </div>
+              {/* Message Input */}
+              <div className="border-t border-border pt-4">
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Type your message..."
+                    className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm"
+                  />
+                  <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
+                    <Share2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Promotion Tools Tab */}
-        <TabsContent value="tools" className="p-4 space-y-4">
-          <h2 className="font-serif font-bold text-xl">Promotion Tools</h2>
+        {/* More Tab */}
+        <TabsContent value="more" className="p-4 space-y-6">
+          <h2 className="font-serif font-bold text-xl">More</h2>
+          
+          {/* Earnings Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-foreground">Earnings Tracker</h3>
+            <Card className="p-6 bg-card border-border">
+              <div className="text-center space-y-4">
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">${totalEarnings}</div>
+                    <div className="text-sm text-muted-foreground">of ${goalAmount} goal</div>
+                    <div className="text-xs text-primary font-medium">{Math.round(progressPercentage)}%</div>
+                  </div>
+                  
+                  {/* Progress bar using shadcn/ui Progress component */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Progress to goal</span>
+                      <span>{Math.round(Math.min(progressPercentage, 100))}%</span>
+                    </div>
+                    <Progress value={Math.min(progressPercentage, 100)} className="h-3" />
+                  </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="p-4 bg-card border-border text-center">
-              <Share2 className="w-8 h-8 text-primary mx-auto mb-2" />
-              <h3 className="font-medium text-foreground mb-1">Share Gig</h3>
-              <p className="text-xs text-muted-foreground">Auto-generated posts</p>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-foreground">Upcoming payouts</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Oct 12</span>
+                      <span className="text-green-400">$400 pending</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Oct 5</span>
+                      <span className="text-green-400">$200 paid</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </Card>
+          </div>
 
-            <Card className="p-4 bg-card border-border text-center">
-              <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-              <h3 className="font-medium text-foreground mb-1">Analytics</h3>
-              <p className="text-xs text-muted-foreground">Track engagement</p>
-            </Card>
+          {/* Promotion Tools Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-foreground">Promotion Tools</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="p-4 bg-card border-border text-center">
+                <Share2 className="w-8 h-8 text-primary mx-auto mb-2" />
+                <h3 className="font-medium text-foreground mb-1">Share Gig</h3>
+                <p className="text-xs text-muted-foreground">Auto-generated posts</p>
+              </Card>
+
+              <Card className="p-4 bg-card border-border text-center">
+                <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
+                <h3 className="font-medium text-foreground mb-1">Analytics</h3>
+                <p className="text-xs text-muted-foreground">Track engagement</p>
+              </Card>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
