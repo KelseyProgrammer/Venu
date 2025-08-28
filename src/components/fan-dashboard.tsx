@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, memo } from "react"
+import { useState, useMemo, useCallback, memo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -187,10 +187,20 @@ const LocationCard = memo(function LocationCard({ location }: LocationCardProps)
 export function FanDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<number>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
+
+  // Debounce search query for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Memoized artist data for search
   const allArtists = useMemo(() => [
@@ -481,40 +491,40 @@ export function FanDashboard() {
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
-      const matchesSearch = event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        getLocationDisplayName(event.location).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.genre.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = event.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        getLocationDisplayName(event.location).toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        event.genre.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       
       const matchesGenre = selectedGenre === "All Genres" || event.genre === selectedGenre
       
       return matchesSearch && matchesGenre
     })
-  }, [allEvents, searchQuery, selectedGenre])
+  }, [allEvents, debouncedSearchQuery, selectedGenre])
 
   const filteredArtists = useMemo(() => {
     return allArtists.filter(artist => {
-      const matchesSearch = artist.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.location.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = artist.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        artist.genre.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        artist.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       
       const matchesGenre = selectedGenre === "All Genres" || artist.genre === selectedGenre
       
       return matchesSearch && matchesGenre
     })
-  }, [allArtists, searchQuery, selectedGenre])
+  }, [allArtists, debouncedSearchQuery, selectedGenre])
 
   const filteredLocations = useMemo(() => {
     return allLocations.filter(location => {
-      const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        location.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        location.genres.some(genre => genre.toLowerCase().includes(searchQuery.toLowerCase()))
+      const matchesSearch = location.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        location.address.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        location.genres.some(genre => genre.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
       
       const matchesGenre = selectedGenre === "All Genres" || 
         location.genres.some(genre => genre === selectedGenre)
       
       return matchesSearch && matchesGenre
     })
-  }, [allLocations, searchQuery, selectedGenre])
+  }, [allLocations, debouncedSearchQuery, selectedGenre])
 
   if (showTicketPurchase && selectedEvent) {
     const event = allEvents.find(e => e.id.toString() === selectedEvent)
@@ -588,124 +598,191 @@ export function FanDashboard() {
         </TabsContent>
 
         {/* Search Tab */}
-        <TabsContent value="search" className="space-y-6">
-          {/* Search Bar */}
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <TabsContent value="search" className="space-y-8">
+          {/* Search Header */}
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-semibold text-foreground">Find Your Perfect Event</h2>
+              <p className="text-muted-foreground">Search for artists, venues, or events in your area</p>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="relative max-w-2xl mx-auto">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <Input
                 placeholder="Search artists, locations, or events..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-12 pr-4 py-3 text-base border-2 focus:border-purple-500 focus:ring-purple-500"
+                aria-label="Search for artists, venues, or events"
+                role="searchbox"
+                aria-describedby="search-help"
               />
+              <div id="search-help" className="sr-only">
+                Search across artists, venues, and events. Results will appear as you type.
+              </div>
             </div>
             
-            <GenreFilters 
-              selectedGenre={selectedGenre} 
-              onGenreChange={setSelectedGenre} 
-            />
+            {/* Genre Filters */}
+            <div className="flex justify-center">
+              <GenreFilters 
+                selectedGenre={selectedGenre} 
+                onGenreChange={setSelectedGenre} 
+              />
+            </div>
           </div>
 
           {/* Show results only when user has interacted */}
-          {(searchQuery || selectedGenre !== "All Genres") ? (
-            <div className="space-y-6">
+          {(debouncedSearchQuery || selectedGenre !== "All Genres") ? (
+            <div className="space-y-12">
+              {/* Search Results Summary */}
+              <div className="text-center space-y-2" role="status" aria-live="polite">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Search className="w-4 h-4" />
+                  <span>
+                    {debouncedSearchQuery ? `Search results for "${debouncedSearchQuery}"` : `Filtered by ${selectedGenre}`}
+                    {debouncedSearchQuery && selectedGenre !== "All Genres" && ` in ${selectedGenre}`}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {filteredArtists.length + filteredLocations.length + filteredEvents.length} total results
+                </p>
+                {searchQuery !== debouncedSearchQuery && (
+                  <p className="text-xs text-muted-foreground animate-pulse" aria-live="assertive">
+                    Searching...
+                  </p>
+                )}
+              </div>
+
               {/* Artists Section */}
               {filteredArtists.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
+                <section className="space-y-6" aria-labelledby="artists-heading">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h2 id="artists-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full" aria-hidden="true"></span>
                       Artists
-                      {searchQuery && ` matching "${searchQuery}"`}
-                      {selectedGenre !== "All Genres" && ` in ${selectedGenre}`}
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {filteredArtists.length} artist{filteredArtists.length !== 1 ? 's' : ''} found
-                    </p>
+                    <Badge variant="secondary" className="text-xs" aria-label={`${filteredArtists.length} artists found`}>
+                      {filteredArtists.length} found
+                    </Badge>
                   </div>
                   
-                  <div className="grid gap-4">
+                  <div className="grid gap-6" role="list" aria-label="Artist search results">
                     {filteredArtists.map((artist) => (
-                      <ArtistCard key={artist.id} artist={artist} />
+                      <div key={artist.id} role="listitem">
+                        <ArtistCard artist={artist} />
+                      </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Locations Section */}
               {filteredLocations.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
-                      Locations
-                      {searchQuery && ` matching "${searchQuery}"`}
-                      {selectedGenre !== "All Genres" && ` in ${selectedGenre}`}
+                <section className="space-y-6" aria-labelledby="venues-heading">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h2 id="venues-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full" aria-hidden="true"></span>
+                      Venues
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''} found
-                    </p>
+                    <Badge variant="secondary" className="text-xs" aria-label={`${filteredLocations.length} venues found`}>
+                      {filteredLocations.length} found
+                    </Badge>
                   </div>
                   
-                  <div className="grid gap-4">
+                  <div className="grid gap-6" role="list" aria-label="Venue search results">
                     {filteredLocations.map((location) => (
-                      <LocationCard key={location.id} location={location} />
+                      <div key={location.id} role="listitem">
+                        <LocationCard location={location} />
+                      </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Events Section */}
               {filteredEvents.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
+                <section className="space-y-6" aria-labelledby="events-heading">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h2 id="events-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true"></span>
                       Events
-                      {searchQuery && ` matching "${searchQuery}"`}
-                      {selectedGenre !== "All Genres" && ` in ${selectedGenre}`}
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} found
-                    </p>
+                    <Badge variant="secondary" className="text-xs" aria-label={`${filteredEvents.length} events found`}>
+                      {filteredEvents.length} found
+                    </Badge>
                   </div>
                   
-                  <EventsGrid
-                    events={filteredEvents}
-                    favoriteEvents={favoriteEvents}
-                    onToggleFavorite={toggleFavorite}
-                    onBuyTickets={(eventId) => {
-                      setSelectedEvent(eventId)
-                      setShowTicketPurchase(true)
-                    }}
-                  />
-                </div>
+                  <div role="list" aria-label="Event search results">
+                    <EventsGrid
+                      events={filteredEvents}
+                      favoriteEvents={favoriteEvents}
+                      onToggleFavorite={toggleFavorite}
+                      onBuyTickets={(eventId) => {
+                        setSelectedEvent(eventId)
+                        setShowTicketPurchase(true)
+                      }}
+                    />
+                  </div>
+                </section>
               )}
               
               {/* No results */}
               {filteredArtists.length === 0 && filteredLocations.length === 0 && filteredEvents.length === 0 && (
-                <div className="text-center py-12">
-                  <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No results found</h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery ? `Try adjusting your search terms or genre filter.` : "Try selecting a different genre filter."}
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Search className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-3">No results found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    {debouncedSearchQuery 
+                      ? `We couldn't find anything matching "${debouncedSearchQuery}". Try adjusting your search terms or genre filter.`
+                      : "No results found for the selected genre filter. Try selecting a different genre."
+                    }
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
+                    <span>Try searching for:</span>
+                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("jazz")} className="text-xs">
+                      jazz
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("The Blue Notes")} className="text-xs">
+                      The Blue Notes
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("Muggsy's Bar")} className="text-xs">
+                      Muggsy's Bar
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
             /* Empty state when no search/filter is active */
-            <div className="text-center py-16">
-              <Search className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
-              <h2 className="text-2xl font-semibold text-foreground mb-4">Find Your Perfect Event</h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Start typing to search for artists, locations, or events, or select a genre filter to discover new music.
+            <div className="text-center py-20">
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-8">
+                <Search className="w-12 h-12 text-purple-600" />
+              </div>
+              <h2 className="text-3xl font-semibold text-foreground mb-4">Discover Amazing Events</h2>
+              <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-lg">
+                Start typing to search for artists, venues, or events, or select a genre filter to discover new music in your area.
               </p>
-              <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
-                <span>Try searching for:</span>
-                <span className="font-medium">"jazz"</span>
-                <span>•</span>
-                <span className="font-medium">"The Blue Notes"</span>
-                <span>•</span>
-                <span className="font-medium">"Muggsy's Bar"</span>
+              <div className="space-y-4">
+                <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
+                  <span>Popular searches:</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("jazz")} className="text-xs">
+                    jazz
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("electronic")} className="text-xs">
+                    electronic
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("The Blue Notes")} className="text-xs">
+                    The Blue Notes
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("Muggsy's Bar")} className="text-xs">
+                    Muggsy's Bar
+                  </Button>
+                </div>
               </div>
             </div>
           )}
