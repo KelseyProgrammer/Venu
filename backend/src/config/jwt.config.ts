@@ -1,17 +1,22 @@
 import jwt from 'jsonwebtoken';
 
-// JWT Configuration
-export const JWT_CONFIG = {
-  SECRET: process.env.JWT_SECRET,
+// Get JWT configuration dynamically to ensure environment variables are loaded
+const getJWTConfig = () => ({
+  SECRET: process.env.JWT_SECRET || '',
   EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   ALGORITHM: 'HS256' as const,
   ISSUER: process.env.JWT_ISSUER || 'venu-api',
   AUDIENCE: process.env.JWT_AUDIENCE || 'venu-app',
-};
+});
 
 // Validate JWT configuration
 export const validateJWTConfig = (): void => {
-  if (!JWT_CONFIG.SECRET || JWT_CONFIG.SECRET === 'your-secret-key' || JWT_CONFIG.SECRET.length < 32) {
+  const config = getJWTConfig();
+  console.log('JWT_SECRET length:', config.SECRET?.length);
+  console.log('JWT_SECRET exists:', !!config.SECRET);
+  console.log('JWT_SECRET starts with:', config.SECRET?.substring(0, 10));
+  
+  if (!config.SECRET || config.SECRET === 'your-secret-key' || config.SECRET.length < 32) {
     throw new Error('JWT_SECRET must be set and be at least 32 characters long');
   }
 };
@@ -30,22 +35,24 @@ export interface JWTPayload {
 // Generate JWT token with consistent options
 export const generateToken = (payload: Omit<JWTPayload, 'iat' | 'exp' | 'iss' | 'aud'>): string => {
   validateJWTConfig();
+  const config = getJWTConfig();
   
-  return jwt.sign(payload, JWT_CONFIG.SECRET!, {
-    expiresIn: JWT_CONFIG.EXPIRES_IN,
-    algorithm: JWT_CONFIG.ALGORITHM,
-    issuer: JWT_CONFIG.ISSUER,
-    audience: JWT_CONFIG.AUDIENCE,
+  return jwt.sign(payload, config.SECRET, {
+    expiresIn: config.EXPIRES_IN,
+    algorithm: config.ALGORITHM,
+    issuer: config.ISSUER,
+    audience: config.AUDIENCE,
   });
 };
 
 // Verify JWT token with consistent options
 export const verifyToken = (token: string): JWTPayload => {
   validateJWTConfig();
+  const config = getJWTConfig();
   
-  return jwt.verify(token, JWT_CONFIG.SECRET!, {
-    algorithms: [JWT_CONFIG.ALGORITHM],
-    issuer: JWT_CONFIG.ISSUER,
-    audience: JWT_CONFIG.AUDIENCE,
+  return jwt.verify(token, config.SECRET, {
+    algorithms: [config.ALGORITHM],
+    issuer: config.ISSUER,
+    audience: config.AUDIENCE,
   }) as JWTPayload;
 };

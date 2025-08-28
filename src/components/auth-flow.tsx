@@ -681,7 +681,7 @@ export function AuthFlow() {
                   <p className="text-red-700 text-sm">{error}</p>
                 </div>
               )}
-              <div className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
                 <div>
                   <Label htmlFor="login-email" className="text-foreground">
                     Email
@@ -693,6 +693,7 @@ export function AuthFlow() {
                     onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="your@email.com"
                     className="mt-2 bg-input border-border text-foreground"
+                    required
                   />
                 </div>
                 <div>
@@ -706,17 +707,18 @@ export function AuthFlow() {
                     onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="••••••••"
                     className="mt-2 bg-input border-border text-foreground"
+                    required
                   />
                 </div>
                 <Button 
+                  type="submit"
                   variant="purple" 
                   className="w-full h-12"
-                  onClick={handleLogin}
                   disabled={isLoading}
                 >
                   {isLoading ? "Logging In..." : "Log In"}
                 </Button>
-              </div>
+              </form>
             </Card>
           </TabsContent>
 
@@ -765,7 +767,7 @@ export function AuthFlow() {
                   </Badge>
                 </div>
 
-                <div className="space-y-4">
+                <form onSubmit={(e) => { e.preventDefault(); handleCreateAccount(); }} className="space-y-4">
                   <div>
                     <Label htmlFor="signup-name" className="text-foreground">
                       Full Name
@@ -775,7 +777,8 @@ export function AuthFlow() {
                       value={signupData.name}
                       onChange={(e) => setSignupData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Your name" 
-                      className="mt-2 bg-input border-border text-foreground" 
+                      className="mt-2 bg-input border-border text-foreground"
+                      required
                     />
                   </div>
                   <div>
@@ -789,6 +792,7 @@ export function AuthFlow() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="your@email.com"
                       className="mt-2 bg-input border-border text-foreground"
+                      required
                     />
                   </div>
                   <div>
@@ -802,17 +806,19 @@ export function AuthFlow() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="••••••••"
                       className="mt-2 bg-input border-border text-foreground"
+                      required
+                      minLength={8}
                     />
                   </div>
                   <Button
+                    type="submit"
                     variant="purple"
-                    onClick={handleCreateAccount}
                     disabled={isLoading}
                     className="w-full h-12"
                   >
                     {isLoading ? "Creating Account..." : "Create Account"}
                   </Button>
-                </div>
+                </form>
               </Card>
             )}
           </TabsContent>
