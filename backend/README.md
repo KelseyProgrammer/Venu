@@ -20,8 +20,9 @@ A Node.js/Express backend API for the VENU mobile LMS platform, built with TypeS
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- MongoDB (local or Atlas)
+- MongoDB (local installation recommended for development)
 - npm or yarn
+- Homebrew (for macOS MongoDB installation)
 
 ## Installation
 
@@ -35,10 +36,23 @@ cd backend
 npm install
 ```
 
-3. Create a `.env` file in the backend directory with the following variables:
+3. Install and start MongoDB:
+```bash
+# Install MongoDB Community Edition (macOS)
+brew install mongodb-community
+
+# Start MongoDB service
+brew services start mongodb/brew/mongodb-community
+
+# Verify MongoDB is running
+brew services list | grep mongodb
+mongosh --eval "db.runCommand('ping')" --quiet
+```
+
+4. Create a `.env` file in the backend directory with the following variables:
 ```env
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/venu_db
+# Database Configuration (Local MongoDB)
+MONGODB_URI=mongodb://localhost:27017/venu
 
 # Server Configuration
 PORT=3001
@@ -46,12 +60,15 @@ NODE_ENV=development
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=7d
+JWT_ISSUER=venu-api
+JWT_AUDIENCE=venu-app
 
 # Frontend URL (for CORS)
 FRONTEND_URL=http://localhost:3000
 ```
 
-4. Start the development server:
+5. Start the development server:
 ```bash
 npm run dev
 ```
@@ -197,6 +214,57 @@ Optimized database performance with proper indexing:
 - **Text Search**: MongoDB text indexes for search functionality
 - **Query Optimization**: Efficient population and field selection
 - **Pagination**: Optimized pagination for large datasets
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### MongoDB Connection Issues
+
+**Error: `MongooseServerSelectionError: connect ECONNREFUSED ::1:27017`**
+- **Cause:** MongoDB is not running
+- **Solution:** Start MongoDB service:
+  ```bash
+  brew services start mongodb/brew/mongodb-community
+  ```
+
+**Error: `mongod not found`**
+- **Cause:** MongoDB is not installed
+- **Solution:** Install MongoDB:
+  ```bash
+  brew install mongodb-community
+  ```
+
+**Error: `Error: listen EADDRINUSE: address already in use :::3001`**
+- **Cause:** Port 3001 is already in use
+- **Solution:** Kill existing processes or change port in `.env` file
+
+#### Verification Steps
+
+1. **Check MongoDB status:**
+   ```bash
+   brew services list | grep mongodb
+   ```
+
+2. **Test MongoDB connection:**
+   ```bash
+   mongosh venu --eval "db.runCommand('ping')" --quiet
+   ```
+
+3. **Test backend API:**
+   ```bash
+   curl http://localhost:3001/health
+   ```
+
+#### Environment Variables Issues
+
+**Error: `MONGODB_URI is not defined in environment variables`**
+- **Cause:** `.env` file is missing or incorrectly formatted
+- **Solution:** Ensure `.env` file exists in `backend/` directory with correct format
+
+**Error: `JWT_SECRET is not defined`**
+- **Cause:** JWT configuration is missing
+- **Solution:** Add JWT configuration to `.env` file
 
 ## Contributing
 

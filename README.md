@@ -83,7 +83,8 @@ VENU is built as a **full-stack application** with:
 - **Node.js 18+** (Recommended: Node.js 20+)
 - **npm** or **yarn** package manager
 - **Git** for version control
-- **MongoDB Atlas account** (or local MongoDB installation)
+- **MongoDB** (local installation recommended for development)
+- **Homebrew** (for macOS MongoDB installation)
 
 ### Installation
 
@@ -105,12 +106,31 @@ npm install
 cd ..
 ```
 
-4. **Set up environment variables:**
+4. **Install and start MongoDB:**
+   
+   **For macOS (using Homebrew):**
+   ```bash
+   # Install MongoDB Community Edition
+   brew install mongodb-community
+   
+   # Start MongoDB service
+   brew services start mongodb/brew/mongodb-community
+   
+   # Verify MongoDB is running
+   brew services list | grep mongodb
+   mongosh --eval "db.runCommand('ping')" --quiet
+   ```
+   
+   **For other platforms:**
+   - [Windows MongoDB Installation](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-windows/)
+   - [Linux MongoDB Installation](https://docs.mongodb.com/manual/administration/install-on-linux/)
+
+5. **Set up environment variables:**
    
    Create a `.env` file in the `backend/` directory:
    ```env
-   # Database Configuration
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+   # Database Configuration (Local MongoDB)
+   MONGODB_URI=mongodb://localhost:27017/venu
    
    # Server Configuration
    PORT=3001
@@ -118,6 +138,9 @@ cd ..
    
    # JWT Configuration
    JWT_SECRET=your-super-secret-jwt-key-here
+   JWT_EXPIRES_IN=7d
+   JWT_ISSUER=venu-api
+   JWT_AUDIENCE=venu-app
    
    # Frontend URL (for CORS)
    FRONTEND_URL=http://localhost:3000
@@ -164,6 +187,60 @@ npm run dev:backend   # Backend only
 
 3. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+#### MongoDB Connection Issues
+
+**Error: `MongooseServerSelectionError: connect ECONNREFUSED ::1:27017`**
+- **Cause:** MongoDB is not running
+- **Solution:** Start MongoDB service:
+  ```bash
+  brew services start mongodb/brew/mongodb-community
+  ```
+
+**Error: `mongod not found`**
+- **Cause:** MongoDB is not installed
+- **Solution:** Install MongoDB:
+  ```bash
+  brew install mongodb-community
+  ```
+
+**Error: `Error: listen EADDRINUSE: address already in use :::3001`**
+- **Cause:** Port 3001 is already in use
+- **Solution:** Kill existing processes or change port in `.env` file
+
+#### Verification Steps
+
+1. **Check MongoDB status:**
+   ```bash
+   brew services list | grep mongodb
+   ```
+
+2. **Test MongoDB connection:**
+   ```bash
+   mongosh venu --eval "db.runCommand('ping')" --quiet
+   ```
+
+3. **Test backend API:**
+   ```bash
+   curl http://localhost:3001/health
+   ```
+
+4. **Check frontend:**
+   Navigate to `http://localhost:3000` in your browser
+
+#### Environment Variables Issues
+
+**Error: `MONGODB_URI is not defined in environment variables`**
+- **Cause:** `.env` file is missing or incorrectly formatted
+- **Solution:** Ensure `.env` file exists in `backend/` directory with correct format
+
+**Error: `JWT_SECRET is not defined`**
+- **Cause:** JWT configuration is missing
+- **Solution:** Add JWT configuration to `.env` file
 
 ## 🔧 Development Scripts
 
