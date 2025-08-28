@@ -14,6 +14,8 @@ export interface ILocation extends Document {
   contactEmail: string;
   contactPhone: string;
   images: string[];
+  rating: number;
+  tags: string[];
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -84,6 +86,16 @@ const locationSchema = new Schema<ILocation>({
   images: [{
     type: String,
   }],
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  tags: [{
+    type: String,
+    trim: true,
+  }],
   isActive: {
     type: Boolean,
     default: true,
@@ -100,6 +112,8 @@ const locationSchema = new Schema<ILocation>({
 // Indexes for faster queries
 locationSchema.index({ city: 1, state: 1 });
 locationSchema.index({ capacity: 1 });
+locationSchema.index({ rating: -1 });
+locationSchema.index({ tags: 1 });
 locationSchema.index({ isActive: 1 });
 locationSchema.index({ createdBy: 1 });
 

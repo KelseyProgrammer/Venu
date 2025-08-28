@@ -38,11 +38,16 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 - **Promoter Management**: Maintain relationships with multiple promoters and their payout structures
 
 ### For Fans
-- **Event Discovery**: Browse upcoming shows with filtering by genre, date, and location
+- **Comprehensive Search**: Unified search across artists, venues, and events with real-time filtering
+- **Artist Discovery**: Browse local artists with streaming links (Spotify, Apple Music) and social media
+- **Venue Exploration**: Discover venues with Instagram links, capacity info, and genre specialties
+- **Event Discovery**: Browse upcoming shows with genre-based filtering and visual event cards
+- **Smart Filtering**: Dynamic genre filters with purple-themed UI for active selections
 - **Ticket Purchasing**: Seamless booking experience with secure payment processing
 - **Event Information**: Detailed show information including lineup, times, and venue details
 - **Favorites System**: Save preferred artists and venues for personalized recommendations
 - **Ticket Management**: Digital ticket storage and easy access for events
+- **Responsive Design**: Optimized experience across desktop, tablet, and mobile devices
 
 ### For Door Staff
 - **Door Scanner App**: Mobile application for ticket validation and entry management
@@ -159,6 +164,8 @@ The backend provides RESTful API endpoints for:
 - **Typography**: Modern, readable fonts optimized for mobile and desktop
 - **Components**: Consistent UI patterns using shadcn/ui component library
 - **Responsive Design**: Mobile-first approach with progressive enhancement
+- **Component Architecture**: Modular, reusable components for maintainable code
+- **Performance**: Optimized rendering with proper memoization and code splitting
 
 ## 🤝 Contributing
 

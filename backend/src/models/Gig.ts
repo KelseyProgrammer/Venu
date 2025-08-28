@@ -27,6 +27,15 @@ export interface IGig extends Document {
   guarantee: number;
   numberOfBands: number;
   status: 'draft' | 'posted' | 'live' | 'completed';
+  rating: number;
+  tags: string[];
+  ticketsSold: number;
+  image: string;
+  bonusTiers: {
+    tier1: { amount: number; threshold: number; color: string };
+    tier2: { amount: number; threshold: number; color: string };
+    tier3: { amount: number; threshold: number; color: string };
+  };
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -137,6 +146,42 @@ const gigSchema = new Schema<IGig>({
     enum: ['draft', 'posted', 'live', 'completed'],
     default: 'draft',
   },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  tags: [{
+    type: String,
+    trim: true,
+  }],
+  ticketsSold: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  image: {
+    type: String,
+    default: '/images/venu-logo.png',
+  },
+  bonusTiers: {
+    tier1: {
+      amount: { type: Number, required: true, min: 0 },
+      threshold: { type: Number, required: true, min: 0 },
+      color: { type: String, required: true },
+    },
+    tier2: {
+      amount: { type: Number, required: true, min: 0 },
+      threshold: { type: Number, required: true, min: 0 },
+      color: { type: String, required: true },
+    },
+    tier3: {
+      amount: { type: Number, required: true, min: 0 },
+      threshold: { type: Number, required: true, min: 0 },
+      color: { type: String, required: true },
+    },
+  },
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -149,6 +194,8 @@ const gigSchema = new Schema<IGig>({
 // Indexes for faster queries
 gigSchema.index({ eventDate: 1 });
 gigSchema.index({ status: 1 });
+gigSchema.index({ rating: -1 });
+gigSchema.index({ tags: 1 });
 gigSchema.index({ createdBy: 1 });
 gigSchema.index({ selectedLocation: 1 });
 
