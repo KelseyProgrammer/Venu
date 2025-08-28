@@ -23,9 +23,6 @@ app.use(express.json());
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB
-connectDB();
-
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ 
@@ -36,10 +33,16 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 // API routes
+console.log('🔧 Registering API routes...');
 app.use("/api/auth", authRoutes);
+console.log('✅ Auth routes registered');
 app.use("/api/users", usersRoutes);
+console.log('✅ User routes registered');
 app.use("/api/gigs", gigsRoutes);
+console.log('✅ Gig routes registered');
 app.use("/api/locations", locationsRoutes);
+console.log('✅ Location routes registered');
+console.log('🔧 All routes registered successfully');
 
 // Root endpoint
 app.get("/", (_req: Request, res: Response) => {
@@ -72,18 +75,22 @@ app.use((error: any, _req: Request, res: Response, _next: any) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 API available at http://localhost:${PORT}`);
-  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
-  console.log(`👥 User endpoints: http://localhost:${PORT}/api/users`);
-  console.log(`🎵 Gig endpoints: http://localhost:${PORT}/api/gigs`);
-  console.log(`📍 Location endpoints: http://localhost:${PORT}/api/locations`);
-  console.log(`\n📋 Key route examples:`);
-  console.log(`   Users by role: GET /api/users/by-role/:role`);
-  console.log(`   Gigs by status: GET /api/gigs/by-status/:status`);
-  console.log(`   Gigs by creator: GET /api/gigs/by-creator/:userId`);
-  console.log(`   Location search: GET /api/locations/search/area`);
-  console.log(`   Location capacity: GET /api/locations/search/capacity`);
-});
+const startServer = async () => {
+  try {
+    // Connect to MongoDB first
+    await connectDB();
+    
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => {
+      console.log('Server running on port', PORT);
+      console.log('API available at http://localhost:' + PORT);
+      console.log('Server startup complete - ready to accept requests');
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();

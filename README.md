@@ -50,6 +50,16 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 - **Guest List Management**: Handle VIP lists and special access requirements
 - **Event Coordination**: Access to event details, timing, and special instructions
 
+## 🏗️ Project Architecture
+
+VENU is built as a **full-stack application** with:
+
+- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
+- **Backend**: Node.js/Express API with TypeScript
+- **Database**: MongoDB Atlas (cloud database)
+- **Authentication**: JWT-based authentication system
+- **UI Components**: shadcn/ui component library built on Radix UI
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -57,8 +67,7 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 - **Node.js 18+** (Recommended: Node.js 20+)
 - **npm** or **yarn** package manager
 - **Git** for version control
-- **Android Studio** (for Android mobile development)
-- **Xcode** (for iOS mobile development, macOS only)
+- **MongoDB Atlas account** (or local MongoDB installation)
 
 ### Installation
 
@@ -68,425 +77,101 @@ git clone <your-repo-url>
 cd VENU
 ```
 
-2. **Install dependencies:**
+2. **Install frontend dependencies:**
 ```bash
 npm install
 ```
 
-3. **Run the development server:**
+3. **Install backend dependencies:**
+```bash
+cd backend
+npm install
+cd ..
+```
+
+4. **Set up environment variables:**
+   
+   Create a `.env` file in the `backend/` directory:
+   ```env
+   # Database Configuration
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+   
+   # Server Configuration
+   PORT=4000
+   NODE_ENV=development
+   
+   # JWT Configuration
+   JWT_SECRET=your-super-secret-jwt-key-here
+   
+   # Frontend URL (for CORS)
+   FRONTEND_URL=http://localhost:3000
+   ```
+
+### Running the Application
+
+1. **Start the backend server:**
+```bash
+cd backend
+npm run dev
+```
+The backend will run on `http://localhost:4000`
+
+2. **Start the frontend (in a new terminal):**
 ```bash
 npm run dev
 ```
+The frontend will run on `http://localhost:3000`
 
-4. **Open your browser:**
+3. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
 
-### Web Development Setup
+## 🔧 Development Scripts
 
-For web application development:
+### Frontend
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-1. **Build the web app:**
-```bash
-npm run build
-```
+### Backend
+- `npm run dev` - Start development server with nodemon
+- `npm run build` - Build TypeScript to JavaScript
+- `npm run start` - Start production server
 
-2. **Start production server:**
-```bash
-npm run start
-```
+## 🌐 API Endpoints
 
-### 🌐 Web Development Strategy
+The backend provides RESTful API endpoints for:
+
+- **Authentication**: `/api/auth/*` - User registration, login, profile management
+- **Users**: `/api/users/*` - User CRUD operations and role management
+- **Gigs**: `/api/gigs/*` - Event creation, management, and booking
+- **Locations**: `/api/locations/*` - Venue management and availability
+
+## 📱 Mobile Development Strategy
 
 **Current Status**: VENU is built as a modern web application using Next.js 14 with responsive design for optimal cross-device compatibility.
 
-#### Web-First Approach
-- **Responsive Design**: Mobile-first approach with progressive enhancement
-- **Cross-Device Compatibility**: Works seamlessly across desktop, tablet, and mobile browsers
-- **Modern Web Standards**: Built with latest web technologies and best practices
-- **Performance Optimized**: Fast loading and smooth user experience
-
-#### Development Benefits
-- **Single Codebase**: One codebase for all devices and screen sizes
-- **Better Performance**: Optimized for web with no mobile framework overhead
-- **Easier Maintenance**: Simpler debugging and development workflow
-- **Future Flexibility**: Can easily add PWA features or native app wrappers if needed
-
-
-
-## 📱 Available Scripts
-
-### Development
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build optimized production bundle
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint for code quality checks
-
-### Web Development
-- Modern web application with responsive design
-- Cross-device compatibility with mobile-first approach
-- Progressive Web App capabilities for enhanced mobile experience
-
-## 🏗️ Project Structure
-
-```
-VENU/
-├── src/                           # Source code
-│   ├── app/                       # Next.js App Router
-│   │   ├── artist/               # Artist dashboard pages
-│   │   ├── promoter/             # Promoter dashboard pages
-│   │   ├── location/             # Venue management pages
-│   │   ├── fan/                  # Fan experience pages
-│   │   ├── door/                 # Door scanner application
-│   │   ├── ticket/[id]/          # Dynamic ticket pages
-│   │   ├── get-started/          # Onboarding flow
-│   │   ├── learn-more/           # Information pages
-│   │   ├── globals.css           # Global styles and CSS variables
-│   │   ├── layout.tsx            # Root layout with providers
-│   │   └── page.tsx              # Home page with splash screen
-│   ├── components/               # Reusable React components
-│   │   ├── ui/                   # shadcn/ui component library
-│   │   │   ├── button.tsx        # Custom button component
-│   │   │   ├── card.tsx          # Card layout component
-│   │   │   ├── input.tsx         # Form input component
-│   │   │   ├── tabs.tsx          # Tab navigation component
-│   │   │   └── ...               # Other UI components
-│   │   ├── artist-dashboard.tsx  # Artist management interface
-│   │   ├── promoter-dashboard.tsx # Promoter multi-venue management
-│   │   ├── location-dashboard.tsx # Venue management with gig posting
-│   │   ├── fan-dashboard.tsx     # Fan event discovery and tickets
-│   │   ├── door-scanner.tsx      # Mobile door management app
-│   │   ├── ticket-purchase.tsx   # Ticket buying interface
-│   │   ├── onboarding-flow.tsx   # User registration and setup
-│   │   ├── auth-flow.tsx         # Authentication and role selection
-│   │   ├── splash-screen.tsx     # App loading and introduction
-│   │   └── gig-details.tsx       # Detailed event information
-│   └── lib/                      # Utility functions and shared data
-│       ├── types.ts              # TypeScript type definitions
-│       ├── location-data.ts      # Standardized venue information
-│       ├── constants.ts          # Shared form options and helper functions
-│       └── utils.ts              # Helper functions and utilities
-├── frontend/                     # Web application
-│   ├── src/                      # Source code
-│   ├── public/                   # Static assets
-│   ├── next.config.ts            # Next.js configuration
-│   └── package.json              # Dependencies
-├── backend/                      # Backend API (Node.js/Express)
-│   ├── src/
-│   │   ├── routes/              # API route handlers
-│   │   ├── shared/              # Shared backend types
-│   │   └── server.ts            # Express server setup
-│   └── package.json             # Backend dependencies
-├── public/                       # Static assets
-│   └── images/                  # Image assets (logos, venue photos)
-├── components.json               # shadcn/ui configuration
-├── tailwind.config.js           # Tailwind CSS configuration
-├── tsconfig.json                # TypeScript configuration
-└── package.json                 # Main project dependencies
-```
+**Future Plans**: The responsive web design serves as a foundation for future mobile app development, ensuring consistent user experience across all platforms.
 
 ## 🎨 Design System
 
-### Visual Identity
-- **Primary Color**: Purple (#9333ea) with white text for all non-navigation buttons
-- **Typography**: Geist font family with serif headings and sans-serif body text
-- **Components**: Built with shadcn/ui for consistency and accessibility
-- **Styling**: Tailwind CSS with custom design tokens and CSS variables
-- **Theme**: Dark mode support with next-themes integration
-
-### Component Standards
-- **Buttons**: Purple variant with white font for all action buttons
-- **Navigation**: Tabs use purple variant with white font for active states
-- **Cards**: Consistent border radius, shadows, and spacing
-- **Forms**: Unified input styling with proper focus states
-- **Images**: Standardized fallback system with proper aspect ratios
-
-### Responsive Design
-- **Mobile-First**: Optimized for mobile devices with progressive enhancement
-- **Breakpoints**: Tailwind's responsive breakpoints (sm, md, lg, xl, 2xl)
-- **Touch-Friendly**: Appropriate touch targets and spacing for mobile interaction
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **Framework**: Next.js 14.2.32 with App Router
-- **Language**: TypeScript 5+ with strict mode
-- **Styling**: Tailwind CSS 3.4+ with custom design system
-- **UI Components**: shadcn/ui built on Radix UI primitives
-- **Icons**: Lucide React for consistent iconography
-- **Forms**: React Hook Form with Zod validation
-- **State Management**: React hooks (useState, useEffect, useMemo, useCallback)
-- **Date Handling**: date-fns for date manipulation
-- **Charts**: Recharts for data visualization
-
-### Web Development
-- **Framework**: Next.js 14 with App Router
-- **Platforms**: Web browsers with responsive design
-- **Build Tools**: Next.js built-in bundler with optimization
-- **Web Features**: PWA capabilities, offline support, and modern web APIs
-
-### Backend
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript for type safety
-- **API**: RESTful API design with proper error handling
-- **Database**: (To be implemented) PostgreSQL or MongoDB
-- **Authentication**: (To be implemented) JWT-based authentication
-
-### Development Tools
-- **Package Manager**: npm with lock file for dependency management
-- **Linting**: ESLint for code quality
-- **Type Checking**: TypeScript compiler with strict configuration
-- **Build Tool**: Next.js built-in bundler with optimization
-- **Version Control**: Git with conventional commit messages
-
-## 🔧 Adding shadcn/ui Components
-
-To add new shadcn/ui components:
-
-1. **Use the shadcn CLI:**
-```bash
-npx shadcn@latest add [component-name]
-```
-
-2. **Or manually create components** following the shadcn/ui patterns in the `src/components/ui/` directory.
-
-3. **Import and use** the component in your React components:
-```tsx
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-```
-
-## 🔧 Shared Constants System
-
-### Centralized Form Options
-VENU uses a centralized constants system in `src/lib/constants.ts` to ensure consistency across all dashboards:
-
-```typescript
-// Time options for all time pickers
-export const TIME_OPTIONS = [
-  { value: "19:00", label: "7:00 PM - Doors Open" },
-  { value: "19:30", label: "7:30 PM - First Act" },
-  { value: "20:00", label: "8:00 PM" },
-  // ... more options
-]
-
-// Genre options for all genre selectors
-export const GENRE_OPTIONS = [
-  { value: "jazz", label: "Jazz" },
-  { value: "rock", label: "Rock" },
-  { value: "electronic", label: "Electronic" },
-  // ... more options
-]
-
-// Helper function for consistent time display
-export const getTimeLabel = (timeValue: string): string => {
-  return TIME_OPTIONS.find(option => option.value === timeValue)?.label || timeValue
-}
-```
-
-### Benefits
-- **Consistency**: Same options and labels across all dashboards
-- **Maintainability**: Update options in one place
-- **Performance**: Memoized constants prevent recreation
-- **Type Safety**: Centralized type definitions
-- **Code Quality**: Eliminates duplication and hardcoded values
-
-## 📊 Core Business Logic
-
-The platform manages comprehensive event lifecycle data:
-
-### Event Management
-- **Gigs**: Complete event information including bands, requirements, and logistics
-- **Bands**: Artist information, set times, and revenue sharing percentages
-- **Requirements**: Equipment and technical needs with dynamic checklist system
-- **Tickets**: Capacity management, sales tracking, and real-time availability
-- **Locations**: Venue details, availability, and capacity management
-
-## 📅 Calendar System
-
-### Venue Calendar Management
-The location dashboard features a comprehensive calendar system for venue management:
-
-#### **Dual View System**
-- **List View**: Traditional event list with event-focused filtering (All Events, Complete, Needs Bands)
-- **Calendar View**: Visual calendar grid with month navigation and day-by-day event display
-
-#### **Availability Management**
-- **Click-to-Toggle**: Days without shows can be clicked to toggle availability (available ↔ unavailable)
-- **Persistent Storage**: All availability changes are automatically saved to localStorage
-- **Visual Feedback**: Clear visual indicators for available, unavailable, and event days
-
-#### **Smart Filtering**
-- **List View Filters**: Event-focused filters for managing bookings and applications
-- **Calendar View Filters**: Includes date availability filters (All Dates, Available, Unavailable) in addition to event filters
-- **Filter Logic**: 
-  - **All Dates Filter**: Shows both available and unavailable dates with clear visual distinction
-  - **Available Filter**: Shows only free dates (no events, not unavailable, not past)
-  - **Unavailable Filter**: Shows only blocked dates with enhanced styling
-  - **Event Filters**: Filter by completion status and band requirements
-
-#### **Visual States**
-- **Today**: Purple square background with white text (matches "Today" button styling)
-- **Available**: White background with gray border, "Available" text in black
-- **Unavailable**: White background with red border, "Unavailable" text in red
-- **Events (Complete)**: White background with green border
-- **Events (Needs Bands)**: White background with yellow border, shows "Need X more" bands
-- **Past Dates**: Muted styling, non-interactive
-
-#### **Enhanced Features**
-- **Bands Progress**: Yellow event days display exact number of bands still needed
-- **Legend System**: Solid colored squares showing all calendar day states
-- **Month Navigation**: Previous/Next month buttons with "Today" quick navigation
-- **Today Integration**: Current day uses purple square background with white text to match "Today" button
-- **All Dates Filter**: Comprehensive filter showing both available and unavailable dates
-- **Enhanced Visibility**: Improved day number visibility with better contrast and positioning
-- **Responsive Design**: Calendar adapts to different screen sizes with proper touch targets
-- **Real-time Updates**: Changes are immediately reflected across all views
-
-### Financial Management
-- **Guarantees**: Minimum payment structures for artists
-- **Revenue Sharing**: Percentage-based payout systems
-- **Bonus Tiers**: Performance-based incentive structures
-- **Promoter Fees**: Configurable percentage allocations
-
-### User Management
-- **Multi-Role Support**: Artists, promoters, venues, fans, and door staff
-- **Role-Based Dashboards**: Specialized interfaces for each user type
-- **Cross-Venue Management**: Promoters can manage multiple venues
-- **Staff Coordination**: Door person assignment and communication
-
-## ⚡ Performance Optimizations ✅ IMPLEMENTED
-
-### React Performance
-- **useMemo**: Expensive calculations are memoized (band totals, validation logic)
-- **useCallback**: Event handlers are memoized to prevent unnecessary re-renders
-- **Functional State Updates**: Array operations use functional updates to prevent stale closures
-- **Memoized Mock Data**: Static data arrays are memoized to prevent recreation
-- **Optimized Dependencies**: Proper dependency arrays prevent unnecessary re-renders
-
-### Code Quality
-- **Eliminated Duplication**: Shared constants for repeated options (TIME_OPTIONS, GENRE_OPTIONS) in `src/lib/constants.ts`
-- **Simplified Logic**: Complex conditionals replaced with helper functions like `getTimeLabel()`
-- **Consistent Patterns**: Uniform approach applied across all similar functionality
-- **Type Safety**: Full TypeScript coverage with strict mode enabled
-- **Centralized Configuration**: All form options and step configurations in one place
-- **Clean Code**: No console statements or debug code in production
-
-### Bundle Optimization
-- **Next.js Optimization**: Built-in code splitting and image optimization
-- **Tree Shaking**: Unused code elimination through ES modules
-- **Lazy Loading**: Components loaded on demand for better initial load times
-- **Image Optimization**: Next.js Image component with proper fallbacks
-
-### Recent Performance Improvements
-- **All Dashboards**: Fully optimized with React best practices
-- **Form Validation**: Memoized validation logic for faster user interactions
-- **State Management**: Optimized with proper dependency arrays and functional updates
-- **Code Reuse**: Extracted shared constants and helper functions for maintainability
-- **Constants System**: Centralized form options in `src/lib/constants.ts` for consistency and performance
-- **Helper Functions**: `getTimeLabel()` and similar utilities for consistent data display
-- **Functional Updates**: Fixed stale closure issues in promoter dashboard
-- **Memory Management**: Proper cleanup and optimization across all components
-- **Production Ready**: All console statements removed, clean code structure maintained
-- **Backend Optimization**: Server startup logging cleaned up for production deployment
-
-## 🎯 Key Workflows
-
-1. **Event Creation**: Promoters create gigs with band lineups and requirements
-2. **Artist Onboarding**: Bands join events with set times and revenue expectations
-3. **Venue Coordination**: Locations manage capacity and technical requirements
-4. **Ticket Sales**: Fans purchase tickets through the platform
-5. **Event Execution**: Door staff scan tickets and manage entry
-
-## 📱 Mobile Support
-
-### Responsive Web Design
-- **Mobile-First Approach**: Optimized for mobile devices with progressive enhancement
-- **Cross-Device Compatibility**: Seamless experience across desktop, tablet, and mobile
-- **Touch-Optimized UI**: Large touch targets and gesture support for mobile users
-- **Performance**: Optimized for mobile networks and devices
-
-### Mobile-Specific Features
-- **Door Scanner Interface**: Mobile-optimized interface for door staff
-- **Touch-Friendly Navigation**: Intuitive mobile navigation and interactions
-- **Offline Capability**: Basic functionality available without internet connection
-- **PWA Features**: Progressive Web App capabilities for enhanced mobile experience
-
-### Development Workflow
-- **Hot Reload**: Instant updates during development
-- **Responsive Testing**: Test across different screen sizes and devices
-- **Browser Testing**: Test in mobile browsers and responsive design mode
-- **Performance Optimization**: Optimized for mobile networks and devices
-
-## 🚀 Development Guidelines
-
-### Code Standards
-- **TypeScript**: Strict mode enabled with proper type definitions
-- **Component Structure**: Functional components with hooks
-- **Styling**: Tailwind CSS with consistent design tokens
-- **State Management**: React hooks with proper dependency arrays
-- **Performance**: Memoization for expensive operations
-
-### Git Workflow
-- **Branching**: Feature branches for new development
-- **Commits**: Conventional commit messages for clear history
-- **Code Review**: All changes require review before merging
-- **Testing**: Comprehensive testing before deployment
-
-### File Organization
-- **Components**: Organized by feature with clear naming conventions
-- **Types**: Centralized type definitions in `lib/types.ts`
-- **Utilities**: Shared functions in `lib/utils.ts`
-- **Assets**: Optimized images with proper fallbacks
-
-### Current Development Status
-- **Location Dashboard**: ✅ Fully functional with gig posting capabilities and comprehensive calendar system
-- **Promoter Dashboard**: ✅ Multi-venue management with optimized performance and functional state updates
-- **Artist Dashboard**: ✅ Gig discovery and booking with memoized data and optimized rendering
-- **Fan Dashboard**: ✅ Event discovery and ticket purchasing with performance optimizations
-- **Calendar System**: ✅ Complete calendar functionality with availability management and filtering
-- **Calendar Enhancements**: ✅ All Dates filter, Today integration, and enhanced visibility implemented
-- **Performance Optimizations**: ✅ All major improvements implemented and production-ready
-- **Button Styling**: ✅ Purple variant with white font compliance across all components
-- **Mobile Development**: ✅ Responsive web design with mobile-first approach
-- **Code Quality**: ✅ Shared constants, helper functions, and clean code practices implemented
-- **Data Persistence**: ✅ localStorage integration for calendar availability changes
-- **Shared Constants System**: ✅ Centralized form options and helper functions in `src/lib/constants.ts`
-- **Code Organization**: ✅ Eliminated duplication with shared TIME_OPTIONS and GENRE_OPTIONS
-- **Production Readiness**: ✅ Console statements removed, optimized performance, clean code structure
-- **Memory Management**: ✅ Proper cleanup and optimization across all components
-- **Backend Cleanup**: ✅ Server startup logging cleaned up for production deployment
-- **Code Audit**: ✅ Comprehensive performance and code quality review completed
-
-## 📚 Learn More
-
-### Documentation
-- [Next.js Documentation](https://nextjs.org/docs) - Framework documentation
-- [shadcn/ui Documentation](https://ui.shadcn.com/) - UI component library
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Styling framework
-- [Progressive Web Apps](https://web.dev/progressive-web-apps/) - PWA development
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/) - Type system
-
-### Community Resources
-- [React Documentation](https://react.dev/) - React framework guide
-- [Radix UI Documentation](https://www.radix-ui.com/) - UI primitives
-- [Lucide Icons](https://lucide.dev/) - Icon library
-- [date-fns Documentation](https://date-fns.org/) - Date utilities
+- **Color Scheme**: Purple-based theme with white text for primary actions
+- **Typography**: Modern, readable fonts optimized for mobile and desktop
+- **Components**: Consistent UI patterns using shadcn/ui component library
+- **Responsive Design**: Mobile-first approach with progressive enhancement
 
 ## 🤝 Contributing
 
-We welcome contributions to VENU! Please see our contributing guidelines for:
-- Code style and standards
-- Pull request process
-- Issue reporting
-- Feature requests
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- Built with [Next.js](https://nextjs.org/) and [React](https://react.dev/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons by [Lucide](https://lucide.dev/)
-- Mobile development with [Expo](https://expo.dev/) 
+For support and questions, please open an issue in the GitHub repository or contact the development team. 
