@@ -9,23 +9,30 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 ## ✨ Features
 
 ### For Artists
+- **Artist Profile Management**: Create and manage comprehensive artist profiles with bio, genres, social links, and pricing
 - **Artist Dashboard**: Comprehensive gig management and performance tracking
 - **Gig Discovery**: Browse available opportunities with detailed requirements
 - **Set Time Management**: Schedule performances with automatic time slot coordination
 - **Revenue Tracking**: Monitor earnings, guarantees, and percentage-based payouts
 - **Application System**: Apply to gigs with portfolio and requirements matching
 - **Performance Analytics**: Track attendance, ratings, and repeat booking rates
+- **Social Media Integration**: Connect Spotify, Apple Music, Instagram, and website links
+- **Location & Availability**: Set location preferences and availability status
+- **Genre & Style**: Define musical genres and artistic style for better matching
 
 ### For Promoters
 - **Multi-Venue Management**: Handle multiple venues from a single dashboard
+- **Artist Discovery**: Search and filter artists by genre, location, rating, and availability
 - **Gig Posting System**: Create detailed events with band requirements and payout structures
 - **Artist Coordination**: Manage applications, confirmations, and communication
 - **Revenue Management**: Set guarantees, bonus tiers, and percentage distributions
 - **Cross-Venue Analytics**: Consolidated performance metrics across all venues
 - **Event Promotion**: Built-in tools for marketing and ticket sales tracking
+- **Artist Booking**: Browse and book artists with comprehensive profile information
 
 ### For Venues (Locations)
 - **Location Dashboard**: Complete venue management with comprehensive calendar system
+- **Artist Discovery**: Search and book artists with detailed profiles and availability
 - **Calendar Views**: List view for event management and visual calendar view for scheduling
 - **Availability Management**: Click-to-toggle date availability with persistent storage
 - **Event Scheduling**: Visual calendar with availability tracking and conflict detection
@@ -61,9 +68,13 @@ VENU is built as a **full-stack application** with:
 
 - **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
 - **Backend**: Node.js/Express API with TypeScript
-- **Database**: MongoDB Atlas (cloud database)
-- **Authentication**: JWT-based authentication system
+- **Database**: MongoDB Atlas (cloud database) with optimized indexing
+- **Authentication**: JWT-based authentication system with secure configuration
 - **UI Components**: shadcn/ui component library built on Radix UI
+- **Validation**: Zod schemas for comprehensive input validation
+- **Security**: Rate limiting, error handling, and input sanitization
+- **Performance**: Optimized database queries with parallel operations and lean queries
+- **Code Quality**: Comprehensive TypeScript interfaces and performance optimizations
 
 ## 🚀 Getting Started
 
@@ -102,7 +113,7 @@ cd ..
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
    
    # Server Configuration
-   PORT=4000
+   PORT=3001
    NODE_ENV=development
    
    # JWT Configuration
@@ -114,12 +125,26 @@ cd ..
 
 ### Running the Application
 
+#### Option 1: Quick Start (Recommended)
+Use the provided startup scripts to run both servers simultaneously:
+
+**For macOS/Linux:**
+```bash
+./start-dev.sh
+```
+
+**For Windows:**
+```bash
+start-dev.bat
+```
+
+#### Option 2: Manual Start
 1. **Start the backend server:**
 ```bash
 cd backend
 npm run dev
 ```
-The backend will run on `http://localhost:4000`
+The backend will run on `http://localhost:3001`
 
 2. **Start the frontend (in a new terminal):**
 ```bash
@@ -127,30 +152,68 @@ npm run dev
 ```
 The frontend will run on `http://localhost:3000`
 
+#### Option 3: Using npm scripts
+```bash
+# Start both servers simultaneously
+npm run dev:both
+
+# Or start them individually
+npm run dev:frontend  # Frontend only
+npm run dev:backend   # Backend only
+```
+
 3. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 🔧 Development Scripts
 
-### Frontend
-- `npm run dev` - Start development server
+### Root Level (Frontend + Backend)
+- `npm run dev` - Start frontend on port 3000
+- `npm run dev:frontend` - Start frontend on port 3000
+- `npm run dev:backend` - Start backend on port 3001
+- `npm run dev:both` - Start both servers simultaneously (requires `concurrently`)
+
+### Frontend Only
+- `npm run dev` - Start development server on port 3000
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 
-### Backend
-- `npm run dev` - Start development server with nodemon
+### Backend Only
+- `npm run dev` - Start development server with nodemon on port 3001
 - `npm run build` - Build TypeScript to JavaScript
-- `npm run start` - Start production server
+- `npm run start` - Start production server on port 3001
+
+### Startup Scripts
+- `./start-dev.sh` - Start both servers (macOS/Linux)
+- `start-dev.bat` - Start both servers (Windows)
 
 ## 🌐 API Endpoints
 
-The backend provides RESTful API endpoints for:
+The backend provides RESTful API endpoints with comprehensive security and validation:
 
+### Authentication & Users
 - **Authentication**: `/api/auth/*` - User registration, login, profile management
-- **Users**: `/api/users/*` - User CRUD operations and role management
-- **Gigs**: `/api/gigs/*` - Event creation, management, and booking
-- **Locations**: `/api/locations/*` - Venue management and availability
+- **Users**: `/api/users/*` - User CRUD operations and role management with admin controls
+
+### Artist Management
+- **Artists**: `/api/artists/*` - Artist profile CRUD operations with search and filtering
+  - Public endpoints for artist discovery and search
+  - Protected endpoints for profile management
+  - Advanced filtering by genre, location, and rating
+  - Comprehensive search across name, bio, and genres
+  - Optimized pagination with parallel database queries
+
+### Events & Venues
+- **Gigs**: `/api/gigs/*` - Event creation, management, and booking with promoter controls
+- **Locations**: `/api/locations/*` - Venue management and availability with search capabilities
+
+### Security Features
+- **Rate Limiting**: Protection against abuse with configurable limits
+- **Input Validation**: Comprehensive Zod schema validation for all endpoints
+- **Error Handling**: Typed error responses with proper logging
+- **Authentication**: JWT-based security with role-based access control
+- **Performance**: Optimized database queries with lean operations and parallel processing
 
 ## 📱 Mobile Development Strategy
 
@@ -166,6 +229,8 @@ The backend provides RESTful API endpoints for:
 - **Responsive Design**: Mobile-first approach with progressive enhancement
 - **Component Architecture**: Modular, reusable components for maintainable code
 - **Performance**: Optimized rendering with proper memoization and code splitting
+- **Accessibility**: WCAG compliant components with proper ARIA labels
+- **Theme Consistency**: Enforced purple button styling for all non-navigation actions
 
 ## 🤝 Contributing
 

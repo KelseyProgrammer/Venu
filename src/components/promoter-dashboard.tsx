@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import { GIG_STEPS } from "@/lib/constants"
+import { ArtistListing } from "./artist-listing"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -1580,6 +1581,16 @@ export function PromoterDashboard() {
               </Card>
             ))}
           </div>
+
+          <ArtistListing 
+            showSearch={true}
+            showFilters={true}
+            limit={6}
+            onArtistSelect={(artist) => {
+              // Handle artist selection - could open booking modal
+              console.log('Selected artist for booking:', artist)
+            }}
+          />
         </TabsContent>
 
         {/* Schedule Tab */}

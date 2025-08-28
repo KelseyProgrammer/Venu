@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, BarChart3, Clock, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
+import { ArtistListing } from "./artist-listing"
 
 export function LocationDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -69,16 +70,16 @@ export function LocationDashboard() {
   // Form state
   const [eventName, setEventName] = useState("")
   const [eventDate, setEventDate] = useState("")
-  const [eventTime, setEventTime] = useState("")
-  const [eventGenre, setEventGenre] = useState("")
+  const [eventTime, setEventTime] = useState<string | undefined>(undefined)
+  const [eventGenre, setEventGenre] = useState<string | undefined>(undefined)
   const [ticketCapacity, setTicketCapacity] = useState("")
   const [ticketPrice, setTicketPrice] = useState("")
   
-  const [selectedPromoter, setSelectedPromoter] = useState("")
+  const [selectedPromoter, setSelectedPromoter] = useState<string | undefined>(undefined)
   const [promoterEmail, setPromoterEmail] = useState("")
   const [promoterPercentage, setPromoterPercentage] = useState("")
   
-  const [selectedDoorPerson, setSelectedDoorPerson] = useState("")
+  const [selectedDoorPerson, setSelectedDoorPerson] = useState<string | undefined>(undefined)
   const [doorPersonEmail, setDoorPersonEmail] = useState("")
   
   const [requirements, setRequirements] = useState<Array<{ id: string; text: string; checked: boolean }>>([])
@@ -86,8 +87,8 @@ export function LocationDashboard() {
   
   const [bands, setBands] = useState<Array<{ id: string; name: string; genre: string; setTime: string; percentage: string; email: string }>>([])
   const [bandName, setBandName] = useState("")
-  const [bandGenre, setBandGenre] = useState("")
-  const [bandSetTime, setBandSetTime] = useState("")
+  const [bandGenre, setBandGenre] = useState<string | undefined>(undefined)
+  const [bandSetTime, setBandSetTime] = useState<string | undefined>(undefined)
   const [bandPercentage, setBandPercentage] = useState("")
   const [bandEmail, setBandEmail] = useState("")
   
@@ -409,12 +410,12 @@ export function LocationDashboard() {
   }, [])
 
   const addBand = useCallback(() => {
-    if (bandName.trim() && bandGenre.trim() && bandSetTime.trim() && bandPercentage.trim() && bandEmail.trim()) {
+    if (bandName.trim() && bandGenre?.trim() && bandSetTime?.trim() && bandPercentage.trim() && bandEmail.trim()) {
       const newBand = {
         id: Date.now().toString(),
         name: bandName.trim(),
-        genre: bandGenre.trim(),
-        setTime: bandSetTime.trim(),
+        genre: bandGenre!.trim(),
+        setTime: bandSetTime!.trim(),
         percentage: bandPercentage.trim(),
         email: bandEmail.trim()
       }
@@ -427,8 +428,8 @@ export function LocationDashboard() {
       
       // Reset form fields
       setBandName("")
-      setBandGenre("")
-      setBandSetTime("")
+      setBandGenre(undefined)
+      setBandSetTime(undefined)
       setBandPercentage("")
       setBandEmail("")
     }
@@ -686,13 +687,13 @@ export function LocationDashboard() {
                 <Label htmlFor="promoter" className="text-foreground">
                   Promoter
                 </Label>
-                <Select value={selectedPromoter} onValueChange={handlePromoterSelection}>
+                <Select value={selectedPromoter || ""} onValueChange={handlePromoterSelection}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                     <SelectValue placeholder="Select promoter" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="self">SELF</SelectItem>
-                    {savedPromoters.map((promoter) => (
+                    {savedPromoters.filter(promoter => promoter.id && promoter.id.trim() !== "").map((promoter) => (
                       <SelectItem key={promoter.id} value={promoter.id}>
                         {promoter.name} ({promoter.email})
                       </SelectItem>
@@ -753,7 +754,7 @@ export function LocationDashboard() {
                   <Label htmlFor="time" className="text-foreground">
                     Time
                   </Label>
-                  <Select value={eventTime} onValueChange={setEventTime}>
+                  <Select value={eventTime || ""} onValueChange={setEventTime}>
                     <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                       <SelectValue placeholder="Select event time" />
                     </SelectTrigger>
@@ -772,7 +773,7 @@ export function LocationDashboard() {
                 <Label htmlFor="genre" className="text-foreground">
                   Preferred Genre
                 </Label>
-                <Select value={eventGenre} onValueChange={setEventGenre}>
+                <Select value={eventGenre || ""} onValueChange={setEventGenre}>
                   <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                     <SelectValue placeholder="Select genre" />
                   </SelectTrigger>
@@ -880,7 +881,7 @@ export function LocationDashboard() {
                         onChange={(e) => setBandName(e.target.value)}
                         className="bg-input border-border text-foreground"
                       />
-                      <Select value={bandGenre} onValueChange={setBandGenre}>
+                      <Select value={bandGenre || ""} onValueChange={setBandGenre}>
                         <SelectTrigger className="bg-input border-border text-foreground">
                           <SelectValue placeholder="Select genre" />
                         </SelectTrigger>
@@ -896,7 +897,7 @@ export function LocationDashboard() {
                         <Label htmlFor="band-set-time" className="text-foreground">
                           Set Time
                         </Label>
-                        <Select value={bandSetTime} onValueChange={setBandSetTime}>
+                        <Select value={bandSetTime || ""} onValueChange={setBandSetTime}>
                           <SelectTrigger className="bg-input border-border text-foreground">
                             <SelectValue placeholder="Select set time" />
                           </SelectTrigger>
@@ -929,7 +930,7 @@ export function LocationDashboard() {
                     variant="default" 
                     size="sm"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                      disabled={!bandName.trim() || !bandGenre.trim() || !bandSetTime.trim() || !bandPercentage.trim() || !bandEmail.trim()}
+                      disabled={!bandName.trim() || !bandGenre?.trim() || !bandSetTime?.trim() || !bandPercentage.trim() || !bandEmail.trim()}
                   >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Band
@@ -1106,13 +1107,13 @@ export function LocationDashboard() {
                     <Label htmlFor="door-person" className="text-foreground">
                       Door Person
                     </Label>
-                    <Select value={selectedDoorPerson} onValueChange={setSelectedDoorPerson}>
+                    <Select value={selectedDoorPerson || ""} onValueChange={setSelectedDoorPerson}>
                       <SelectTrigger className="mt-2 bg-input border-border text-foreground">
                         <SelectValue placeholder="Select door person" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="self">SELF</SelectItem>
-                        {savedDoorPersons.map((doorPerson) => (
+                        {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
                           <SelectItem key={doorPerson.id} value={doorPerson.id}>
                             {doorPerson.name} ({doorPerson.email})
                           </SelectItem>
@@ -1211,7 +1212,7 @@ export function LocationDashboard() {
                     <span className="text-foreground font-medium">
                       {selectedPromoter === "self" ? "SELF" : 
                        selectedPromoter === "add-by-email" ? promoterEmail : 
-                       savedPromoters.find(p => p.id === selectedPromoter)?.name || 'Not selected'}
+                       selectedPromoter ? savedPromoters.find(p => p.id === selectedPromoter)?.name || 'Not selected' : 'Not selected'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1351,17 +1352,6 @@ export function LocationDashboard() {
           <TabsContent value="discover" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-serif font-bold text-xl">Discover Local Artists</h2>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search artists..." 
-                  className="w-64 bg-input border-border text-foreground"
-                />
-                <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-                  <Filter className="w-4 h-4 mr-1" />
-                  Filter
-                </Button>
-              </div>
             </div>
 
             <div className="grid gap-4">
@@ -1462,6 +1452,16 @@ export function LocationDashboard() {
                 </Card>
               ))}
             </div>
+
+            <ArtistListing 
+              showSearch={true}
+              showFilters={true}
+              limit={8}
+              onArtistSelect={(artist) => {
+                // Handle artist selection - could open booking modal
+                console.log('Selected artist for booking:', artist)
+              }}
+            />
           </TabsContent>
 
           {/* Schedule Tab */}
@@ -2275,7 +2275,7 @@ export function LocationDashboard() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">Saved Promoters</Label>
                         <div className="space-y-2">
-                          {savedPromoters.map((promoter) => (
+                          {savedPromoters.filter(promoter => promoter.id && promoter.id.trim() !== "").map((promoter) => (
                             <div key={promoter.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                               <div>
                                 <div className="font-medium text-foreground">{promoter.name}</div>
@@ -2335,7 +2335,7 @@ export function LocationDashboard() {
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">Saved Door Persons</Label>
                         <div className="space-y-2">
-                          {savedDoorPersons.map((doorPerson) => (
+                          {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
                             <div key={doorPerson.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                               <div>
                                 <div className="font-medium text-foreground">{doorPerson.name}</div>

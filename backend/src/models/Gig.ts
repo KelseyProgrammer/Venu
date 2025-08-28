@@ -198,5 +198,27 @@ gigSchema.index({ rating: -1 });
 gigSchema.index({ tags: 1 });
 gigSchema.index({ createdBy: 1 });
 gigSchema.index({ selectedLocation: 1 });
+gigSchema.index({ selectedPromoter: 1 });
+gigSchema.index({ eventGenre: 1 });
+gigSchema.index({ ticketCapacity: 1 });
+gigSchema.index({ createdAt: -1 });
+// Compound indexes for common query patterns
+gigSchema.index({ status: 1, eventDate: 1 });
+gigSchema.index({ selectedLocation: 1, eventDate: 1 });
+gigSchema.index({ eventGenre: 1, status: 1 });
+gigSchema.index({ createdBy: 1, status: 1 });
+gigSchema.index({ selectedPromoter: 1, status: 1 });
+// Text search index for event names and descriptions
+gigSchema.index({ 
+  eventName: 'text',
+  eventGenre: 'text',
+  tags: 'text'
+}, {
+  weights: {
+    eventName: 10,
+    eventGenre: 5,
+    tags: 3
+  }
+});
 
 export default mongoose.model<IGig>('Gig', gigSchema);

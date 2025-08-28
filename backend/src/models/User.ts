@@ -56,8 +56,24 @@ const userSchema = new Schema<IUser>({
   timestamps: true,
 });
 
-// Index for faster queries
-userSchema.index({ email: 1 });
+// Indexes for faster queries
+userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ isVerified: 1 });
+// Compound index for role-based queries with verification status
+userSchema.index({ role: 1, isVerified: 1 });
+// Compound index for search functionality
+userSchema.index({ 
+  firstName: 'text', 
+  lastName: 'text', 
+  email: 'text' 
+}, {
+  weights: {
+    firstName: 10,
+    lastName: 10,
+    email: 5
+  }
+});
 
 export default mongoose.model<IUser>('User', userSchema);

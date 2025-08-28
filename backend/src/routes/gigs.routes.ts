@@ -1,13 +1,22 @@
 import { Router, Request, Response } from 'express';
 import Gig from '../models/Gig.js';
 import { ApiResponse } from '../shared/types.js';
+import { 
+  authenticateToken, 
+  requireRole, 
+  requireResourceOwnership,
+  requirePromoterOrAdmin 
+} from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Create new gig
-router.post('/', async (req: Request, res: Response) => {
+// Create new gig - PROTECTED ROUTE (Promoters and Admins only)
+router.post('/', authenticateToken, requirePromoterOrAdmin, async (req: Request, res: Response) => {
   try {
-    const gigData = req.body;
+    const gigData = {
+      ...req.body,
+      createdBy: req.user!.userId // Ensure the creator is set from JWT
+    };
     const gig = new Gig(gigData);
     await gig.save();
 
@@ -28,7 +37,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get all gigs (with pagination and filtering)
+// Get all gigs (with pagination and filtering) - PUBLIC ROUTE
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10, status, genre, location, promoter } = req.query;
@@ -76,7 +85,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get gigs by status - this must come before the :id route
+// Get gigs by status - this must come before the :id route - PUBLIC ROUTE
 router.get('/by-status/:status', async (req: Request, res: Response) => {
   try {
     const { status } = req.params;
@@ -114,8 +123,8 @@ router.get('/by-status/:status', async (req: Request, res: Response) => {
   }
 });
 
-// Get gigs by creator - this must come before the :id route
-router.get('/by-creator/:userId', async (req: Request, res: Response) => {
+// Get gigs by creator - this must come before the :id route - PROTECTED ROUTE
+router.get('/by-creator/:userId', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -152,7 +161,7 @@ router.get('/by-creator/:userId', async (req: Request, res: Response) => {
   }
 });
 
-// Get gig by ID
+// Get gig by ID - PUBLIC ROUTE
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -186,8 +195,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update gig by ID
-router.put('/:id', async (req: Request, res: Response) => {
+// Update gig by ID - PROTECTED ROUTE (Owner or Admin only)
+router.put('/:id', authenticateToken, requireResourceOwnership(Gig), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -223,8 +232,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Delete gig by ID
-router.delete('/:id', async (req: Request, res: Response) => {
+// Delete gig by ID - PROTECTED ROUTE (Owner or Admin only)
+router.delete('/:id', authenticateToken, requireResourceOwnership(Gig), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const gig = await Gig.findByIdAndDelete(id);

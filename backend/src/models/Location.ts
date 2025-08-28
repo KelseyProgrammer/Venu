@@ -116,5 +116,27 @@ locationSchema.index({ rating: -1 });
 locationSchema.index({ tags: 1 });
 locationSchema.index({ isActive: 1 });
 locationSchema.index({ createdBy: 1 });
+locationSchema.index({ createdAt: -1 });
+// Compound indexes for common query patterns
+locationSchema.index({ isActive: 1, city: 1, state: 1 });
+locationSchema.index({ isActive: 1, capacity: 1 });
+locationSchema.index({ isActive: 1, rating: -1 });
+locationSchema.index({ createdBy: 1, isActive: 1 });
+// Text search index for location names and descriptions
+locationSchema.index({ 
+  name: 'text',
+  city: 'text',
+  state: 'text',
+  description: 'text',
+  tags: 'text'
+}, {
+  weights: {
+    name: 10,
+    city: 8,
+    state: 6,
+    description: 3,
+    tags: 2
+  }
+});
 
 export default mongoose.model<ILocation>('Location', locationSchema);

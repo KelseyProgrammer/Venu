@@ -1,13 +1,22 @@
 import { Router, Request, Response } from 'express';
 import Location from '../models/Location.js';
 import { ApiResponse } from '../shared/types.js';
+import { 
+  authenticateToken, 
+  requireRole, 
+  requireResourceOwnership,
+  requireLocationOrAdmin 
+} from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Create new location
-router.post('/', async (req: Request, res: Response) => {
+// Create new location - PROTECTED ROUTE (Location owners and Admins only)
+router.post('/', authenticateToken, requireLocationOrAdmin, async (req: Request, res: Response) => {
   try {
-    const locationData = req.body;
+    const locationData = {
+      ...req.body,
+      createdBy: req.user!.userId // Ensure the creator is set from JWT
+    };
     const location = new Location(locationData);
     await location.save();
 
@@ -28,7 +37,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get all locations (with pagination and filtering)
+// Get all locations (with pagination and filtering) - PUBLIC ROUTE
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10, city, state, capacity, isActive } = req.query;
@@ -73,7 +82,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// Search locations by area - this must come before the :id route
+// Search locations by area - this must come before the :id route - PUBLIC ROUTE
 router.get('/search/area', async (req: Request, res: Response) => {
   try {
     const { city, state, radius } = req.query;
@@ -116,7 +125,7 @@ router.get('/search/area', async (req: Request, res: Response) => {
   }
 });
 
-// Search locations by capacity - this must come before the :id route
+// Search locations by capacity - this must come before the :id route - PUBLIC ROUTE
 router.get('/search/capacity', async (req: Request, res: Response) => {
   try {
     const { minCapacity, maxCapacity } = req.query;
@@ -163,7 +172,7 @@ router.get('/search/capacity', async (req: Request, res: Response) => {
   }
 });
 
-// Get location by ID
+// Get location by ID - PUBLIC ROUTE
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -194,8 +203,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update location by ID
-router.put('/:id', async (req: Request, res: Response) => {
+// Update location by ID - PROTECTED ROUTE (Owner or Admin only)
+router.put('/:id', authenticateToken, requireResourceOwnership(Location), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -231,8 +240,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Delete location by ID
-router.delete('/:id', async (req: Request, res: Response) => {
+// Delete location by ID - PROTECTED ROUTE (Owner or Admin only)
+router.delete('/:id', authenticateToken, requireResourceOwnership(Location), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const location = await Location.findByIdAndDelete(id);

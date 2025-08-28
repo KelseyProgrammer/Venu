@@ -1,11 +1,17 @@
 import { Router, Request, Response } from 'express';
 import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
+import { 
+  authenticateToken, 
+  requireRole, 
+  requireResourceOwnership,
+  requireAdmin 
+} from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Get all users (with pagination and filtering)
-router.get('/', async (req: Request, res: Response) => {
+// Get all users (with pagination and filtering) - PROTECTED ROUTE (Admin only)
+router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10, role, search } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
@@ -53,8 +59,8 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get users by role - this must come before the :id route
-router.get('/by-role/:role', async (req: Request, res: Response) => {
+// Get users by role - this must come before the :id route - PROTECTED ROUTE (Admin only)
+router.get('/by-role/:role', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { role } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -90,10 +96,22 @@ router.get('/by-role/:role', async (req: Request, res: Response) => {
   }
 });
 
-// Get user by ID
-router.get('/:id', async (req: Request, res: Response) => {
+// Get user by ID - PROTECTED ROUTE (Owner or Admin only)
+router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Check if user is admin or accessing their own profile
+    if (currentUserRole !== 'admin' && currentUserId !== id) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Access denied - you can only view your own profile',
+      };
+      return res.status(403).json(response);
+    }
+
     const user = await User.findById(id).select('-password');
 
     if (!user) {
@@ -120,15 +138,32 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update user by ID
-router.put('/:id', async (req: Request, res: Response) => {
+// Update user by ID - PROTECTED ROUTE (Owner or Admin only)
+router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
     const { firstName, lastName, phone, profileImage, isVerified } = req.body;
+
+    // Check if user is admin or updating their own profile
+    if (currentUserRole !== 'admin' && currentUserId !== id) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Access denied - you can only update your own profile',
+      };
+      return res.status(403).json(response);
+    }
+
+    // Only admins can update verification status
+    const updateData: any = { firstName, lastName, phone, profileImage };
+    if (currentUserRole === 'admin' && isVerified !== undefined) {
+      updateData.isVerified = isVerified;
+    }
 
     const user = await User.findByIdAndUpdate(
       id,
-      { firstName, lastName, phone, profileImage, isVerified },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -157,10 +192,21 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Delete user by ID
-router.delete('/:id', async (req: Request, res: Response) => {
+// Delete user by ID - PROTECTED ROUTE (Admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user!.userId;
+
+    // Prevent users from deleting themselves
+    if (currentUserId === id) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'You cannot delete your own account',
+      };
+      return res.status(400).json(response);
+    }
+
     const user = await User.findByIdAndDelete(id);
 
     if (!user) {

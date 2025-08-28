@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=3000 next dev",
+    "dev:frontend": "PORT=3000 next dev",
+    "dev:backend": "cd backend && PORT=3001 npm run dev",
+    "dev:both": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -63,6 +66,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
     "eslint": "8.57.1",
     "eslint-config-next": "15.5.2",
     "postcss": "^8.5.6",

@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
+import artistsRoutes from "./routes/artists.routes.js";
 import connectDB from "./config/database.js";
 
 dotenv.config();
@@ -42,6 +43,8 @@ app.use("/api/gigs", gigsRoutes);
 console.log('✅ Gig routes registered');
 app.use("/api/locations", locationsRoutes);
 console.log('✅ Location routes registered');
+app.use("/api/artists", artistsRoutes);
+console.log('✅ Artist routes registered');
 console.log('🔧 All routes registered successfully');
 
 // Root endpoint
@@ -53,7 +56,8 @@ app.get("/", (_req: Request, res: Response) => {
       auth: "/api/auth",
       users: "/api/users",
       gigs: "/api/gigs",
-      locations: "/api/locations"
+      locations: "/api/locations",
+      artists: "/api/artists"
     }
   });
 });

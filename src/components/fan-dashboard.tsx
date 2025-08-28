@@ -12,6 +12,7 @@ import { TicketPurchase } from "./ticket-purchase"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { GenreFilters } from "./genre-filters"
 import { EventsGrid } from "./events-grid"
+import { ArtistListing } from "./artist-listing"
 
 // Artist Card Component for Fan Dashboard
 interface ArtistCardProps {
@@ -655,27 +656,24 @@ export function FanDashboard() {
               </div>
 
               {/* Artists Section */}
-              {filteredArtists.length > 0 && (
-                <section className="space-y-6" aria-labelledby="artists-heading">
-                  <div className="flex items-center justify-between border-b border-border pb-2">
-                    <h2 id="artists-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full" aria-hidden="true"></span>
-                      Artists
-                    </h2>
-                    <Badge variant="secondary" className="text-xs" aria-label={`${filteredArtists.length} artists found`}>
-                      {filteredArtists.length} found
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid gap-6" role="list" aria-label="Artist search results">
-                    {filteredArtists.map((artist) => (
-                      <div key={artist.id} role="listitem">
-                        <ArtistCard artist={artist} />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+              <section className="space-y-6" aria-labelledby="artists-heading">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h2 id="artists-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <span className="w-2 h-2 bg-purple-500 rounded-full" aria-hidden="true"></span>
+                    Artists
+                  </h2>
+                </div>
+                
+                <ArtistListing 
+                  showSearch={true}
+                  showFilters={true}
+                  limit={6}
+                  onArtistSelect={(artist) => {
+                    // Handle artist selection - could open a modal or navigate to artist profile
+                    console.log('Selected artist:', artist)
+                  }}
+                />
+              </section>
 
               {/* Locations Section */}
               {filteredLocations.length > 0 && (
@@ -763,27 +761,8 @@ export function FanDashboard() {
               </div>
               <h2 className="text-3xl font-semibold text-foreground mb-4">Discover Amazing Events</h2>
               <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-lg">
-                Start typing to search for artists, venues, or events, or select a genre filter to discover new music in your area.
+                Use the search bar above to find artists, venues, or events, or select a genre filter to discover new music in your area.
               </p>
-              <div className="space-y-4">
-                <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground">
-                  <span>Popular searches:</span>
-                </div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("jazz")} className="text-xs">
-                    jazz
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("electronic")} className="text-xs">
-                    electronic
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("The Blue Notes")} className="text-xs">
-                    The Blue Notes
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setSearchQuery("Muggsy's Bar")} className="text-xs">
-                    Muggsy's Bar
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </TabsContent>

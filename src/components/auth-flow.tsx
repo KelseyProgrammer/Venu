@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ChevronLeft, Music, MapPin, Users, Upload, X, Heart } from "lucide-react"
 import Image from "next/image"
+import { authApi, artistApi, apiUtils } from "@/lib/api"
 
 export function AuthFlow() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -20,6 +21,24 @@ export function AuthFlow() {
   const [equipment, setEquipment] = useState<string[]>([])
   const [regions, setRegions] = useState<string[]>([])
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Form data state
+  const [loginData, setLoginData] = useState({ email: "", password: "" })
+  const [signupData, setSignupData] = useState({ 
+    name: "", 
+    email: "", 
+    password: "" 
+  })
+  const [profileData, setProfileData] = useState({
+    bio: "",
+    spotify: "",
+    instagram: "",
+    location: "",
+    availability: "",
+    priceRange: ""
+  })
 
   const roles = [
     {
@@ -82,30 +101,124 @@ export function AuthFlow() {
     setList(list.filter((i) => i !== item))
   }
 
-  const handleCreateAccount = () => {
-    setShowProfileSetup(true)
+  const handleCreateAccount = async () => {
+    if (!selectedRole) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Split name into first and last name
+      const nameParts = signupData.name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      // Register the user
+      const response = await authApi.register({
+        email: signupData.email,
+        password: signupData.password,
+        role: selectedRole,
+        firstName,
+        lastName,
+      });
+      
+      if (response.success && response.data) {
+        // Store the auth token
+        apiUtils.setAuthToken(response.data.token);
+        
+        // If it's an artist, show profile setup
+        if (selectedRole === 'artist') {
+          setShowProfileSetup(true);
+        } else {
+          // For other roles, navigate directly to their dashboard
+          if (selectedRole === "location") {
+            window.location.href = "/location";
+          } else if (selectedRole === "fan") {
+            window.location.href = "/fan";
+          } else {
+            window.location.href = "/";
+          }
+        }
+      } else {
+        setError(response.error || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const handleCompleteProfile = async () => {
-    setIsCompleting(true)
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Navigate to appropriate dashboard based on role
-    if (selectedRole === "artist") {
-      window.location.href = "/artist"
-    } else if (selectedRole === "location") {
-      window.location.href = "/location"
-    } else if (selectedRole === "fan") {
-      window.location.href = "/fan"
-    } else {
-      // For promoter or other roles, go to main page
-      window.location.href = "/"
+    if (selectedRole !== 'artist') return;
+    
+    setIsCompleting(true);
+    setError(null);
+    
+    try {
+      // Create artist profile
+      const response = await artistApi.createProfile({
+        name: signupData.name,
+        bio: profileData.bio,
+        genre: genres,
+        email: signupData.email,
+        instagram: profileData.instagram,
+        spotify: profileData.spotify,
+        location: profileData.location,
+        availability: profileData.availability,
+        priceRange: profileData.priceRange,
+      });
+      
+      if (response.success) {
+        // Navigate to artist dashboard
+        window.location.href = "/artist";
+      } else {
+        setError(response.error || 'Failed to create artist profile');
+      }
+    } catch (error) {
+      console.error('Profile creation error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create artist profile');
+    } finally {
+      setIsCompleting(false);
     }
-
-    setIsCompleting(false)
   }
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await authApi.login({
+        email: loginData.email,
+        password: loginData.password,
+      });
+      
+      if (response.success && response.data) {
+        // Store the auth token
+        apiUtils.setAuthToken(response.data.token);
+        
+        // Navigate based on user role
+        const role = response.data.user.role;
+        if (role === "artist") {
+          window.location.href = "/artist";
+        } else if (role === "location") {
+          window.location.href = "/location";
+        } else if (role === "fan") {
+          window.location.href = "/fan";
+        } else {
+          window.location.href = "/";
+        }
+      } else {
+        setError(response.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (showProfileSetup && selectedRole) {
     return (
@@ -130,6 +243,12 @@ export function AuthFlow() {
           </div>
 
           <Card className="p-6 bg-card border-border">
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+            
             {selectedRole === "artist" && (
               <div className="space-y-6">
                 <div>
@@ -138,6 +257,8 @@ export function AuthFlow() {
                   </Label>
                   <Textarea
                     id="bio"
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
                     placeholder="Tell us about your music and style..."
                     className="mt-2 bg-input border-border text-foreground min-h-[100px]"
                   />
@@ -180,6 +301,8 @@ export function AuthFlow() {
                   </Label>
                   <Input
                     id="spotify"
+                    value={profileData.spotify}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, spotify: e.target.value }))}
                     placeholder="https://open.spotify.com/artist/..."
                     className="mt-2 bg-input border-border text-foreground"
                   />
@@ -191,7 +314,48 @@ export function AuthFlow() {
                   </Label>
                   <Input
                     id="instagram"
+                    value={profileData.instagram}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, instagram: e.target.value }))}
                     placeholder="@yourusername"
+                    className="mt-2 bg-input border-border text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="location" className="text-foreground">
+                    Location
+                  </Label>
+                  <Input
+                    id="location"
+                    value={profileData.location}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., Downtown, East Side"
+                    className="mt-2 bg-input border-border text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="availability" className="text-foreground">
+                    Availability
+                  </Label>
+                  <Input
+                    id="availability"
+                    value={profileData.availability}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, availability: e.target.value }))}
+                    placeholder="e.g., Available this month"
+                    className="mt-2 bg-input border-border text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="priceRange" className="text-foreground">
+                    Price Range
+                  </Label>
+                  <Input
+                    id="priceRange"
+                    value={profileData.priceRange}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, priceRange: e.target.value }))}
+                    placeholder="e.g., $200-400"
                     className="mt-2 bg-input border-border text-foreground"
                   />
                 </div>
@@ -512,30 +676,46 @@ export function AuthFlow() {
 
           <TabsContent value="login" className="space-y-6">
             <Card className="p-6 bg-card border-border">
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email" className="text-foreground">
+                  <Label htmlFor="login-email" className="text-foreground">
                     Email
                   </Label>
                   <Input
-                    id="email"
+                    id="login-email"
                     type="email"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="your@email.com"
                     className="mt-2 bg-input border-border text-foreground"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="password" className="text-foreground">
+                  <Label htmlFor="login-password" className="text-foreground">
                     Password
                   </Label>
                   <Input
-                    id="password"
+                    id="login-password"
                     type="password"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="••••••••"
                     className="mt-2 bg-input border-border text-foreground"
                   />
                 </div>
-                <Button variant="purple" className="w-full h-12">Log In</Button>
+                <Button 
+                  variant="purple" 
+                  className="w-full h-12"
+                  onClick={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Logging In..." : "Log In"}
+                </Button>
               </div>
             </Card>
           </TabsContent>
@@ -571,6 +751,11 @@ export function AuthFlow() {
               </div>
             ) : (
               <Card className="p-6 bg-card border-border">
+                {error && (
+                  <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mb-6">
                   <Button variant="ghost" size="sm" onClick={() => setSelectedRole(null)} className="p-1">
                     <ChevronLeft className="w-4 h-4" />
@@ -582,29 +767,39 @@ export function AuthFlow() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name" className="text-foreground">
+                    <Label htmlFor="signup-name" className="text-foreground">
                       Full Name
                     </Label>
-                    <Input id="name" placeholder="Your name" className="mt-2 bg-input border-border text-foreground" />
+                    <Input 
+                      id="signup-name" 
+                      value={signupData.name}
+                      onChange={(e) => setSignupData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Your name" 
+                      className="mt-2 bg-input border-border text-foreground" 
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-foreground">
+                    <Label htmlFor="signup-email" className="text-foreground">
                       Email
                     </Label>
                     <Input
-                      id="email"
+                      id="signup-email"
                       type="email"
+                      value={signupData.email}
+                      onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="your@email.com"
                       className="mt-2 bg-input border-border text-foreground"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="password" className="text-foreground">
+                    <Label htmlFor="signup-password" className="text-foreground">
                       Password
                     </Label>
                     <Input
-                      id="password"
+                      id="signup-password"
                       type="password"
+                      value={signupData.password}
+                      onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="••••••••"
                       className="mt-2 bg-input border-border text-foreground"
                     />
@@ -612,9 +807,10 @@ export function AuthFlow() {
                   <Button
                     variant="purple"
                     onClick={handleCreateAccount}
+                    disabled={isLoading}
                     className="w-full h-12"
                   >
-                    Create Account
+                    {isLoading ? "Creating Account..." : "Create Account"}
                   </Button>
                 </div>
               </Card>

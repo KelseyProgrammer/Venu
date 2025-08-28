@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
+import { authenticateToken } from '../middleware/auth.middleware.js';
+import { generateToken, validateJWTConfig } from '../config/jwt.config.js';
 
 const router = Router();
 
@@ -38,11 +39,22 @@ router.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    let token: string;
+    try {
+      validateJWTConfig();
+      token = generateToken({
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      });
+    } catch (error) {
+      console.error('JWT configuration error:', error);
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Server configuration error',
+      };
+      return res.status(500).json(response);
+    }
 
     const response: ApiResponse<{ user: any; token: string }> = {
       success: true,
@@ -98,11 +110,22 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    let token: string;
+    try {
+      validateJWTConfig();
+      token = generateToken({
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      });
+    } catch (error) {
+      console.error('JWT configuration error:', error);
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Server configuration error',
+      };
+      return res.status(500).json(response);
+    }
 
     const response: ApiResponse<{ user: any; token: string }> = {
       success: true,
@@ -132,19 +155,10 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-// Get user profile
-router.get('/profile', async (req: Request, res: Response) => {
+// Get user profile - PROTECTED ROUTE
+router.get('/profile', authenticateToken, async (req: Request, res: Response) => {
   try {
-    // This would typically use middleware to verify JWT token
-    const userId = req.headers['user-id'] as string;
-    
-    if (!userId) {
-      const response: ApiResponse<null> = {
-        success: false,
-        error: 'User ID not provided',
-      };
-      return res.status(401).json(response);
-    }
+    const userId = req.user!.userId;
 
     const user = await User.findById(userId).select('-password');
     if (!user) {
@@ -171,19 +185,11 @@ router.get('/profile', async (req: Request, res: Response) => {
   }
 });
 
-// Update user profile
-router.put('/profile', async (req: Request, res: Response) => {
+// Update user profile - PROTECTED ROUTE
+router.put('/profile', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['user-id'] as string;
+    const userId = req.user!.userId;
     const { firstName, lastName, phone, profileImage } = req.body;
-
-    if (!userId) {
-      const response: ApiResponse<null> = {
-        success: false,
-        error: 'User ID not provided',
-      };
-      return res.status(401).json(response);
-    }
 
     const user = await User.findByIdAndUpdate(
       userId,

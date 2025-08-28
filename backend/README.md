@@ -4,14 +4,18 @@ A Node.js/Express backend API for the VENU mobile LMS platform, built with TypeS
 
 ## Features
 
-- **User Management**: Registration, authentication, and profile management
-- **Event Management**: Create, read, update, and delete gigs/events
-- **Location Management**: Venue and location management
-- **Role-based Access Control**: Different user roles (fan, artist, promoter, door, location)
-- **JWT Authentication**: Secure token-based authentication
-- **MongoDB Integration**: Mongoose ODM with proper schemas and validation
-- **RESTful API**: Clean, consistent API endpoints
+- **User Management**: Registration, authentication, and profile management with role-based access
+- **Event Management**: Create, read, update, and delete gigs/events with promoter controls
+- **Location Management**: Venue and location management with search capabilities
+- **Role-based Access Control**: Different user roles (fan, artist, promoter, door, location, admin)
+- **JWT Authentication**: Secure token-based authentication with proper configuration
+- **MongoDB Integration**: Mongoose ODM with optimized schemas, validation, and indexing
+- **RESTful API**: Clean, consistent API endpoints with comprehensive validation
 - **TypeScript**: Full type safety and better development experience
+- **Input Validation**: Zod schemas for comprehensive request validation
+- **Error Handling**: Typed error responses with proper logging and debugging
+- **Rate Limiting**: Protection against abuse with configurable limits
+- **Security**: Input sanitization, CORS protection, and secure password hashing
 
 ## Prerequisites
 
@@ -54,36 +58,36 @@ npm run dev
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile
-- `PUT /api/auth/profile` - Update user profile
+### Authentication (Rate Limited: 5 requests/15min)
+- `POST /api/auth/register` - User registration with validation
+- `POST /api/auth/login` - User login with secure authentication
+- `GET /api/auth/profile` - Get user profile (Protected)
+- `PUT /api/auth/profile` - Update user profile (Protected)
 
-### Users
-- `GET /api/users` - Get all users (with pagination and filtering)
-- `GET /api/users/:id` - Get user by ID
-- `PUT /api/users/:id` - Update user
-- `DELETE /api/users/:id` - Delete user
-- `GET /api/users/role/:role` - Get users by role
+### Users (Admin Only)
+- `GET /api/users` - Get all users with pagination and search
+- `GET /api/users/:id` - Get user by ID (Owner or Admin)
+- `PUT /api/users/:id` - Update user (Owner or Admin)
+- `DELETE /api/users/:id` - Delete user (Admin only)
+- `GET /api/users/by-role/:role` - Get users by role (Admin only)
 
-### Gigs (Events)
-- `POST /api/gigs` - Create new gig
-- `GET /api/gigs` - Get all gigs (with pagination and filtering)
-- `GET /api/gigs/:id` - Get gig by ID
-- `PUT /api/gigs/:id` - Update gig
-- `DELETE /api/gigs/:id` - Delete gig
-- `GET /api/gigs/status/:status` - Get gigs by status
-- `GET /api/gigs/creator/:userId` - Get gigs by creator
+### Gigs/Events (Rate Limited: 10 requests/15min for creation)
+- `POST /api/gigs` - Create new gig (Promoter/Admin only)
+- `GET /api/gigs` - Get all gigs with pagination and filtering
+- `GET /api/gigs/:id` - Get gig by ID with populated data
+- `PUT /api/gigs/:id` - Update gig (Owner/Admin only)
+- `DELETE /api/gigs/:id` - Delete gig (Owner/Admin only)
+- `GET /api/gigs/by-status/:status` - Get gigs by status
+- `GET /api/gigs/by-creator/:userId` - Get gigs by creator (Protected)
 
-### Locations
-- `POST /api/locations` - Create new location
-- `GET /api/locations` - Get all locations (with pagination and filtering)
-- `GET /api/locations/:id` - Get location by ID
-- `PUT /api/locations/:id` - Update location
-- `DELETE /api/locations/:id` - Delete location
-- `GET /api/locations/search/area` - Search locations by area
-- `GET /api/locations/search/capacity` - Search locations by capacity
+### Locations (Rate Limited: 10 requests/15min for creation)
+- `POST /api/locations` - Create new location (Location/Admin only)
+- `GET /api/locations` - Get all locations with pagination and filtering
+- `GET /api/locations/:id` - Get location by ID with populated data
+- `PUT /api/locations/:id` - Update location (Owner/Admin only)
+- `DELETE /api/locations/:id` - Delete location (Owner/Admin only)
+- `GET /api/locations/search/area` - Search locations by city/state
+- `GET /api/locations/search/capacity` - Search locations by capacity range
 
 ## Database Models
 
@@ -143,17 +147,63 @@ All API responses follow a consistent format:
 
 ## Security Features
 
-- Password hashing with bcrypt
-- JWT token authentication
-- Role-based access control
-- Input validation and sanitization
-- CORS configuration
-- Environment variable protection
+- **Password Security**: bcrypt hashing with 12 rounds minimum
+- **JWT Authentication**: Secure token-based authentication with proper configuration
+- **Role-based Access Control**: Granular permissions for different user roles
+- **Input Validation**: Comprehensive Zod schema validation for all endpoints
+- **Rate Limiting**: Protection against abuse with configurable limits per endpoint type
+- **Error Handling**: Secure error responses that don't leak sensitive information
+- **CORS Configuration**: Proper cross-origin resource sharing setup
+- **Environment Variables**: Secure handling of sensitive configuration data
+- **Input Sanitization**: Protection against injection attacks
+- **Resource Ownership**: Users can only access and modify their own resources
+
+## Performance Optimizations
+
+- **Parallel Database Queries**: Use Promise.all() for concurrent operations
+- **Lean Queries**: Use .lean() for read-only operations to reduce memory usage
+- **Input Validation**: Validate and limit pagination parameters (max 100 items per page)
+- **Secondary Sorting**: Include secondary sort fields for consistent results
+- **Index-Aware Queries**: Structure queries to leverage existing database indexes
+- **Memory Management**: Proper cleanup and avoid memory leaks in long-running processes
+- **Query Optimization**: Efficient database queries with proper population and field selection
+
+## Middleware & Validation
+
+### Input Validation
+All API endpoints use Zod schemas for comprehensive input validation:
+- **Request Body Validation**: Validates all incoming data types and formats
+- **Query Parameter Validation**: Ensures proper pagination and filtering parameters
+- **Error Messages**: Provides clear, user-friendly validation error messages
+- **Type Safety**: Full TypeScript integration with validated data
+
+### Rate Limiting
+Configurable rate limiting for different endpoint types:
+- **Authentication**: 5 requests per 15 minutes
+- **General API**: 100 requests per 15 minutes  
+- **Create Operations**: 10 requests per 15 minutes
+- **Strict Endpoints**: 20 requests per 15 minutes
+
+### Error Handling
+Comprehensive error handling with typed responses:
+- **Custom Error Classes**: Specific error types for different scenarios
+- **Consistent API Responses**: Standardized error response format
+- **Logging**: Detailed error logging with context and user information
+- **Security**: Error responses don't leak sensitive information
+
+### Database Optimization
+Optimized database performance with proper indexing:
+- **Compound Indexes**: Indexes for common query patterns
+- **Text Search**: MongoDB text indexes for search functionality
+- **Query Optimization**: Efficient population and field selection
+- **Pagination**: Optimized pagination for large datasets
 
 ## Contributing
 
-1. Follow the existing code style
-2. Add proper error handling
-3. Include TypeScript types
-4. Test your changes
-5. Update documentation as needed
+1. Follow the existing code style and patterns
+2. Add proper error handling with typed errors
+3. Include comprehensive input validation with Zod schemas
+4. Use proper TypeScript types throughout
+5. Test your changes thoroughly
+6. Update documentation as needed
+7. Follow the security guidelines for authentication and authorization
