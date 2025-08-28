@@ -57,6 +57,7 @@ export function PromoterDashboard() {
   const [eventTime, setEventTime] = useState("")
   const [eventGenre, setEventGenre] = useState("")
   const [ticketCapacity, setTicketCapacity] = useState("")
+  const [ticketPrice, setTicketPrice] = useState("")
   const [selectedLocationForGig, setSelectedLocationForGig] = useState("")
   
   const [selectedDoorPerson, setSelectedDoorPerson] = useState("")
@@ -89,7 +90,7 @@ export function PromoterDashboard() {
   const canProceedToNextStep = useMemo(() => {
     switch (currentStep) {
       case 1:
-        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedLocationForGig && numberOfBands.trim()
+        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && ticketPrice.trim() && selectedLocationForGig && numberOfBands.trim()
       case 2:
         return bands.length > 0
       case 3:
@@ -99,7 +100,7 @@ export function PromoterDashboard() {
       default:
         return true
     }
-  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedLocationForGig, numberOfBands, bands, guarantee, bandsTotal])
+  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedLocationForGig, numberOfBands, bands, guarantee, bandsTotal])
 
   // Memoized mock data for locations the promoter works with
   const myLocations = useMemo(() => [
@@ -451,6 +452,7 @@ export function PromoterDashboard() {
     setEventTime("")
     setEventGenre("")
     setTicketCapacity("")
+    setTicketPrice("")
     setSelectedLocationForGig("")
     setNumberOfBands("")
     setSelectedDoorPerson("")
@@ -468,7 +470,7 @@ export function PromoterDashboard() {
     // Reset and close
     resetForm()
     setShowPostGig(false)
-  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedLocationForGig, numberOfBands, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
+  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedLocationForGig, numberOfBands, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
 
   // Calendar navigation functions
   const goToPreviousMonth = useCallback(() => {
@@ -722,6 +724,25 @@ export function PromoterDashboard() {
                     onChange={(e) => setTicketCapacity(e.target.value)}
                       className="mt-2 bg-input border-border text-foreground"
                     />
+                  </div>
+
+              <div>
+                  <Label htmlFor="ticketPrice" className="text-foreground">
+                    Ticket Price ($)
+                    </Label>
+                    <Input
+                    id="ticketPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 25.00"
+                    value={ticketPrice}
+                    onChange={(e) => setTicketPrice(e.target.value)}
+                      className="mt-2 bg-input border-border text-foreground"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Price per ticket for bonus tier calculations
+                    </p>
                   </div>
               
               <div>

@@ -21,6 +21,7 @@ export interface Gig {
   eventTime: string
   eventGenre: string
   ticketCapacity: number
+  ticketPrice: number // Price per ticket for bonus tier calculations
   selectedLocation?: string
   selectedPromoter?: string
   promoterEmail?: string
@@ -42,6 +43,7 @@ export interface CreateGigRequest {
   eventTime: string
   eventGenre: string
   ticketCapacity: number
+  ticketPrice: number // Price per ticket for bonus tier calculations
   selectedLocation?: string
   selectedPromoter?: string
   promoterEmail?: string

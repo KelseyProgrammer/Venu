@@ -10,6 +10,7 @@ import { Search, Filter, MapPin, Calendar, Star, TrendingUp, Share2, BarChart3, 
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
+import { calculateEventBonusTiers, BonusTier } from "@/lib/bonus-tiers"
 
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -29,6 +30,7 @@ export function ArtistDashboard() {
       time: "8 PM doors",
       genre: "Rock",
       guarantee: 200,
+      ticketPrice: 25, // Price per ticket
       tier1: { amount: 200, threshold: 30, color: "bg-yellow-500" },
       tier2: { amount: 400, threshold: 50, color: "bg-green-500" },
       tier3: { amount: 600, threshold: 100, color: "bg-blue-500" },
@@ -37,6 +39,10 @@ export function ArtistDashboard() {
       rating: 4.8,
       requirements: ["PA system", "Backline provided"],
       image: "/images/MUGS.jpeg",
+      bands: [
+        { id: "1", name: "The Midnight Keys", genre: "Rock", setTime: "9 PM", percentage: 60, email: "keys@example.com", guarantee: 200 },
+        { id: "2", name: "Opening Act", genre: "Rock", setTime: "8 PM", percentage: 40, email: "opening@example.com", guarantee: 0 }
+      ]
     },
     {
       id: 2,
@@ -46,6 +52,7 @@ export function ArtistDashboard() {
       time: "9 PM",
       genre: "Rock",
       guarantee: 150,
+      ticketPrice: 20, // Price per ticket
       tier1: { amount: 150, threshold: 25, color: "bg-yellow-500" },
       tier2: { amount: 300, threshold: 40, color: "bg-green-500" },
       tier3: { amount: 500, threshold: 75, color: "bg-blue-500" },
@@ -54,6 +61,10 @@ export function ArtistDashboard() {
       rating: 4.5,
       requirements: ["Sound system", "Early-bird pricing"],
       image: "/images/SARBEZ.jpg",
+      bands: [
+        { id: "3", name: "Rock Band", genre: "Rock", setTime: "9 PM", percentage: 70, email: "rock@example.com", guarantee: 150 },
+        { id: "4", name: "Support Act", genre: "Rock", setTime: "8 PM", percentage: 30, email: "support@example.com", guarantee: 0 }
+      ]
     },
     {
       id: 3,
@@ -63,6 +74,7 @@ export function ArtistDashboard() {
       time: "7 PM",
       genre: "Jazz",
       guarantee: 300,
+      ticketPrice: 30, // Price per ticket
       tier1: { amount: 300, threshold: 40, color: "bg-yellow-500" },
       tier2: { amount: 500, threshold: 60, color: "bg-green-500" },
       tier3: { amount: 800, threshold: 100, color: "bg-blue-500" },
@@ -71,6 +83,9 @@ export function ArtistDashboard() {
       rating: 4.9,
       requirements: ["Acoustic preferred", "PA system"],
       image: "/images/Alfreds.jpg",
+      bands: [
+        { id: "5", name: "Jazz Ensemble", genre: "Jazz", setTime: "8 PM", percentage: 100, email: "jazz@example.com", guarantee: 300 }
+      ]
     },
   ], [])
 
@@ -101,12 +116,41 @@ export function ArtistDashboard() {
 
   const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
+  // Calculate dynamic bonus tiers for each gig
+  const getGigBonusTiers = useCallback((gig: (typeof mockGigs)[0]) => {
+    if (!gig.bands || gig.bands.length === 0) {
+      return []
+    }
+    
+    return calculateEventBonusTiers(
+      gig.bands,
+      gig.ticketPrice,
+      gig.totalTickets,
+      gig.ticketsSold
+    )
+  }, [])
+
+  // Memoize bonus tier calculations for each gig to prevent unnecessary recalculations
+  const gigBonusTiers = useMemo(() => {
+    return mockGigs.reduce((acc, gig) => {
+      acc[gig.id] = getGigBonusTiers(gig)
+      return acc
+    }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>)
+  }, [mockGigs, getGigBonusTiers])
+
   const getCurrentTier = useCallback((gig: (typeof mockGigs)[0]) => {
+    // Use memoized bonus tiers if available
+    const bandTiers = gigBonusTiers[gig.id]
+    if (bandTiers && bandTiers.length > 0) {
+      return bandTiers[0].currentTier
+    }
+    
+    // Fallback to old system if no bands or memoized data not available
     if (gig.ticketsSold >= gig.tier3.threshold) return { ...gig.tier3, name: "Tier 3" }
     if (gig.ticketsSold >= gig.tier2.threshold) return { ...gig.tier2, name: "Tier 2" }
     if (gig.ticketsSold >= gig.tier1.threshold) return { ...gig.tier1, name: "Tier 1" }
     return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
-  }, [])
+  }, [gigBonusTiers])
 
   if (selectedGig) {
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
@@ -221,38 +265,48 @@ export function ArtistDashboard() {
                         </div>
                       </div>
 
-                      {/* Payout Tiers */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">${gig.guarantee} (guaranteed)</span>
-                          <span className="text-foreground font-medium">Current: ${currentTier.amount}</span>
-                        </div>
+                      {/* Dynamic Payout Tiers */}
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-foreground">Payout Tiers (${gig.ticketPrice}/ticket)</div>
+                        
+                        {gig.bands && gig.bands.length > 0 ? (
+                          gig.bands.map((band) => {
+                            const bandTiers = gigBonusTiers[gig.id]?.find(bt => bt.bandId === band.id)
+                            
+                            if (!bandTiers) return null
+                            
+                            return (
+                              <div key={band.id} className="space-y-2 p-3 bg-muted/30 rounded-lg">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">{band.name} ({band.percentage}%)</span>
+                                  <span className="text-foreground font-medium">${bandTiers.currentEarnings}</span>
+                                </div>
+                                
+                                <div className="space-y-1">
+                                  <Progress value={progress} className="h-2" />
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Guarantee: ${band.guarantee}</span>
+                                    <span>Current: ${Math.round(bandTiers.currentEarnings)}</span>
+                                  </div>
+                                </div>
 
-                        <div className="space-y-1">
-                          <Progress value={progress} className="h-2" />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
-                              {gig.ticketsSold}/{gig.totalTickets} tickets sold
-                            </span>
-                            <span>Next tier at {gig.tier2.threshold} tickets</span>
+                                {/* Dynamic Tier indicators */}
+                                <div className="flex flex-wrap gap-1">
+                                  {bandTiers.tiers.slice(1).map((tier, index) => (
+                                    <div key={index} className="flex items-center gap-1 text-xs">
+                                      <div className={`w-2 h-2 rounded-full ${tier.color}`} />
+                                      <span>{tier.threshold}+ tickets = ${tier.amount}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            No bands configured for this event
                           </div>
-                        </div>
-
-                        {/* Tier indicators */}
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-1 text-xs">
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                            <span>+$200 if 30+ tickets</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs">
-                            <div className="w-2 h-2 bg-green-500 rounded-full" />
-                            <span>+$200 if 50+ tickets</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                            <span>+$200 if 100+ tickets</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between">

@@ -72,6 +72,7 @@ export function LocationDashboard() {
   const [eventTime, setEventTime] = useState("")
   const [eventGenre, setEventGenre] = useState("")
   const [ticketCapacity, setTicketCapacity] = useState("")
+  const [ticketPrice, setTicketPrice] = useState("")
   
   const [selectedPromoter, setSelectedPromoter] = useState("")
   const [promoterEmail, setPromoterEmail] = useState("")
@@ -102,7 +103,7 @@ export function LocationDashboard() {
   const canProceedToNextStep = useMemo(() => {
     switch (currentStep) {
       case 1:
-        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && selectedPromoter && 
+        return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && ticketPrice.trim() && selectedPromoter && 
                (selectedPromoter === "self" || 
                 savedPromoters.some(p => p.id === selectedPromoter) ||
                 (selectedPromoter === "add-by-email" && promoterEmail.trim()))
@@ -115,7 +116,7 @@ export function LocationDashboard() {
       default:
         return true
     }
-  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedPromoter, promoterEmail, savedPromoters, bands, guarantee, promoterPercentage, bandsTotal])
+  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, savedPromoters, bands, guarantee, promoterPercentage, bandsTotal])
 
   // Mock data for promoters the location works with
   const myPromoters = useMemo(() => [
@@ -458,6 +459,7 @@ export function LocationDashboard() {
     setEventTime("")
     setEventGenre("")
     setTicketCapacity("")
+    setTicketPrice("")
     setNumberOfBands("")
     setSelectedPromoter("")
     setPromoterEmail("")
@@ -477,7 +479,7 @@ export function LocationDashboard() {
     // Reset and close
     resetForm()
     setShowPostGig(false)
-  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, selectedPromoter, promoterEmail, promoterPercentage, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
+  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, promoterPercentage, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
@@ -796,6 +798,25 @@ export function LocationDashboard() {
                   onChange={(e) => setTicketCapacity(e.target.value)}
                   className="mt-2 bg-input border-border text-foreground"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="ticketPrice" className="text-foreground">
+                  Ticket Price ($)
+                </Label>
+                <Input
+                  id="ticketPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 25.00"
+                  value={ticketPrice}
+                  onChange={(e) => setTicketPrice(e.target.value)}
+                  className="mt-2 bg-input border-border text-foreground"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Price per ticket for bonus tier calculations
+                </p>
               </div>
               
               <div>
