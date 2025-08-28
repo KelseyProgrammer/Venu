@@ -40,7 +40,7 @@ export function LocationDashboard() {
       if (saved) {
         try {
           return JSON.parse(saved)
-        } catch (e) {
+        } catch {
           // Failed to parse saved unavailable dates, using defaults
         }
       }
@@ -119,7 +119,7 @@ export function LocationDashboard() {
   }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, savedPromoters, bands, guarantee, promoterPercentage, bandsTotal])
 
   // Mock data for promoters the location works with
-  const myPromoters = useMemo(() => [
+  const mockPromoters = useMemo(() => [
     {
       id: "promoter1",
       name: "Jazz Promotions LLC",
@@ -244,7 +244,7 @@ export function LocationDashboard() {
           return true;
       }
     });
-  }, [myEvents, scheduleFilter, unavailableDates])
+  }, [myEvents, scheduleFilter])
 
   // Mock data for artist applications
   const artistApplications = useMemo(() => [
@@ -479,7 +479,7 @@ export function LocationDashboard() {
     // Reset and close
     resetForm()
     setShowPostGig(false)
-  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, promoterPercentage, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
+  }, [resetForm])
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
@@ -1357,7 +1357,7 @@ export function LocationDashboard() {
                   placeholder="Search artists..." 
                   className="w-64 bg-input border-border text-foreground"
                 />
-                <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600">
+                <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
                   <Filter className="w-4 h-4 mr-1" />
                   Filter
                 </Button>
@@ -1842,7 +1842,7 @@ export function LocationDashboard() {
                                          eventDate.getMonth() === currentMonth && 
                                          eventDate.getFullYear() === currentYear;
                                 })
-                                .map((event, index) => (
+                                .map((event) => (
                                   <div 
                                     key={event.id} 
                                     className={`text-xs p-1 rounded ${
@@ -2043,7 +2043,7 @@ export function LocationDashboard() {
                         <span className="text-xs text-muted-foreground">2:35 PM</span>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                        Ready for tonight's event! Everything looks good on our end.
+                        Ready for tonight&apos;s event! Everything looks good on our end.
                       </div>
                     </div>
                   </div>

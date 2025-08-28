@@ -14,7 +14,30 @@ import { LOCATION_DATA } from "@/lib/location-data"
 interface GigDetailsProps {
   gigId: string
   onBack: () => void
-  gigData?: any // Allow passing custom gig data
+  gigData?: {
+    id: number
+    location: string
+    date: string
+    time: string
+    genre: string
+    guarantee: number
+    tiers: Array<{
+      threshold: number
+      amount: number
+      label: string
+      color: string
+    }>
+    ticketsSold: number
+    totalTickets: number
+    rating: number
+    reviews: number
+    checklist: Array<{
+      id: number
+      item: string
+      completed: boolean
+      type: string
+    }>
+  }
 }
 
 export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
@@ -61,7 +84,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
   
   // Ensure tiers array exists and has proper structure
   const tiers = gig.tiers || []
-  const currentTier = tiers.find((tier) => ticketsSold >= tier.threshold) || {
+  const currentTier = tiers.find((tier: { threshold: number; amount: number; label: string; color: string }) => ticketsSold >= tier.threshold) || {
     amount: guarantee,
     label: `${ticketsSold} tickets = $${guarantee}`,
   }
@@ -83,7 +106,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             </p>
 
             <div className="space-y-3">
-              {checklist.map((item) => (
+              {checklist.map((item: { id: number; item: string; completed: boolean; type: string }) => (
                 <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20">
                   <div className="mt-0.5">
                     {item.completed ? (
@@ -206,7 +229,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             <div className="p-4 bg-accent/10 rounded-lg">
               <p className="text-sm text-foreground mb-2">Your gig is confirmed!</p>
               <p className="text-xs text-muted-foreground">
-                You'll receive promotional materials and event details via email. Payment will be processed after the
+                You&apos;ll receive promotional materials and event details via email. Payment will be processed after the
                 event.
               </p>
             </div>
@@ -311,7 +334,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
               </div>
 
               <div className="space-y-2">
-                {tiers.map((tier, index) => (
+                {tiers.map((tier: { threshold: number; amount: number; label: string; color: string }, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm">
                     <div className={`w-3 h-3 rounded-full ${tier.color}`} />
                     <span className="text-muted-foreground">{tier.label}</span>
@@ -328,7 +351,7 @@ export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
             <h3 className="font-semibold text-foreground">Checklist</h3>
 
             <div className="space-y-3">
-              {checklist.map((item) => (
+              {checklist.map((item: { id: number; item: string; completed: boolean; type: string }) => (
                 <div key={item.id} className="flex items-start gap-3">
                   <div className="mt-0.5">
                     {item.completed ? (

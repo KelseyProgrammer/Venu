@@ -12,8 +12,9 @@ export function SplashScreen() {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {
+    const videoElement = videoRef.current
+    if (videoElement) {
+      videoElement.play().catch(() => {
         // Video autoplay failed, continue with normal flow
       })
       
@@ -22,12 +23,10 @@ export function SplashScreen() {
         setShowLogo(true)
       }
       
-      videoRef.current.addEventListener('ended', handleVideoEnd)
+      videoElement.addEventListener('ended', handleVideoEnd)
       
       return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('ended', handleVideoEnd)
-        }
+        videoElement.removeEventListener('ended', handleVideoEnd)
       }
     }
   }, [])

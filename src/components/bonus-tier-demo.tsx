@@ -20,7 +20,7 @@ export function BonusTierDemo() {
   const sold = parseInt(ticketsSold) || 0
 
   const tiers = calculateBandBonusTiers(guarantee, percentage, price, total, sold)
-  const currentTier = getCurrentBandTier(tiers, sold)
+  // Calculate current earnings based on tickets sold and band percentage
   const currentEarnings = guarantee + (price * sold * (percentage / 100))
 
   return (
@@ -61,7 +61,7 @@ export function BonusTierDemo() {
                 placeholder="60"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Band's share of ticket revenue
+                Band&apos;s share of ticket revenue
               </p>
             </div>
 

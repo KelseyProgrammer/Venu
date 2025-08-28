@@ -354,7 +354,7 @@ export function AuthFlow() {
                   </Label>
                   <Textarea
                     id="past-events"
-                    placeholder="Describe some successful events you've promoted..."
+                                            placeholder="Describe some successful events you&apos;ve promoted..."
                     className="mt-2 bg-input border-border text-foreground min-h-[100px]"
                   />
                 </div>
@@ -545,7 +545,7 @@ export function AuthFlow() {
               <div className="space-y-4">
                 <div className="text-center mb-6">
                   <h2 className="font-serif font-bold text-xl mb-2">Choose Your Role</h2>
-                  <p className="text-muted-foreground text-sm">Select how you'll use Venu</p>
+                  <p className="text-muted-foreground text-sm">Select how you&apos;ll use Venu</p>
                 </div>
 
                 {roles.map((role) => {

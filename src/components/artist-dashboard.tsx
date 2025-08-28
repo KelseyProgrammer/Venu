@@ -6,11 +6,11 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, MapPin, Calendar, Star, TrendingUp, Share2, BarChart3, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, DollarSign, Users, Plus, Building2, Clock, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
-import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
-import { calculateEventBonusTiers, BonusTier } from "@/lib/bonus-tiers"
+import { getLocationDisplayName } from "@/lib/location-data"
+import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
 
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
@@ -154,7 +154,33 @@ export function ArtistDashboard() {
 
   if (selectedGig) {
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
-    return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={gig} />
+    if (gig) {
+      // Transform the data structure to match GigDetails interface
+      const transformedGig = {
+        id: gig.id,
+        location: gig.location,
+        date: gig.date,
+        time: gig.time,
+        genre: gig.genre,
+        guarantee: gig.guarantee,
+        tiers: [
+          { threshold: gig.tier1.threshold, amount: gig.tier1.amount, label: `${gig.tier1.threshold} tickets = $${gig.tier1.amount}`, color: gig.tier1.color },
+          { threshold: gig.tier2.threshold, amount: gig.tier2.amount, label: `${gig.tier2.threshold} tickets = $${gig.tier2.amount}`, color: gig.tier2.color },
+          { threshold: gig.tier3.threshold, amount: gig.tier3.amount, label: `${gig.tier3.threshold} tickets = $${gig.tier3.amount}`, color: gig.tier3.color },
+        ],
+        ticketsSold: gig.ticketsSold,
+        totalTickets: gig.totalTickets,
+        rating: gig.rating,
+        reviews: 127, // Default value
+        checklist: gig.requirements.map((req, index) => ({
+          id: index + 1,
+          item: req,
+          completed: true,
+          type: "location" as const
+        }))
+      }
+      return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
+    }
   }
 
   return (
@@ -229,7 +255,6 @@ export function ArtistDashboard() {
 
           <div className="space-y-4">
             {mockGigs.map((gig) => {
-              const currentTier = getCurrentTier(gig)
               const progress = calculateProgress(gig.ticketsSold, gig.totalTickets)
 
               return (
@@ -388,14 +413,14 @@ export function ArtistDashboard() {
               <div className="flex gap-4">
                 <Image
                   src="/images/MUGS.jpeg"
-                  alt="Muggy's"
+                  alt="Muggy&apos;s"
                   width={60}
                   height={60}
                   className="rounded-lg object-cover w-15 h-15"
                 />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">Muggy's</h3>
+                    <h3 className="font-semibold text-foreground">Muggy&apos;s</h3>
                     <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200">
                       Pending
                     </Badge>
@@ -453,12 +478,12 @@ export function ArtistDashboard() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground">John Doe - Muggy's</span>
+                      <span className="text-sm font-medium text-foreground">John Doe - Muggy&apos;s</span>
                       <span className="text-xs text-muted-foreground">2 hours ago</span>
                     </div>
                     <div className="bg-muted/30 rounded-lg p-3">
                       <p className="text-sm text-foreground">
-                        Hey! Just wanted to confirm the sound check time for tomorrow's show. 
+                        Hey! Just wanted to confirm the sound check time for tomorrow&apos;s show. 
                         Can we get in at 6 PM?
                       </p>
                     </div>

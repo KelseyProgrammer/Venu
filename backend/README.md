@@ -1,324 +1,159 @@
-# VENU Backend API - Node.js/Express Server
+# VENU Backend API
 
-This is the backend API server for VENU, built with Node.js, Express.js, and TypeScript. It provides RESTful API endpoints for the live music venue booking platform.
+A Node.js/Express backend API for the VENU mobile LMS platform, built with TypeScript and MongoDB.
 
-## 🚀 Getting Started
+## Features
 
-### Prerequisites
+- **User Management**: Registration, authentication, and profile management
+- **Event Management**: Create, read, update, and delete gigs/events
+- **Location Management**: Venue and location management
+- **Role-based Access Control**: Different user roles (fan, artist, promoter, door, location)
+- **JWT Authentication**: Secure token-based authentication
+- **MongoDB Integration**: Mongoose ODM with proper schemas and validation
+- **RESTful API**: Clean, consistent API endpoints
+- **TypeScript**: Full type safety and better development experience
 
-- **Node.js 18+** (Recommended: Node.js 20+)
-- **npm** or **yarn** package manager
-- **MongoDB** (for database, when implemented)
-- **Git** for version control
+## Prerequisites
 
-### Installation
+- Node.js (v18 or higher)
+- MongoDB (local or Atlas)
+- npm or yarn
 
-1. **Navigate to backend directory:**
+## Installation
+
+1. Clone the repository and navigate to the backend directory:
 ```bash
 cd backend
 ```
 
-2. **Install dependencies:**
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. **Set up environment variables:**
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+3. Create a `.env` file in the backend directory with the following variables:
+```env
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/venu_db
 
-4. **Run the development server:**
-```bash
-npm run dev
-```
-
-5. **The API will be available at:**
-```
-http://localhost:3001
-```
-
-## 📁 Project Structure
-
-```
-backend/
-├── src/
-│   ├── routes/                   # API route handlers
-│   │   ├── loginRoutes.ts       # Authentication routes
-│   │   └── users.routes.ts      # User management routes
-│   ├── shared/                  # Shared backend utilities
-│   │   └── types.ts            # Backend type definitions
-│   ├── tests/                   # Test files
-│   │   ├── integration test/    # Integration tests
-│   │   └── unittest/           # Unit tests
-│   ├── server.ts               # Express server setup
-│   └── types.ts                # Main type definitions
-├── package.json                # Dependencies and scripts
-├── tsconfig.json              # TypeScript configuration
-└── README.md                  # This file
-```
-
-## 🛠️ Technology Stack
-
-### Backend Framework
-- **Node.js**: JavaScript runtime environment
-- **Express.js 5.1.0**: Web application framework
-- **TypeScript 5.9.2**: Type-safe development
-- **ES Modules**: Modern JavaScript module system
-
-### Database & Storage
-- **MongoDB**: NoSQL database (via Mongoose)
-- **Mongoose 8.17.1**: MongoDB object modeling
-- **LRU Cache**: In-memory caching for performance
-
-### Development Tools
-- **tsx**: TypeScript execution for development
-- **nodemon**: Auto-restart on file changes
-- **ts-node**: TypeScript execution environment
-
-### Key Dependencies
-- **cors**: Cross-Origin Resource Sharing
-- **dotenv**: Environment variable management
-- **express-session**: Session management
-- **url**: URL parsing utilities
-
-## 📊 Available Scripts
-
-### Development
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
-- `npm run start` - Start production server
-
-### Testing
-- `npm test` - Run unit tests
-- `npm run test:integration` - Run integration tests
-- `npm run test:watch` - Run tests in watch mode
-
-## 🔌 API Endpoints
-
-### Authentication Routes (`/api/auth`)
-- `POST /login` - User authentication
-- `POST /logout` - User logout
-- `POST /register` - User registration
-- `GET /verify` - Token verification
-
-### User Routes (`/api/users`)
-- `GET /` - Get all users
-- `GET /:id` - Get user by ID
-- `POST /` - Create new user
-- `PUT /:id` - Update user
-- `DELETE /:id` - Delete user
-
-### Event Routes (`/api/events`) - *To be implemented*
-- `GET /` - Get all events
-- `GET /:id` - Get event by ID
-- `POST /` - Create new event
-- `PUT /:id` - Update event
-- `DELETE /:id` - Delete event
-
-### Venue Routes (`/api/venues`) - *To be implemented*
-- `GET /` - Get all venues
-- `GET /:id` - Get venue by ID
-- `POST /` - Create new venue
-- `PUT /:id` - Update venue
-- `DELETE /:id` - Delete venue
-
-## 🗄️ Database Schema
-
-### User Schema
-```typescript
-interface User {
-  _id: string
-  email: string
-  password: string
-  role: 'artist' | 'promoter' | 'venue' | 'fan' | 'door'
-  profile: {
-    name: string
-    bio?: string
-    image?: string
-    contact?: {
-      phone?: string
-      social?: {
-        instagram?: string
-        twitter?: string
-        facebook?: string
-      }
-    }
-  }
-  createdAt: Date
-  updatedAt: Date
-}
-```
-
-### Event Schema - *To be implemented*
-```typescript
-interface Event {
-  _id: string
-  name: string
-  venue: string
-  date: Date
-  time: string
-  genre: string
-  capacity: number
-  numberOfBands: number
-  doorPerson: string
-  guarantee: number
-  bonusTiers: Array<{
-    threshold: number
-    bonus: number
-    color: string
-  }>
-  requirements: Array<{
-    id: string
-    text: string
-    checked: boolean
-  }>
-  bands: Array<{
-    id: string
-    name: string
-    genre: string
-    setTime: string
-    percentage: number
-    email: string
-  }>
-  status: 'draft' | 'published' | 'cancelled'
-  createdAt: Date
-  updatedAt: Date
-}
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
 # Server Configuration
 PORT=3001
 NODE_ENV=development
 
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/venu
-MONGODB_TEST_URI=mongodb://localhost:27017/venu_test
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here
 
-# Authentication
-JWT_SECRET=your-jwt-secret-key
-SESSION_SECRET=your-session-secret
-
-# CORS Configuration
-CORS_ORIGIN=http://localhost:3000
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3000
 ```
 
-### TypeScript Configuration
-The project uses strict TypeScript configuration with:
-- **Strict mode**: Enabled for type safety
-- **ES Modules**: Modern module system
-- **Path mapping**: Absolute imports with `@/` prefix
-- **Source maps**: For debugging
-
-## 🧪 Testing
-
-### Test Structure
-- **Unit Tests**: Test individual functions and modules
-- **Integration Tests**: Test API endpoints and database interactions
-- **Test Database**: Separate test database for isolated testing
-
-### Running Tests
+4. Start the development server:
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run integration tests
-npm run test:integration
-
-# Run tests with coverage
-npm run test:coverage
+npm run dev
 ```
 
-## 🚀 Deployment
-
-### Production Build
-```bash
-# Build the project
-npm run build
-
-# Start production server
-npm start
-```
-
-### Environment Setup
-1. **Set production environment variables**
-2. **Configure database connection**
-3. **Set up reverse proxy (nginx)**
-4. **Configure SSL certificates**
-5. **Set up monitoring and logging**
-
-## 📚 API Documentation
-
-### Request/Response Format
-All API responses follow a consistent format:
-
-```typescript
-// Success Response
-{
-  success: true,
-  data: any,
-  message?: string
-}
-
-// Error Response
-{
-  success: false,
-  error: string,
-  details?: any
-}
-```
+## API Endpoints
 
 ### Authentication
-- **JWT Tokens**: For stateless authentication
-- **Session Management**: For user sessions
-- **Role-Based Access**: Different permissions for different user types
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/profile` - Get user profile
+- `PUT /api/auth/profile` - Update user profile
 
-### Error Handling
-- **HTTP Status Codes**: Proper status codes for different scenarios
-- **Error Messages**: Clear, descriptive error messages
-- **Validation**: Input validation with detailed error responses
+### Users
+- `GET /api/users` - Get all users (with pagination and filtering)
+- `GET /api/users/:id` - Get user by ID
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+- `GET /api/users/role/:role` - Get users by role
 
-## 🔒 Security
+### Gigs (Events)
+- `POST /api/gigs` - Create new gig
+- `GET /api/gigs` - Get all gigs (with pagination and filtering)
+- `GET /api/gigs/:id` - Get gig by ID
+- `PUT /api/gigs/:id` - Update gig
+- `DELETE /api/gigs/:id` - Delete gig
+- `GET /api/gigs/status/:status` - Get gigs by status
+- `GET /api/gigs/creator/:userId` - Get gigs by creator
 
-### Security Measures
-- **CORS**: Configured for specific origins
-- **Input Validation**: All inputs validated and sanitized
-- **Authentication**: Secure user authentication
-- **Rate Limiting**: API rate limiting (to be implemented)
-- **HTTPS**: SSL/TLS encryption (in production)
+### Locations
+- `POST /api/locations` - Create new location
+- `GET /api/locations` - Get all locations (with pagination and filtering)
+- `GET /api/locations/:id` - Get location by ID
+- `PUT /api/locations/:id` - Update location
+- `DELETE /api/locations/:id` - Delete location
+- `GET /api/locations/search/area` - Search locations by area
+- `GET /api/locations/search/capacity` - Search locations by capacity
 
-### Best Practices
-- **Environment Variables**: Sensitive data in environment variables
-- **Password Hashing**: Secure password storage
-- **SQL Injection Prevention**: Parameterized queries
-- **XSS Protection**: Input sanitization
+## Database Models
 
-## 🤝 Contributing
+### User
+- Basic user information (name, email, phone)
+- Role-based access control
+- Password hashing with bcrypt
+- Profile image support
 
-When contributing to the backend:
+### Gig (Event)
+- Event details (name, date, time, genre)
+- Band information and scheduling
+- Location and promoter assignments
+- Requirements and status tracking
 
-1. **Follow TypeScript best practices**
-2. **Write comprehensive tests**
-3. **Document API endpoints**
-4. **Follow RESTful API conventions**
-5. **Ensure proper error handling**
-6. **Update documentation for changes**
+### Location
+- Venue information (name, address, capacity)
+- Contact details and amenities
+- Active/inactive status
+- Search and filtering capabilities
 
-## 📄 License
+## Authentication
 
-This project is licensed under the MIT License - see the main project LICENSE file for details.
+The API uses JWT (JSON Web Tokens) for authentication. Protected routes require a valid token in the Authorization header:
 
-## 🔗 Related Documentation
+```
+Authorization: Bearer <your-jwt-token>
+```
 
-- [Express.js Documentation](https://expressjs.com/)
-- [Mongoose Documentation](https://mongoosejs.com/)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-- [Node.js Documentation](https://nodejs.org/docs/)
+## Error Handling
+
+All API responses follow a consistent format:
+```json
+{
+  "success": boolean,
+  "data": any,
+  "error": string,
+  "message": string
+}
+```
+
+## Development
+
+- **Development server**: `npm run dev` (uses nodemon for auto-reload)
+- **Build**: `npm run build`
+- **Production start**: `npm start`
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MONGODB_URI` | MongoDB connection string | Required |
+| `PORT` | Server port | 3001 |
+| `NODE_ENV` | Environment (development/production) | development |
+| `JWT_SECRET` | Secret key for JWT tokens | Required |
+| `FRONTEND_URL` | Frontend URL for CORS | http://localhost:3000 |
+
+## Security Features
+
+- Password hashing with bcrypt
+- JWT token authentication
+- Role-based access control
+- Input validation and sanitization
+- CORS configuration
+- Environment variable protection
+
+## Contributing
+
+1. Follow the existing code style
+2. Add proper error handling
+3. Include TypeScript types
+4. Test your changes
+5. Update documentation as needed

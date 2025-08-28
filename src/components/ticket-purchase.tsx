@@ -11,7 +11,20 @@ import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
 interface TicketPurchaseProps {
   eventId: string
   onBack: () => void
-  eventData?: any // Allow passing custom event data
+  eventData?: {
+    id: number
+    artist: string
+    location: string
+    address: string
+    date: string
+    time: string
+    genre: string
+    ticketPrice: number
+    ticketsRemaining: number
+    totalTickets: number
+    description: string
+    image: string
+  }
 }
 
 export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchaseProps) {
@@ -108,7 +121,7 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
 
               <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                 <p className="text-xs text-muted-foreground">
-                  Your payment is processed securely through Stripe. You'll receive your QR ticket immediately after
+                  Your payment is processed securely through Stripe. You&apos;ll receive your QR ticket immediately after
                   purchase.
                 </p>
               </div>

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Plus, Users, TrendingUp, DollarSign, Star, Eye, ArrowLeft, ArrowRight, Check, Building2, Filter, Search, BarChart3, Clock, MapPin, Instagram, Music, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
-import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
+import { GIG_STEPS } from "@/lib/constants"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -38,7 +38,7 @@ export function PromoterDashboard() {
       if (saved) {
         try {
           return JSON.parse(saved)
-        } catch (e) {
+        } catch {
           // Failed to parse saved unavailable dates, using defaults
         }
       }
@@ -470,7 +470,7 @@ export function PromoterDashboard() {
     // Reset and close
     resetForm()
     setShowPostGig(false)
-  }, [eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedLocationForGig, numberOfBands, selectedDoorPerson, doorPersonEmail, requirements, bands, guarantee, resetForm])
+  }, [resetForm])
 
   // Calendar navigation functions
   const goToPreviousMonth = useCallback(() => {
@@ -1414,12 +1414,12 @@ export function PromoterDashboard() {
                     <div className="flex items-center gap-3 text-sm">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">2 hours ago</span>
-                      <span className="text-foreground">New application from "Rock Solid" for Electric Factory</span>
+                      <span className="text-foreground">New application from &quot;Rock Solid&quot; for Electric Factory</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">1 day ago</span>
-                      <span className="text-foreground">Event "Jazz Night" at The Blue Note went live</span>
+                      <span className="text-foreground">Event &quot;Jazz Night&quot; at The Blue Note went live</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -1475,7 +1475,7 @@ export function PromoterDashboard() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 bg-input border-border text-foreground"
               />
-              <Button variant="outline" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600">
+                              <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
                 <Filter className="w-4 h-4 mr-1" />
                 Filter
               </Button>
@@ -1653,8 +1653,6 @@ export function PromoterDashboard() {
               <div className="space-y-4">
                 {filteredEvents.map((event) => {
                   const progress = (event.ticketsSold / event.totalTickets) * 100
-                  const isComplete = event.status === "completed" || event.status === "live"
-                  const needsBands = event.status === "posted" && event.ticketsSold === 0
 
                   return (
                     <Card key={event.id} className="p-4 bg-card border-border">
@@ -1928,7 +1926,7 @@ export function PromoterDashboard() {
                                        eventDate.getMonth() === currentMonth && 
                                        eventDate.getFullYear() === currentYear;
                               })
-                              .map((event, index) => (
+                              .map((event) => (
                                 <div 
                                   key={event.id} 
                                   className={`text-xs p-1 rounded ${
@@ -2127,7 +2125,7 @@ export function PromoterDashboard() {
                           </div>
                           <div className="bg-muted/30 rounded-lg p-3">
                             <p className="text-sm text-foreground">
-                              Hey! Just wanted to confirm the sound check time for tomorrow's jazz night. 
+                              Hey! Just wanted to confirm the sound check time for tomorrow&apos;s jazz night. 
                               Can we get in at 6 PM?
                             </p>
                           </div>
