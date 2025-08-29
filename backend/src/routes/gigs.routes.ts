@@ -5,13 +5,15 @@ import {
   authenticateToken, 
   requireRole, 
   requireResourceOwnership,
-  requirePromoterOrAdmin 
+  requirePromoterOrAdmin,
+  requireGigCreationPermission,
+  requireGigModificationPermission
 } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Create new gig - PROTECTED ROUTE (Promoters and Admins only)
-router.post('/', authenticateToken, requirePromoterOrAdmin, async (req: Request, res: Response) => {
+// Create new gig - PROTECTED ROUTE (Location owners, authorized promoters, and Admins only)
+router.post('/', authenticateToken, requireGigCreationPermission, async (req: Request, res: Response) => {
   try {
     const gigData = {
       ...req.body,
@@ -195,8 +197,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update gig by ID - PROTECTED ROUTE (Owner or Admin only)
-router.put('/:id', authenticateToken, requireResourceOwnership(Gig), async (req: Request, res: Response) => {
+// Update gig by ID - PROTECTED ROUTE (Gig creator, location owner, authorized promoter, or Admin only)
+router.put('/:id', authenticateToken, requireGigModificationPermission, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -232,8 +234,8 @@ router.put('/:id', authenticateToken, requireResourceOwnership(Gig), async (req:
   }
 });
 
-// Delete gig by ID - PROTECTED ROUTE (Owner or Admin only)
-router.delete('/:id', authenticateToken, requireResourceOwnership(Gig), async (req: Request, res: Response) => {
+// Delete gig by ID - PROTECTED ROUTE (Gig creator, location owner, authorized promoter, or Admin only)
+router.delete('/:id', authenticateToken, requireGigModificationPermission, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const gig = await Gig.findByIdAndDelete(id);

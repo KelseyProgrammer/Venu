@@ -66,12 +66,15 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 
 VENU is built as a **full-stack application** with:
 
-- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
-- **Backend**: Node.js/Express API with TypeScript
-- **Database**: MongoDB Atlas (cloud database) with optimized indexing
-- **Authentication**: JWT-based authentication system with secure configuration
-- **UI Components**: shadcn/ui component library built on Radix UI
-- **Validation**: Zod schemas for comprehensive input validation
+- **Frontend**: Next.js 14.2.32 with React 18.3.1, TypeScript 5, and Tailwind CSS 3.4.17
+- **Backend**: Node.js with Express 4.21.2 and TypeScript 5.9.2
+- **Database**: MongoDB Atlas (cloud database) with Mongoose 8.17.1 and optimized indexing
+- **Authentication**: JWT-based authentication system with bcryptjs 3.0.2 and secure configuration
+- **UI Components**: shadcn/ui component library built on Radix UI primitives (latest versions)
+- **Forms**: React Hook Form 7.60.0 with Zod 3.25.67 validation
+- **Icons**: Lucide React 0.454.0 for consistent iconography
+- **Charts**: Recharts 2.15.4 for data visualization
+- **Date Handling**: date-fns 4.1.0 for date manipulation
 - **Security**: Rate limiting, error handling, and input sanitization
 - **Performance**: Optimized database queries with parallel operations and lean queries
 - **Code Quality**: Comprehensive TypeScript interfaces and performance optimizations

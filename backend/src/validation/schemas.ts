@@ -106,6 +106,15 @@ export const updateLocationSchema = createLocationSchema.partial().extend({
   id: z.string().min(1, 'Location ID is required')
 });
 
+// Promoter authorization validation schemas
+export const addPromoterSchema = z.object({
+  promoterId: z.string().min(1, 'Promoter ID is required').regex(/^[0-9a-fA-F]{24}$/, 'Invalid promoter ID format')
+});
+
+export const removePromoterSchema = z.object({
+  promoterId: z.string().min(1, 'Promoter ID is required').regex(/^[0-9a-fA-F]{24}$/, 'Invalid promoter ID format')
+});
+
 // Query parameter validation schemas
 export const paginationSchema = z.object({
   page: z.string().optional().transform((val) => val ? parseInt(val, 10) : 1).refine((val) => val > 0, {

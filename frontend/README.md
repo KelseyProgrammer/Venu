@@ -1,6 +1,6 @@
 # VENU Frontend - Next.js Web Application
 
-This is the frontend web application for VENU, built with Next.js 15 and TypeScript for modern web development.
+This is the frontend web application for VENU, built with Next.js 15.5.0 and TypeScript for modern web development.
 
 ## 🚀 Getting Started
 
@@ -30,7 +30,7 @@ Navigate to [http://localhost:3000](http://localhost:3000) to view the applicati
 
 ### Next.js Setup
 
-This project uses Next.js 15 with the App Router for modern web development with TypeScript and Tailwind CSS.
+This project uses Next.js 15.5.0 with the App Router for modern web development with TypeScript and Tailwind CSS 4.
 
 1. **Build the web app:**
 ```bash
@@ -81,25 +81,28 @@ frontend/
 ## 🎨 Technology Stack
 
 ### Frontend Framework
-- **Next.js 15.5.0**: React framework with App Router
+- **Next.js 15.5.0**: React framework with App Router and Turbopack
+- **React 19.1.0**: UI library with latest features
 - **TypeScript 5**: Type-safe development with strict mode
-- **Tailwind CSS 4**: Utility-first CSS framework
-- **ESLint**: Code quality and consistency
+- **Tailwind CSS 4**: Utility-first CSS framework with latest features
+- **ESLint 9**: Code quality and consistency with modern configuration
 
 ### Key Dependencies
-- **React 19.1.0**: UI library
-- **Next.js 15.5.0**: React framework with App Router
-- **TypeScript 5**: Type-safe development
-- **Tailwind CSS 4**: Utility-first CSS framework
-- **ESLint**: Code quality and consistency
+- **Next.js 15.5.0**: React framework with App Router and Turbopack for fast development
+- **React 19.1.0**: UI library with latest React features
+- **TypeScript 5**: Type-safe development with strict mode
+- **Tailwind CSS 4**: Utility-first CSS framework with latest features
+- **ESLint 9**: Code quality and consistency with modern flat config
+- **PostCSS**: CSS processing with Tailwind CSS 4 integration
 
 ## 🌐 Web Features
 
 ### Modern Web Development
-- **App Router**: Next.js 15 App Router for modern routing
+- **App Router**: Next.js 15.5.0 App Router for modern routing
+- **Turbopack**: Fast development builds with Turbopack integration
 - **TypeScript**: Full type safety with strict mode
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-- **Performance**: Optimized builds and fast loading
+- **Responsive Design**: Mobile-first approach with Tailwind CSS 4
+- **Performance**: Optimized builds and fast loading with latest Next.js features
 
 ### Web-Specific Features
 - **Server-Side Rendering**: Fast initial page loads
@@ -112,8 +115,8 @@ frontend/
 ### Development Workflow
 - **Hot Reload**: Instant updates during development with Turbopack
 - **Type Checking**: Real-time TypeScript error checking
-- **Linting**: Automated code quality checks with ESLint
-- **Build Optimization**: Fast builds with Next.js optimizations
+- **Linting**: Automated code quality checks with ESLint 9
+- **Build Optimization**: Fast builds with Next.js 15.5.0 and Turbopack optimizations
 
 ### Build Process
 1. **Development**: `npm run dev` starts development server with Turbopack

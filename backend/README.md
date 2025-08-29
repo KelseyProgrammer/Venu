@@ -1,21 +1,23 @@
 # VENU Backend API
 
-A Node.js/Express backend API for the VENU mobile LMS platform, built with TypeScript and MongoDB.
+A Node.js/Express backend API for the VENU live music venue booking platform, built with TypeScript and MongoDB.
 
 ## Features
 
 - **User Management**: Registration, authentication, and profile management with role-based access
+- **Artist Management**: Comprehensive artist profile CRUD operations with search and filtering
 - **Event Management**: Create, read, update, and delete gigs/events with promoter controls
 - **Location Management**: Venue and location management with search capabilities
 - **Role-based Access Control**: Different user roles (fan, artist, promoter, door, location, admin)
-- **JWT Authentication**: Secure token-based authentication with proper configuration
-- **MongoDB Integration**: Mongoose ODM with optimized schemas, validation, and indexing
+- **JWT Authentication**: Secure token-based authentication with bcryptjs 3.0.2 and proper configuration
+- **MongoDB Integration**: Mongoose 8.17.1 ODM with optimized schemas, validation, and indexing
 - **RESTful API**: Clean, consistent API endpoints with comprehensive validation
-- **TypeScript**: Full type safety and better development experience
-- **Input Validation**: Zod schemas for comprehensive request validation
+- **TypeScript**: Full type safety with TypeScript 5.9.2 and better development experience
+- **Input Validation**: Zod 3.22.4 schemas for comprehensive request validation
 - **Error Handling**: Typed error responses with proper logging and debugging
-- **Rate Limiting**: Protection against abuse with configurable limits
+- **Rate Limiting**: Protection against abuse with configurable limits per endpoint type
 - **Security**: Input sanitization, CORS protection, and secure password hashing
+- **Performance**: Optimized database queries with parallel operations and lean queries
 
 ## Prerequisites
 
@@ -88,12 +90,24 @@ npm run dev
 - `DELETE /api/users/:id` - Delete user (Admin only)
 - `GET /api/users/by-role/:role` - Get users by role (Admin only)
 
+### Artists (Rate Limited: 10 requests/15min for creation)
+- `POST /api/artists` - Create artist profile (Authenticated users only)
+- `GET /api/artists` - List all artists with pagination, filtering, and search
+- `GET /api/artists/:id` - Get artist by ID with populated data
+- `PUT /api/artists/:id` - Update artist profile (Owner/Admin only)
+- `DELETE /api/artists/:id` - Delete artist profile (Owner/Admin only)
+- `GET /api/artists/user/:userId` - Get artist by user ID (Owner or Admin)
+- `GET /api/artists/by-genre/:genre` - Filter artists by genre
+- `GET /api/artists/by-location/:location` - Filter artists by location
+- `GET /api/artists/search/:query` - Search artists by name, bio, genre, location
+- `PUT /api/artists/:id/metrics` - Update artist metrics (Admin only)
+
 ### Gigs/Events (Rate Limited: 10 requests/15min for creation)
-- `POST /api/gigs` - Create new gig (Promoter/Admin only)
+- `POST /api/gigs` - Create new gig (Location owner, authorized promoter, or Admin only)
 - `GET /api/gigs` - Get all gigs with pagination and filtering
 - `GET /api/gigs/:id` - Get gig by ID with populated data
-- `PUT /api/gigs/:id` - Update gig (Owner/Admin only)
-- `DELETE /api/gigs/:id` - Delete gig (Owner/Admin only)
+- `PUT /api/gigs/:id` - Update gig (Gig creator, location owner, authorized promoter, or Admin only)
+- `DELETE /api/gigs/:id` - Delete gig (Gig creator, location owner, authorized promoter, or Admin only)
 - `GET /api/gigs/by-status/:status` - Get gigs by status
 - `GET /api/gigs/by-creator/:userId` - Get gigs by creator (Protected)
 
@@ -105,26 +119,76 @@ npm run dev
 - `DELETE /api/locations/:id` - Delete location (Owner/Admin only)
 - `GET /api/locations/search/area` - Search locations by city/state
 - `GET /api/locations/search/capacity` - Search locations by capacity range
+- `POST /api/locations/:id/promoters` - Add promoter authorization (Location owner/Admin only)
+- `DELETE /api/locations/:id/promoters/:promoterId` - Remove promoter authorization (Location owner/Admin only)
+- `GET /api/locations/:id/promoters` - List authorized promoters (Location owner/Admin only)
 
 ## Database Models
 
 ### User
 - Basic user information (name, email, phone)
-- Role-based access control
-- Password hashing with bcrypt
+- Role-based access control (fan, artist, promoter, door, location, admin)
+- Password hashing with bcryptjs (12 rounds minimum)
 - Profile image support
+- JWT token management
+
+### Artist
+- Artist profile information (name, bio, genres, location)
+- Social media links (Spotify, Apple Music, Instagram, website)
+- Pricing and availability information
+- Performance metrics (rating, total gigs, repeat bookings)
+- User association and ownership tracking
 
 ### Gig (Event)
 - Event details (name, date, time, genre)
 - Band information and scheduling
 - Location and promoter assignments
 - Requirements and status tracking
+- Revenue and payout management
 
 ### Location
 - Venue information (name, address, capacity)
 - Contact details and amenities
 - Active/inactive status
 - Search and filtering capabilities
+- Instagram links and social media integration
+- Authorized promoters list for gig creation permissions
+
+## Gig Creation Permissions
+
+The VENU platform implements a comprehensive permission system for gig creation to ensure only authorized users can post gigs for specific locations.
+
+### Permission Levels
+
+#### Location Owners
+- Can create gigs for their own locations
+- Can modify/delete gigs at their locations  
+- Can authorize promoters to create gigs at their locations
+- Full control over their venue's event calendar
+
+#### Authorized Promoters
+- Can create gigs only for locations they're authorized for
+- Can modify/delete gigs they created or at authorized locations
+- Must be explicitly authorized by location owners
+- Cannot create gigs for unauthorized locations
+
+#### Admins
+- Can create gigs for any location
+- Can modify/delete any gig
+- Full system access for management purposes
+
+### Promoter Authorization Flow
+1. Location owner adds promoter to their authorized promoters list
+2. Promoter can then create gigs for that specific location
+3. Location owner can remove promoter authorization at any time
+4. All gig creation/modification attempts are validated against current permissions
+
+### Performance Features
+- **Optimized Database Queries**: Uses lean queries and field selection for better performance
+- **Parallel Processing**: Concurrent database operations with Promise.all()
+- **Efficient Indexing**: Compound indexes for fast promoter authorization lookups
+- **Input Validation**: Comprehensive Zod schemas with MongoDB ObjectId validation
+- **Duplicate Prevention**: Validates existing authorizations before adding new ones
 
 ## Authentication
 

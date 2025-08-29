@@ -18,6 +18,7 @@ export interface ILocation extends Document {
   tags: string[];
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
+  authorizedPromoters: mongoose.Types.ObjectId[]; // Promoters authorized to create gigs
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,6 +106,10 @@ const locationSchema = new Schema<ILocation>({
     ref: 'User',
     required: true,
   },
+  authorizedPromoters: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  }],
 }, {
   timestamps: true,
 });
@@ -116,6 +121,10 @@ locationSchema.index({ rating: -1 });
 locationSchema.index({ tags: 1 });
 locationSchema.index({ isActive: 1 });
 locationSchema.index({ createdBy: 1 });
+// Index for authorized promoters queries
+locationSchema.index({ authorizedPromoters: 1 });
+// Compound index for promoter authorization checks
+locationSchema.index({ createdBy: 1, authorizedPromoters: 1 });
 locationSchema.index({ createdAt: -1 });
 // Compound indexes for common query patterns
 locationSchema.index({ isActive: 1, city: 1, state: 1 });

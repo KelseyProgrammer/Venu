@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Location from '../models/Location.js';
+import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
 import { 
   authenticateToken, 
@@ -7,6 +8,8 @@ import {
   requireResourceOwnership,
   requireLocationOrAdmin 
 } from '../middleware/auth.middleware.js';
+import { addPromoterSchema } from '../validation/schemas.js';
+import { validateBody } from '../middleware/validation.middleware.js';
 
 const router = Router();
 
@@ -262,6 +265,158 @@ router.delete('/:id', authenticateToken, requireResourceOwnership(Location), asy
     res.json(response);
   } catch (error) {
     console.error('Delete location error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Add promoter to location - PROTECTED ROUTE (Location owner or Admin only)
+router.post('/:id/promoters', authenticateToken, requireResourceOwnership(Location), validateBody(addPromoterSchema), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { promoterId } = req.body;
+
+    if (!promoterId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Promoter ID is required',
+      };
+      return res.status(400).json(response);
+    }
+
+    // Execute queries in parallel for better performance
+    const [promoter, location] = await Promise.all([
+      User.findById(promoterId).select('role').lean(),
+      Location.findById(id).select('authorizedPromoters').lean()
+    ]);
+
+    if (!promoter) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Promoter not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    if (promoter.role !== 'promoter') {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'User is not a promoter',
+      };
+      return res.status(400).json(response);
+    }
+
+    if (!location) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Check if promoter is already authorized
+    const isAlreadyAuthorized = location.authorizedPromoters.some(
+      (existingId: any) => existingId.toString() === promoterId
+    );
+
+    if (isAlreadyAuthorized) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Promoter is already authorized for this location',
+      };
+      return res.status(400).json(response);
+    }
+
+    // Add promoter to location
+    const updatedLocation = await Location.findByIdAndUpdate(
+      id,
+      { $addToSet: { authorizedPromoters: promoterId } },
+      { new: true, runValidators: true }
+    ).populate('authorizedPromoters', 'firstName lastName email role');
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: updatedLocation,
+      message: 'Promoter added successfully',
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Add promoter error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Remove promoter from location - PROTECTED ROUTE (Location owner or Admin only)
+router.delete('/:id/promoters/:promoterId', authenticateToken, requireResourceOwnership(Location), async (req: Request, res: Response) => {
+  try {
+    const { id, promoterId } = req.params;
+
+    const location = await Location.findByIdAndUpdate(
+      id,
+      { $pull: { authorizedPromoters: promoterId } },
+      { new: true, runValidators: true }
+    ).populate('authorizedPromoters', 'firstName lastName email role');
+
+    if (!location) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: location,
+      message: 'Promoter removed successfully',
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Remove promoter error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Get authorized promoters for location - PROTECTED ROUTE (Location owner or Admin only)
+router.get('/:id/promoters', authenticateToken, requireResourceOwnership(Location), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Use lean() for better performance since we're only reading
+    const location = await Location.findById(id)
+      .populate('authorizedPromoters', 'firstName lastName email role phone')
+      .select('authorizedPromoters')
+      .lean();
+
+    if (!location) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: location.authorizedPromoters || [],
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get promoters error:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',

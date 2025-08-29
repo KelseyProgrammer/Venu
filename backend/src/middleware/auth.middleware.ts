@@ -176,3 +176,162 @@ export const requirePromoterOrAdmin = requireRole(['promoter', 'admin']);
 
 // Middleware for location and admin operations  
 export const requireLocationOrAdmin = requireRole(['location', 'admin']);
+
+// Middleware for gig creation permissions
+export const requireGigCreationPermission = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Authentication required',
+    };
+    return res.status(401).json(response);
+  }
+
+  try {
+    const { selectedLocation } = req.body;
+
+    // Admins can create gigs for any location
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // Validate selectedLocation is provided for non-admin users
+    if (!selectedLocation) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location must be specified for gig creation',
+      };
+      return res.status(400).json(response);
+    }
+
+    // Import Location model dynamically to avoid circular dependencies
+    const { default: Location } = await import('../models/Location.js');
+    
+    // Use lean() for better performance since we're only reading
+    const location = await Location.findById(selectedLocation)
+      .select('createdBy authorizedPromoters')
+      .lean();
+    
+    if (!location) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Location owners can create gigs for their own locations
+    if (req.user.role === 'location') {
+      if (location.createdBy.toString() === req.user.userId) {
+        return next();
+      }
+    }
+
+    // Promoters can create gigs for locations they're authorized for
+    if (req.user.role === 'promoter') {
+      // Check if promoter is authorized for this location
+      const isAuthorized = location.authorizedPromoters.some(
+        (promoterId: any) => promoterId.toString() === req.user!.userId
+      );
+
+      if (isAuthorized) {
+        return next();
+      }
+    }
+
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Insufficient permissions to create gigs for this location',
+    };
+    return res.status(403).json(response);
+
+  } catch (error) {
+    console.error('Gig creation permission validation error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    return res.status(500).json(response);
+  }
+};
+
+// Middleware for gig modification permissions
+export const requireGigModificationPermission = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Authentication required',
+    };
+    return res.status(401).json(response);
+  }
+
+  try {
+    const { id } = req.params;
+
+    // Admins can modify any gig
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // Import models dynamically to avoid circular dependencies
+    const { default: Gig } = await import('../models/Gig.js');
+    const { default: Location } = await import('../models/Location.js');
+
+    // Use lean() and select only needed fields for better performance
+    const gig = await Gig.findById(id)
+      .select('createdBy selectedLocation')
+      .lean();
+      
+    if (!gig) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Gig not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Gig creator can modify their own gigs
+    if (gig.createdBy.toString() === req.user.userId) {
+      return next();
+    }
+
+    // If gig has a location, check location-based permissions
+    if (gig.selectedLocation) {
+      // Use lean() and select only needed fields for better performance
+      const location = await Location.findById(gig.selectedLocation)
+        .select('createdBy authorizedPromoters')
+        .lean();
+        
+      if (location) {
+        // Location owners can modify gigs at their locations
+        if (req.user.role === 'location' && location.createdBy.toString() === req.user.userId) {
+          return next();
+        }
+
+        // Authorized promoters can modify gigs at locations they're authorized for
+        if (req.user.role === 'promoter') {
+          const isAuthorized = location.authorizedPromoters.some(
+            (promoterId: any) => promoterId.toString() === req.user!.userId
+          );
+          if (isAuthorized) {
+            return next();
+          }
+        }
+      }
+    }
+
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Insufficient permissions to modify this gig',
+    };
+    return res.status(403).json(response);
+
+  } catch (error) {
+    console.error('Gig modification permission validation error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    return res.status(500).json(response);
+  }
+};
