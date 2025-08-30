@@ -4,11 +4,13 @@ import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { generateToken, validateJWTConfig } from '../config/jwt.config.js';
+import { validateBody } from '../middleware/validation.middleware.js';
+import { registerSchema, loginSchema } from '../validation/schemas.js';
 
 const router = Router();
 
 // Register new user
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
   try {
     const { email, password, role, firstName, lastName, phone } = req.body;
 
@@ -85,12 +87,13 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // Login user
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email (case insensitive)
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
     if (!user) {
       const response: ApiResponse<null> = {
         success: false,
@@ -101,6 +104,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    
     if (!isPasswordValid) {
       const response: ApiResponse<null> = {
         success: false,
