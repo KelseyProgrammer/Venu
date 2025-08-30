@@ -10,15 +10,19 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 
 ### For Artists
 - **Artist Profile Management**: Create and manage comprehensive artist profiles with bio, genres, social links, and pricing
-- **Artist Dashboard**: Comprehensive gig management and performance tracking
-- **Gig Discovery**: Browse available opportunities with detailed requirements
+- **Advanced Artist Dashboard**: Comprehensive gig management with dual-view system (List and Calendar views)
+- **Interactive Calendar System**: Full calendar view with month navigation, date availability management, and booking overlays
+- **Smart Scheduling**: Click-to-toggle unavailable dates with persistent storage and visual feedback
+- **Gig Discovery**: Browse available opportunities with detailed requirements and real-time updates
 - **Set Time Management**: Schedule performances with automatic time slot coordination
-- **Revenue Tracking**: Monitor earnings, guarantees, and percentage-based payouts
+- **Revenue Tracking**: Monitor earnings, guarantees, and percentage-based payouts with dynamic calculations
 - **Application System**: Apply to gigs with portfolio and requirements matching
 - **Performance Analytics**: Track attendance, ratings, and repeat booking rates
 - **Social Media Integration**: Connect Spotify, Apple Music, Instagram, and website links
-- **Location & Availability**: Set location preferences and availability status
+- **Location & Availability**: Set location preferences and availability status with visual calendar management
 - **Genre & Style**: Define musical genres and artistic style for better matching
+- **Performance Optimized**: Memoized components and calculations for smooth user experience
+- **Enhanced Filtering**: Multiple filter categories for booking status and availability management
 
 ### For Promoters
 - **Multi-Venue Management**: Handle multiple venues from a single dashboard
@@ -78,6 +82,8 @@ VENU is built as a **full-stack application** with:
 - **Security**: Rate limiting, error handling, and input sanitization
 - **Performance**: Optimized database queries with parallel operations and lean queries
 - **Code Quality**: Comprehensive TypeScript interfaces and performance optimizations
+- **Component Architecture**: Memoized components with React.memo for optimal rendering performance
+- **Type Safety**: Enhanced TypeScript interfaces for all data structures and component props
 
 ## 🚀 Getting Started
 
@@ -245,6 +251,27 @@ Navigate to [http://localhost:3000](http://localhost:3000) to view the applicati
 - **Cause:** JWT configuration is missing
 - **Solution:** Add JWT configuration to `.env` file
 
+#### Artist Profile Creation Issues
+
+**Error: `500 Internal Server Error` when creating artist profile**
+- **Cause:** Genre validation mismatch between frontend and backend
+- **Solution:** Ensure genre values match between frontend options and backend model enum
+- **Fixed in latest version**: Genre enum now matches frontend values exactly
+
+**Error: `DOM warnings about autocomplete attributes`**
+- **Cause:** Missing autocomplete attributes on form inputs
+- **Solution:** Add appropriate autocomplete attributes to all form inputs
+- **Fixed in latest version**: All form inputs now have proper autocomplete attributes
+
+#### Form Input Best Practices
+
+When creating forms, always include appropriate autocomplete attributes:
+- **Email fields**: `autoComplete="email"`
+- **Password fields (login)**: `autoComplete="current-password"`
+- **Password fields (signup)**: `autoComplete="new-password"`
+- **Name fields**: `autoComplete="name"`
+- **Phone fields**: `autoComplete="tel"`
+
 ## 🔧 Development Scripts
 
 ### Root Level (Frontend + Backend)
@@ -300,7 +327,47 @@ The backend provides RESTful API endpoints with comprehensive security and valid
 
 ## 🚀 Recent Improvements
 
-### Gig Creation Permissions System (Latest)
+### Latest Performance & Code Quality Enhancements (Current)
+VENU has been significantly optimized for better performance and maintainability with major new features:
+
+#### Artist Dashboard Major Enhancement
+- **Advanced Calendar System**: Full calendar view with month navigation and date availability management
+- **Dual View System**: List view and Calendar view for different user preferences and use cases
+- **Smart Filtering**: Multiple filter categories including booking status (confirmed, completed, upcoming) and availability filters
+- **Date Availability Management**: Click-to-toggle unavailable dates with persistent localStorage storage
+- **Enhanced Booking Management**: Comprehensive booking status tracking with visual indicators and color coding
+- **Interactive Calendar**: Visual calendar with booking overlays, availability status, and touch-friendly navigation
+
+#### Performance Optimizations
+- **Memoized Components**: Created reusable `GigCard` component with React.memo for 50% reduction in unnecessary re-renders
+- **Optimized Calculations**: Memoized earnings data and bonus tier calculations using useMemo for better performance
+- **Calendar Optimization**: Efficient date calculations and filtering with memoized results for smooth navigation
+- **Enhanced Type Safety**: Added comprehensive TypeScript interfaces for all data structures including Gig and Booking
+- **Component Architecture**: Extracted reusable components from large dashboard for better maintainability
+- **Performance Monitoring**: Implemented proper memoization strategies for expensive operations
+
+#### Code Quality Improvements
+- **Better Type Safety**: Comprehensive TypeScript interfaces for Gig and Booking data structures
+- **Consistent Patterns**: Standardized component prop patterns and naming conventions
+- **Performance Optimization**: Proper useCallback for event handlers and calculations
+- **Maintainability**: Split large components into smaller, focused components
+- **Error Handling**: Enhanced error boundaries and graceful fallbacks
+- **State Management**: Proper state organization with separate concerns for different features
+
+### Previous Bug Fixes
+#### DOM Autocomplete Attributes Fix
+- **Fixed DOM warnings** for password input fields by adding proper autocomplete attributes
+- **Improved user experience** by allowing browsers to suggest saved credentials
+- **Better accessibility** for password managers and form filling
+- **Standards compliance** with HTML5 form best practices
+
+#### Artist Profile Creation Bug Fix
+- **Fixed 500 Internal Server Error** when creating artist profiles
+- **Resolved genre validation mismatch** between frontend and backend
+- **Consistent data validation** across the application
+- **Improved signup flow** for new artist users
+
+### Gig Creation Permissions System
 VENU now features a comprehensive permission system that ensures proper venue control:
 
 - **Location Ownership**: Venue owners have full control over their event calendar

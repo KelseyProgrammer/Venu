@@ -1,27 +1,217 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, DollarSign, Users, Plus, Building2, Clock, Instagram, Music } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, DollarSign, Users, Plus, Building2, Clock, Instagram, Music, BarChart3, ArrowLeft, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
 
+// Types for better type safety
+interface Gig {
+  id: number
+  location: string
+  address: string
+  date: string
+  time: string
+  genre: string
+  guarantee: number
+  ticketPrice: number
+  tier1: { amount: number; threshold: number; color: string }
+  tier2: { amount: number; threshold: number; color: string }
+  tier3: { amount: number; threshold: number; color: string }
+  ticketsSold: number
+  totalTickets: number
+  rating: number
+  requirements: string[]
+  image: string
+  bands: Array<{
+    id: string
+    name: string
+    genre: string
+    setTime: string
+    percentage: number
+    email: string
+    guarantee: number
+  }>
+}
+
+interface Booking {
+  id: number
+  location: string
+  date: string
+  time: string
+  status: "confirmed" | "completed"
+  ticketsSold: number
+  totalTickets: number
+  earnings: number
+  image: string
+}
+
+// Memoized Gig Card Component for better performance
+const GigCard = memo(function GigCard({ 
+  gig, 
+  gigBonusTiers, 
+  onSelectGig 
+}: { 
+  gig: Gig
+  gigBonusTiers: Record<number, ReturnType<typeof calculateEventBonusTiers>>
+  onSelectGig: (gigId: string) => void 
+}) {
+  const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
+
+  return (
+    <Card className="p-4 bg-card border-border">
+      <div className="flex gap-4">
+        <div className="relative">
+          <Image
+            src={gig.image || "/images/venu-logo.png"}
+            alt={gig.location}
+            width={80}
+            height={80}
+            className="rounded-lg object-cover w-20 h-20"
+          />
+          <div className="absolute -top-1 -right-1">
+            <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
+              {gig.genre}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <div>
+            <h3 className="font-semibold text-foreground">{getLocationDisplayName(gig.location)}</h3>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {gig.date} - {gig.time}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                {gig.rating}
+              </span>
+            </div>
+          </div>
+
+          {/* Dynamic Payout Tiers */}
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-foreground">Payout Tiers (${gig.ticketPrice}/ticket)</div>
+            
+            {gig.bands && gig.bands.length > 0 ? (
+              gig.bands.map((band) => {
+                const bandTiers = gigBonusTiers[gig.id]?.find(bt => bt.bandId === band.id)
+                
+                if (!bandTiers) return null
+                
+                return (
+                  <div key={band.id} className="space-y-2 p-3 bg-muted/30 rounded-lg">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{band.name} ({band.percentage}%)</span>
+                      <span className="text-foreground font-medium">${bandTiers.currentEarnings}</span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Progress value={progress} className="h-2" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Guarantee: ${band.guarantee}</span>
+                        <span>Current: ${Math.round(bandTiers.currentEarnings)}</span>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Tier indicators */}
+                    <div className="flex flex-wrap gap-1">
+                      {bandTiers.tiers.slice(1).map((tier, index) => (
+                        <div key={index} className="flex items-center gap-1 text-xs">
+                          <div className={`w-2 h-2 rounded-full ${tier.color}`} />
+                          <span>{tier.threshold}+ tickets = ${tier.amount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No bands configured for this event
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs bg-transparent"
+              onClick={() => onSelectGig(gig.id.toString())}
+            >
+              See Checklist
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() => onSelectGig(gig.id.toString())}
+            >
+              Book Now
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+})
+
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   
-  // Earnings data
-  const totalEarnings = 620
-  const goalAmount = 300
-  const progressPercentage = (totalEarnings / goalAmount) * 100
+  // Calendar state
+  const [currentDate, setCurrentDate] = useState(new Date())
+  
+  // Schedule tab subcategory state
+  const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
+  
+  // Filter state for schedule views
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "confirmed", "completed", "upcoming"
+  
+  // Availability filter state (separate from booking status filters)
+  const [availabilityFilter, setAvailabilityFilter] = useState("all") // "all", "unavailable", "available"
+  
+  // Unavailable dates state (dates when artist is unavailable)
+  const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('artist-unavailable-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          // Failed to parse saved unavailable dates, using defaults
+        }
+      }
+    }
+    // Default unavailable dates for current month
+    return [
+      "2024-12-01",
+      "2024-12-08", 
+      "2024-12-25"
+    ]
+  })
+  
+  // Earnings data - memoized for performance
+  const earningsData = useMemo(() => {
+    const totalEarnings = 620
+    const goalAmount = 300
+    const progressPercentage = (totalEarnings / goalAmount) * 100
+    return { totalEarnings, goalAmount, progressPercentage }
+  }, [])
 
-  const mockGigs = useMemo(() => [
+  const mockGigs = useMemo((): Gig[] => [
     {
       id: 1,
       location: "muggys", // Use standardized location key
@@ -89,35 +279,41 @@ export function ArtistDashboard() {
     },
   ], [])
 
-  const myBookings = useMemo(() => [
-    {
-      id: 1,
-      location: "muggys", // Use standardized location key
-      date: "Sat, Oct 12",
-      time: "8 PM doors",
-      status: "confirmed",
-      ticketsSold: 50,
-      totalTickets: 75,
-      earnings: 400,
-      image: "/images/MUGS.jpeg",
-    },
-    {
-      id: 2,
-      location: "sarbez", // Use standardized location key
-      date: "Thu, Oct 3",
-      time: "7 PM",
-      status: "completed",
-      ticketsSold: 45,
-      totalTickets: 60,
-      earnings: 350,
-      image: "/images/SARBEZ.jpg",
-    },
-  ], [])
+  const myBookings = useMemo((): Booking[] => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    
+    return [
+      {
+        id: 1,
+        location: "muggys", // Use standardized location key
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
+        time: "8 PM doors",
+        status: "confirmed",
+        ticketsSold: 50,
+        totalTickets: 75,
+        earnings: 400,
+        image: "/images/MUGS.jpeg",
+      },
+      {
+        id: 2,
+        location: "sarbez", // Use standardized location key
+        date: `${currentYear}-${String(currentMonth - 1).padStart(2, '0')}-28`,
+        time: "7 PM",
+        status: "completed",
+        ticketsSold: 45,
+        totalTickets: 60,
+        earnings: 350,
+        image: "/images/SARBEZ.jpg",
+      },
+    ];
+  }, [])
 
   const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
-  // Calculate dynamic bonus tiers for each gig
-  const getGigBonusTiers = useCallback((gig: (typeof mockGigs)[0]) => {
+  // Calculate dynamic bonus tiers for each gig - memoized for performance
+  const getGigBonusTiers = useCallback((gig: Gig) => {
     if (!gig.bands || gig.bands.length === 0) {
       return []
     }
@@ -138,7 +334,7 @@ export function ArtistDashboard() {
     }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>)
   }, [mockGigs, getGigBonusTiers])
 
-  const getCurrentTier = useCallback((gig: (typeof mockGigs)[0]) => {
+  const getCurrentTier = useCallback((gig: Gig) => {
     // Use memoized bonus tiers if available
     const bandTiers = gigBonusTiers[gig.id]
     if (bandTiers && bandTiers.length > 0) {
@@ -151,6 +347,71 @@ export function ArtistDashboard() {
     if (gig.ticketsSold >= gig.tier1.threshold) return { ...gig.tier1, name: "Tier 1" }
     return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
   }, [gigBonusTiers])
+
+  // Calendar navigation functions
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() - 1)
+      return newDate
+    })
+  }, [])
+
+  const goToNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate)
+      newDate.setMonth(newDate.getMonth() + 1)
+      return newDate
+    })
+  }, [])
+
+  const goToToday = useCallback(() => {
+    setCurrentDate(new Date())
+  }, [])
+
+  // Toggle date availability
+  const toggleDateAvailability = useCallback((dateString: string) => {
+    setUnavailableDates(prevDates => {
+      let newDates: string[]
+      if (prevDates.includes(dateString)) {
+        // Remove from unavailable dates (make available)
+        newDates = prevDates.filter(date => date !== dateString)
+      } else {
+        // Add to unavailable dates (make unavailable)
+        newDates = [...prevDates, dateString]
+      }
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
+      }
+      
+      return newDates
+    })
+  }, [])
+
+  // Filter bookings based on selected filter
+  const filteredBookings = useMemo(() => {
+    let filtered = myBookings;
+    
+    // Apply booking status filter
+    if (scheduleFilter !== "all") {
+      filtered = filtered.filter(booking => {
+        switch (scheduleFilter) {
+          case "confirmed":
+            return booking.status === "confirmed";
+          case "completed":
+            return booking.status === "completed";
+          case "upcoming":
+            return booking.status === "confirmed" && new Date(booking.date) > new Date();
+          default:
+            return true;
+        }
+      });
+    }
+    
+    return filtered;
+  }, [myBookings, scheduleFilter])
 
   if (selectedGig) {
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
@@ -254,108 +515,14 @@ export function ArtistDashboard() {
           </div>
 
           <div className="space-y-4">
-            {mockGigs.map((gig) => {
-              const progress = calculateProgress(gig.ticketsSold, gig.totalTickets)
-
-              return (
-                <Card key={gig.id} className="p-4 bg-card border-border">
-                  <div className="flex gap-4">
-                    <div className="relative">
-                      <Image
-                        src={gig.image || "/images/venu-logo.png"}
-                        alt={gig.location}
-                        width={80}
-                        height={80}
-                        className="rounded-lg object-cover w-20 h-20"
-                      />
-                      <div className="absolute -top-1 -right-1">
-                        <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
-                          {gig.genre}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-foreground">{getLocationDisplayName(gig.location)}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {gig.date} - {gig.time}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            {gig.rating}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Dynamic Payout Tiers */}
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium text-foreground">Payout Tiers (${gig.ticketPrice}/ticket)</div>
-                        
-                        {gig.bands && gig.bands.length > 0 ? (
-                          gig.bands.map((band) => {
-                            const bandTiers = gigBonusTiers[gig.id]?.find(bt => bt.bandId === band.id)
-                            
-                            if (!bandTiers) return null
-                            
-                            return (
-                              <div key={band.id} className="space-y-2 p-3 bg-muted/30 rounded-lg">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">{band.name} ({band.percentage}%)</span>
-                                  <span className="text-foreground font-medium">${bandTiers.currentEarnings}</span>
-                                </div>
-                                
-                                <div className="space-y-1">
-                                  <Progress value={progress} className="h-2" />
-                                  <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Guarantee: ${band.guarantee}</span>
-                                    <span>Current: ${Math.round(bandTiers.currentEarnings)}</span>
-                                  </div>
-                                </div>
-
-                                {/* Dynamic Tier indicators */}
-                                <div className="flex flex-wrap gap-1">
-                                  {bandTiers.tiers.slice(1).map((tier, index) => (
-                                    <div key={index} className="flex items-center gap-1 text-xs">
-                                      <div className={`w-2 h-2 rounded-full ${tier.color}`} />
-                                      <span>{tier.threshold}+ tickets = ${tier.amount}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No bands configured for this event
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs bg-transparent"
-                          onClick={() => setSelectedGig(gig.id.toString())}
-                        >
-                          See Checklist
-                        </Button>
-                        <Button
-                          variant="purple"
-                          size="sm"
-                          onClick={() => setSelectedGig(gig.id.toString())}
-                        >
-                          Book Now
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              )
-            })}
+            {mockGigs.map((gig) => (
+              <GigCard
+                key={gig.id}
+                gig={gig}
+                gigBonusTiers={gigBonusTiers}
+                onSelectGig={setSelectedGig}
+              />
+            ))}
           </div>
         </TabsContent>
 
@@ -365,41 +532,443 @@ export function ArtistDashboard() {
             <h2 className="font-serif font-bold text-xl">My Schedule</h2>
           </div>
 
-          <div className="space-y-4">
-            {myBookings.map((booking) => (
-              <Card key={booking.id} className="p-4 bg-card border-border">
-                <div className="flex gap-4">
-                  <Image
-                    src={booking.image || "/images/venu-logo.png"}
-                    alt={booking.location}
-                    width={80}
-                    height={80}
-                    className="rounded-lg object-cover w-20 h-20"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-foreground">{getLocationDisplayName(booking.location)}</h3>
-                      <Badge
-                        variant={booking.status === "confirmed" ? "default" : "secondary"}
-                        className={booking.status === "confirmed" ? "bg-green-600" : ""}
-                      >
-                        {booking.status}
-                      </Badge>
+          {/* Schedule Subcategory Navigation */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={scheduleSubcategory === "list" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleSubcategory("list")}
+              className={`whitespace-nowrap ${scheduleSubcategory === "list" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              <BarChart3 className="w-4 h-4 mr-1" />
+              List View
+            </Button>
+            <Button 
+              variant={scheduleSubcategory === "calendar" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleSubcategory("calendar")}
+              className={`whitespace-nowrap ${scheduleSubcategory === "calendar" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              <Calendar className="w-4 h-4 mr-1" />
+              Calendar View
+            </Button>
+          </div>
+
+          {/* Filter Navigation */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={scheduleFilter === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("all")}
+              className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+            >
+              All Bookings
+            </Button>
+            <Button 
+              variant={scheduleFilter === "confirmed" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("confirmed")}
+              className={`whitespace-nowrap ${scheduleFilter === "confirmed" ? "bg-green-600 hover:bg-green-700 text-white" : "border-green-200 text-green-700 hover:bg-green-50"}`}
+            >
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              Confirmed
+            </Button>
+            <Button 
+              variant={scheduleFilter === "completed" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("completed")}
+              className={`whitespace-nowrap ${scheduleFilter === "completed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
+            >
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+              Completed
+            </Button>
+            <Button 
+              variant={scheduleFilter === "upcoming" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("upcoming")}
+              className={`whitespace-nowrap ${scheduleFilter === "upcoming" ? "bg-orange-600 hover:bg-orange-700 text-white" : "border-orange-200 text-orange-700 hover:bg-orange-50"}`}
+            >
+              <div className="w-2 h-2 bg-orange-500 rounded-full mr-1"></div>
+              Upcoming
+            </Button>
+          </div>
+
+          {/* Availability Filter Navigation (separate from booking status filters) */}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={availabilityFilter === "all" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setAvailabilityFilter("all")}
+              className={`whitespace-nowrap ${availabilityFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+            >
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
+              All Dates
+            </Button>
+            <Button 
+              variant={availabilityFilter === "unavailable" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setAvailabilityFilter("unavailable")}
+              className={`whitespace-nowrap ${availabilityFilter === "unavailable" ? "bg-red-600 hover:bg-red-700 text-white" : "border-red-200 text-red-700 hover:bg-red-50"}`}
+            >
+              <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+              Unavailable
+            </Button>
+            <Button 
+              variant={availabilityFilter === "available" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setAvailabilityFilter("available")}
+              className={`whitespace-nowrap ${availabilityFilter === "available" ? "bg-gray-600 hover:bg-gray-700 text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+            >
+              <div className="w-2 h-2 bg-gray-500 rounded-full mr-1"></div>
+              Available
+            </Button>
+          </div>
+
+          {/* List View Subcategory */}
+          {scheduleSubcategory === "list" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-foreground">My Bookings</h3>
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredBookings.length} of {myBookings.length} bookings
+                </div>
+              </div>
+
+              {/* Color Key Legend for List View */}
+              <Card className="p-4 bg-card border-border">
+                <h4 className="font-medium text-foreground mb-3">Booking Status Legend</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {booking.date} - {booking.time}
+                    <span className="text-muted-foreground">Confirmed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">
-                        {booking.ticketsSold}/{booking.totalTickets} tickets
-                      </span>
-                      <span className="font-semibold text-green-400">${booking.earnings}</span>
-                    </div>
+                    <span className="text-muted-foreground">Completed</span>
                   </div>
                 </div>
               </Card>
-            ))}
-          </div>
+
+              <div className="grid gap-4">
+                {filteredBookings.map((booking) => (
+                  <Card key={booking.id} className={`p-4 bg-card ${
+                    booking.status === "confirmed" 
+                      ? 'border-green-200 border-2' 
+                      : 'border-blue-200 border-2'
+                  }`}>
+                    <div className="flex items-start gap-4">
+                      <Image
+                        src={booking.image || "/images/venu-logo.png"}
+                        alt={booking.location}
+                        width={80}
+                        height={80}
+                        className="rounded-lg object-cover"
+                      />
+                      
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold text-foreground">{getLocationDisplayName(booking.location)}</h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              {new Date(booking.date).toLocaleDateString('en-US', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })} • {booking.time}
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={booking.status === "confirmed" ? "default" : "secondary"}
+                            className={booking.status === "confirmed" ? "bg-green-600" : "bg-blue-600"}
+                          >
+                            {booking.status}
+                          </Badge>
+                        </div>
+
+                        {/* Status Indicator */}
+                        <div className="flex items-center gap-2 mb-3">
+                          {booking.status === "confirmed" ? (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              Upcoming Performance
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              Performance Completed
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Tickets Sold:</span>
+                            <div className="font-medium text-foreground">
+                              {booking.ticketsSold}/{booking.totalTickets}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Earnings:</span>
+                            <div className="font-medium text-green-400">${booking.earnings}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                          <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                            View Details
+                          </Button>
+                          <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
+                            Manage
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Calendar View Subcategory */}
+          {scheduleSubcategory === "calendar" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-foreground">Calendar View</h3>
+                <div className="text-sm text-muted-foreground">
+                  {availabilityFilter === "unavailable" 
+                    ? `Showing ${unavailableDates.length} unavailable dates`
+                    : availabilityFilter === "available"
+                    ? `Showing available dates`
+                    : availabilityFilter === "all"
+                    ? `Showing all dates (available and unavailable)`
+                    : `Showing ${filteredBookings.length} of ${myBookings.length} bookings`
+                  }
+                </div>
+              </div>
+
+              {/* Calendar Grid */}
+              <Card className="p-6 bg-card border-border">
+                {/* Navigation Controls */}
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToPreviousMonth} 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                  >
+                    <ArrowLeft className="w-6 h-6" />
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToToday}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-base font-medium min-h-[48px] touch-manipulation"
+                  >
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Today
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="lg" 
+                    onClick={goToNextMonth} 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 min-w-[60px] min-h-[48px] touch-manipulation"
+                  >
+                    <ArrowRight className="w-6 h-6" />
+                  </Button>
+                </div>
+                
+                {/* Month/Year Header */}
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Click on available dates to mark them as unavailable
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Generate calendar days for current month */}
+                  {Array.from({ length: 35 }, (_, i) => {
+                    const day = i - 3; // Start from previous month to fill first week
+                    const today = new Date();
+                    const currentMonth = currentDate.getMonth();
+                    const currentYear = currentDate.getFullYear();
+                    
+                    // Check if this date has a booking (considering filter)
+                    const bookingOnDate = filteredBookings.find(booking => {
+                      const bookingDate = new Date(booking.date);
+                      return bookingDate.getDate() === day && 
+                             bookingDate.getMonth() === currentMonth && 
+                             bookingDate.getFullYear() === currentYear;
+                    });
+                    
+                    // Check if date is unavailable
+                    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isUnavailable = unavailableDates.includes(dateString);
+                    
+                    // Check if date is in the past
+                    const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+                    
+                    // Check if date is today
+                    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                    
+                    // Check if date is in current month
+                    const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
+                    
+                    // For unavailable filter, only show unavailable days
+                    if (availabilityFilter === "unavailable" && !isUnavailable) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    // For available filter, only show available days (no bookings, not unavailable, not past)
+                    if (availabilityFilter === "available" && (bookingOnDate || isUnavailable || isPast)) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    if (!isCurrentMonth) {
+                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+                    }
+                    
+                    return (
+                      <div 
+                        key={i} 
+                        onClick={() => {
+                          // Only allow toggling availability for future dates that don't have bookings
+                          if (!isPast && !bookingOnDate) {
+                            toggleDateAvailability(dateString)
+                          }
+                        }}
+                        className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
+                          !isPast && !bookingOnDate 
+                            ? 'cursor-pointer hover:shadow-md' 
+                            : 'cursor-default'
+                        } ${
+                          isToday 
+                            ? 'bg-purple-600 border-purple-600 shadow-md' 
+                            : isUnavailable
+                            ? availabilityFilter === "unavailable"
+                              ? 'bg-red-50 border-red-300 shadow-md' 
+                              : 'bg-white border-red-200'
+                            : bookingOnDate && bookingOnDate.status === "confirmed"
+                            ? 'bg-white border-green-200' 
+                            : bookingOnDate && bookingOnDate.status === "completed"
+                            ? 'bg-white border-blue-200'
+                            : isPast 
+                            ? 'bg-white border-muted' 
+                            : 'bg-white border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className={`text-sm font-medium mb-1 relative z-10 ${
+                          isToday 
+                            ? 'text-white' 
+                            : isUnavailable
+                            ? availabilityFilter === "unavailable"
+                              ? 'text-red-700 font-bold'
+                              : 'text-red-600'
+                            : bookingOnDate && bookingOnDate.status === "confirmed"
+                            ? 'text-green-600' 
+                            : bookingOnDate && bookingOnDate.status === "completed"
+                            ? 'text-blue-600'
+                            : isPast 
+                            ? 'text-muted-foreground' 
+                            : 'text-gray-900 font-semibold'
+                        }`}>
+                          {day}
+                        </div>
+                        
+                        {bookingOnDate && (
+                          <div className="space-y-1">
+                            <div 
+                              className={`text-xs p-1 rounded ${
+                                bookingOnDate.status === "confirmed"
+                                  ? 'bg-green-200 text-green-800' 
+                                  : 'bg-blue-200 text-blue-800'
+                              }`}
+                            >
+                              <div className="font-medium">{getLocationDisplayName(bookingOnDate.location)}</div>
+                              <div className="text-xs font-bold mt-0.5">
+                                {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {!bookingOnDate && !isPast && !isUnavailable && (
+                          <div className={`text-xs mt-1 font-medium ${
+                            isToday ? 'text-white' : 'text-gray-600'
+                          }`}>
+                            Available
+                          </div>
+                        )}
+                        
+                        {!bookingOnDate && !isPast && isUnavailable && (
+                          <div className={`text-xs mt-2 font-medium ${
+                            isToday 
+                              ? 'text-white'
+                              : availabilityFilter === "unavailable"
+                              ? 'text-red-700 font-bold'
+                              : 'text-red-600'
+                          }`}>
+                            Unavailable
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Legend */}
+              <Card className="p-4 bg-card border-border">
+                <div className="mb-3">
+                  <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Click on available dates (white with gray border) to toggle availability
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-purple-300 rounded"></div>
+                    <span className="text-purple-600 font-medium">Today</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-200 rounded"></div>
+                    <span className="text-green-600 font-medium">Confirmed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-200 rounded"></div>
+                    <span className="text-blue-600 font-medium">Completed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-200 rounded"></div>
+                    <span className="text-red-600 font-medium">Date Unavailable</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                    <span className="text-muted-foreground">Past</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                    <span className="text-black font-medium">Available (Clickable)</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
         </TabsContent>
 
         {/* Applications Tab */}
@@ -535,18 +1104,18 @@ export function ArtistDashboard() {
               <div className="text-center space-y-4">
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-foreground">${totalEarnings}</div>
-                    <div className="text-sm text-muted-foreground">of ${goalAmount} goal</div>
-                    <div className="text-xs text-primary font-medium">{Math.round(progressPercentage)}%</div>
+                    <div className="text-2xl font-bold text-foreground">${earningsData.totalEarnings}</div>
+                    <div className="text-sm text-muted-foreground">of ${earningsData.goalAmount} goal</div>
+                    <div className="text-xs text-primary font-medium">{Math.round(earningsData.progressPercentage)}%</div>
                   </div>
                   
                   {/* Progress bar using shadcn/ui Progress component */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Progress to goal</span>
-                      <span>{Math.round(Math.min(progressPercentage, 100))}%</span>
+                      <span>{Math.round(Math.min(earningsData.progressPercentage, 100))}%</span>
                     </div>
-                    <Progress value={Math.min(progressPercentage, 100)} className="h-3" />
+                    <Progress value={Math.min(earningsData.progressPercentage, 100)} className="h-3" />
                   </div>
                 </div>
 
