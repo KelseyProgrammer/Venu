@@ -12,6 +12,7 @@ import { ApplicationsTab } from "./applications-tab"
 import { ChatTab } from "./chat-tab"
 import { MoreTab } from "./more-tab"
 import { ErrorBoundary } from "./error-boundary"
+import { PostGigFlow } from "./post-gig-flow"
 import { getMyLocations } from "./data"
 
 export function PromoterDashboard() {
@@ -60,6 +61,10 @@ export function PromoterDashboard() {
       return newDates
     })
   }, [])
+
+  if (showPostGig) {
+    return <PostGigFlow onClose={() => setShowPostGig(false)} />
+  }
 
   return (
     <div className="min-h-screen bg-background">
