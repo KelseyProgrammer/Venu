@@ -891,16 +891,18 @@ export function ArtistDashboard() {
                         </div>
                         
                         {bookingOnDate && (
-                          <div className="space-y-1">
+                          <div className="space-y-1 max-h-12 overflow-hidden">
                             <div 
-                              className={`text-xs p-1 rounded ${
+                              className={`text-xs p-1 rounded truncate ${
                                 bookingOnDate.status === "confirmed"
                                   ? 'bg-green-200 text-green-800' 
                                   : 'bg-blue-200 text-blue-800'
                               }`}
                             >
-                              <div className="font-medium">{getLocationDisplayName(bookingOnDate.location)}</div>
-                              <div className="text-xs font-bold mt-0.5">
+                              <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
+                                {getLocationDisplayName(bookingOnDate.location)}
+                              </div>
+                              <div className="text-xs font-bold mt-0.5 truncate">
                                 {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
                               </div>
                             </div>

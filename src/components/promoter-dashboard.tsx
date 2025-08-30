@@ -1929,7 +1929,7 @@ export function PromoterDashboard() {
                         </div>
                         
                         {eventOnDate && (
-                          <div className="space-y-1">
+                          <div className="space-y-1 max-h-12 overflow-hidden">
                             {filteredEvents
                               .filter(event => {
                                 const eventDate = new Date(event.date);
@@ -1937,24 +1937,44 @@ export function PromoterDashboard() {
                                        eventDate.getMonth() === currentMonth && 
                                        eventDate.getFullYear() === currentYear;
                               })
+                              .slice(0, 2) // Limit to 2 events max
                               .map((event) => (
                                 <div 
                                   key={event.id} 
-                                  className={`text-xs p-1 rounded ${
+                                  className={`text-xs p-1 rounded truncate ${
                                     needsMoreBands
                                       ? 'bg-yellow-200 text-yellow-800' 
                                       : 'bg-green-200 text-green-800'
                                   }`}
                                 >
-                                  <div className="font-medium">{event.artist}</div>
-                                  <div className="text-xs text-muted-foreground">{event.location}</div>
+                                  <div className="font-medium truncate" title={event.artist}>
+                                    {event.artist}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate" title={event.location}>
+                                    {event.location}
+                                  </div>
                                   {needsMoreBands && (
-                                    <div className="text-xs font-bold mt-0.5">
+                                    <div className="text-xs font-bold mt-0.5 truncate">
                                       Need {event.expectedBands - event.confirmedBands} more
                                     </div>
                                   )}
                                 </div>
                               ))}
+                            {filteredEvents.filter(event => {
+                              const eventDate = new Date(event.date);
+                              return eventDate.getDate() === day && 
+                                     eventDate.getMonth() === currentMonth && 
+                                     eventDate.getFullYear() === currentYear;
+                            }).length > 2 && (
+                              <div className="text-xs text-muted-foreground font-medium">
+                                +{filteredEvents.filter(event => {
+                                  const eventDate = new Date(event.date);
+                                  return eventDate.getDate() === day && 
+                                         eventDate.getMonth() === currentMonth && 
+                                         eventDate.getFullYear() === currentYear;
+                                }).length - 2} more
+                              </div>
+                            )}
                           </div>
                         )}
                         
