@@ -54,7 +54,7 @@ const artistSchema = new Schema<IArtist>({
   genre: [{
     type: String,
     required: true,
-    enum: ['jazz', 'rock', 'electronic', 'folk', 'blues', 'pop', 'country', 'hip-hop', 'classical', 'reggae'],
+    enum: ['Jazz', 'Rock', 'Electronic', 'Folk', 'Blues', 'Pop', 'Country', 'Hip Hop', 'Classical', 'Reggae', 'Punk'],
   }],
   profileImage: {
     type: String,

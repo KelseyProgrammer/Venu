@@ -693,6 +693,7 @@ export function AuthFlow() {
                     onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="your@email.com"
                     className="mt-2 bg-input border-border text-foreground"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -707,6 +708,7 @@ export function AuthFlow() {
                     onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="••••••••"
                     className="mt-2 bg-input border-border text-foreground"
+                    autoComplete="current-password"
                     required
                   />
                 </div>
@@ -778,6 +780,7 @@ export function AuthFlow() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Your name" 
                       className="mt-2 bg-input border-border text-foreground"
+                      autoComplete="name"
                       required
                     />
                   </div>
@@ -792,6 +795,7 @@ export function AuthFlow() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="your@email.com"
                       className="mt-2 bg-input border-border text-foreground"
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -806,6 +810,7 @@ export function AuthFlow() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="••••••••"
                       className="mt-2 bg-input border-border text-foreground"
+                      autoComplete="new-password"
                       required
                       minLength={8}
                     />
