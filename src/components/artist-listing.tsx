@@ -383,7 +383,7 @@ function ArtistCard({ artist, onSelect }: ArtistCardProps) {
                 className="text-xs"
                 onClick={(e) => {
                   e.stopPropagation()
-                  window.open(`https://instagram.com/${artist.instagram.replace('@', '')}`, '_blank')
+                  window.open(`https://instagram.com/${artist.instagram?.replace('@', '')}`, '_blank')
                 }}
               >
                 <span className="mr-1">📷</span>

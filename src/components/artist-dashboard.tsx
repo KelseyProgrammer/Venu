@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, memo } from "react"
+import { useState, useMemo, useCallback, memo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,11 @@ import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
+import { RealTimeNotifications } from "./real-time-notifications"
+import { RealTimeGigUpdates } from "./real-time-gig-updates"
+import { RealTimeChat } from "./real-time-chat"
+import { useSocket } from "@/lib/socket"
+import { useArtistRealTime } from "@/hooks/useArtistRealTime"
 
 // Types for better type safety
 interface Gig {
@@ -57,11 +62,13 @@ interface Booking {
 const GigCard = memo(function GigCard({ 
   gig, 
   gigBonusTiers, 
-  onSelectGig 
+  onSelectGig,
+  onBookGig
 }: { 
   gig: Gig
   gigBonusTiers: Record<number, ReturnType<typeof calculateEventBonusTiers>>
-  onSelectGig: (gigId: string) => void 
+  onSelectGig: (gigId: string) => void
+  onBookGig: (gigId: string, gigData: any) => void
 }) {
   const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
 
@@ -155,7 +162,17 @@ const GigCard = memo(function GigCard({
               variant="default"
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => onSelectGig(gig.id.toString())}
+              onClick={() => {
+                onSelectGig(gig.id.toString())
+                // Send real-time gig update for booking confirmation
+                onBookGig(gig.id.toString(), {
+                  name: getLocationDisplayName(gig.location),
+                  status: "booking-requested",
+                  artistId: "artist-123",
+                  date: gig.date,
+                  time: gig.time
+                })
+              }}
             >
               Book Now
             </Button>
@@ -169,6 +186,25 @@ const GigCard = memo(function GigCard({
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
+  
+  // Socket connection for real-time features
+  const { autoConnect, connected } = useSocket()
+  
+  // Artist-specific real-time features
+  const {
+    notifications,
+    unreadCount,
+    gigUpdates,
+    sendGigUpdate,
+    isConnected: realTimeConnected
+  } = useArtistRealTime({ artistId: "artist-123" })
+  
+  // Auto-connect socket when component mounts
+  useEffect(() => {
+    autoConnect().catch((err) => {
+      console.error('Failed to auto-connect socket:', err)
+    })
+  }, [autoConnect])
   
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -460,6 +496,17 @@ export function ArtistDashboard() {
             <Button variant="ghost" size="sm">
               <Filter className="w-5 h-5" />
             </Button>
+            {/* Real-time gig updates for booking confirmations */}
+            <RealTimeGigUpdates locationId="artist-dashboard" />
+            {/* Real-time notifications */}
+            <RealTimeNotifications />
+            {/* Connection status indicator */}
+            <div className="flex items-center gap-1 text-xs">
+              <div className={`w-2 h-2 rounded-full ${realTimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-muted-foreground">
+                {realTimeConnected ? 'Live' : 'Offline'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -504,14 +551,22 @@ export function ArtistDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Discover Gigs Tab */}
+                {/* Discover Gigs Tab */}
         <TabsContent value="discover" className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-                            <h2 className="font-serif font-bold text-xl">Trending locations near you</h2>
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
-              <MapPin className="w-4 h-4 mr-1" />
-              Filter
-            </Button>
+            <h2 className="font-serif font-bold text-xl">Trending locations near you</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <MapPin className="w-4 h-4 mr-1" />
+                Filter
+              </Button>
+              {/* Real-time new gig opportunities indicator */}
+              {gigUpdates.filter(u => u.updateType === 'created').length > 0 && (
+                <Badge variant="default" className="bg-orange-600 text-white">
+                  {gigUpdates.filter(u => u.updateType === 'created').length} new gig{gigUpdates.filter(u => u.updateType === 'created').length !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -521,6 +576,9 @@ export function ArtistDashboard() {
                 gig={gig}
                 gigBonusTiers={gigBonusTiers}
                 onSelectGig={setSelectedGig}
+                onBookGig={(gigId, gigData) => {
+                  sendGigUpdate(gigId, "status-changed", gigData)
+                }}
               />
             ))}
           </div>
@@ -530,6 +588,12 @@ export function ArtistDashboard() {
         <TabsContent value="schedule" className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Schedule</h2>
+            {/* Real-time booking confirmations indicator */}
+            {notifications.filter(n => n.type === 'booking-request' && !n.read).length > 0 && (
+              <Badge variant="default" className="bg-green-600 text-white">
+                {notifications.filter(n => n.type === 'booking-request' && !n.read).length} new booking{notifications.filter(n => n.type === 'booking-request' && !n.read).length !== 1 ? 's' : ''}
+              </Badge>
+            )}
           </div>
 
           {/* Schedule Subcategory Navigation */}
@@ -977,6 +1041,12 @@ export function ArtistDashboard() {
         <TabsContent value="applications" className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Applications</h2>
+            {/* Real-time application updates indicator */}
+            {gigUpdates.length > 0 && (
+              <Badge variant="default" className="bg-purple-600 text-white">
+                {gigUpdates.length} new update{gigUpdates.length !== 1 ? 's' : ''}
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -1038,61 +1108,20 @@ export function ArtistDashboard() {
         <TabsContent value="chat" className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
+            {/* Real-time new messages indicator */}
+            {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
+              <Badge variant="default" className="bg-blue-600 text-white">
+                {notifications.filter(n => n.type === 'message' && !n.read).length} new message{notifications.filter(n => n.type === 'message' && !n.read).length !== 1 ? 's' : ''}
+              </Badge>
+            )}
           </div>
 
-          <Card className="p-4 bg-card border-border">
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">JD</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground">John Doe - Muggy&apos;s</span>
-                      <span className="text-xs text-muted-foreground">2 hours ago</span>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-sm text-foreground">
-                        Hey! Just wanted to confirm the sound check time for tomorrow&apos;s show. 
-                        Can we get in at 6 PM?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end">
-                  <div className="flex-1 max-w-xs">
-                    <div className="flex items-center gap-2 mb-1 justify-end">
-                      <span className="text-xs text-muted-foreground">1 hour ago</span>
-                      <span className="text-sm font-medium text-foreground">You</span>
-                    </div>
-                    <div className="bg-purple-600 text-white rounded-lg p-3">
-                      <p className="text-sm">
-                        Absolutely! 6 PM works perfectly. The sound system will be ready and tested by then.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">A</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Message Input */}
-              <div className="border-t border-border pt-4">
-                <div className="flex gap-2">
-                  <input
-                    placeholder="Type your message..."
-                    className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm"
-                  />
-                  <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
-                    <Share2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
+          {/* Real-time chat for communication with promoters */}
+          <RealTimeChat 
+            locationId="artist-dashboard" 
+            currentUserId="artist-123"
+            className="h-96"
+          />
         </TabsContent>
 
         {/* More Tab */}

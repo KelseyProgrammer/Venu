@@ -34,7 +34,7 @@ export const useNotifications = (): UseNotificationsReturn => {
     onNotification(handleNotification);
 
     return () => {
-      removeListener('notification', handleNotification);
+      removeListener('notification', handleNotification as (...args: unknown[]) => void);
     };
   }, [onNotification, removeListener]);
 

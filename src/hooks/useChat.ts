@@ -54,7 +54,7 @@ export const useChat = ({ locationId, currentUserId }: UseChatProps): UseChatRet
     onNewMessage(handleNewMessage);
 
     return () => {
-      removeListener('new-message', handleNewMessage);
+      removeListener('new-message', handleNewMessage as (...args: unknown[]) => void);
     };
   }, [locationId, onNewMessage, removeListener]);
 
@@ -75,7 +75,7 @@ export const useChat = ({ locationId, currentUserId }: UseChatProps): UseChatRet
     onUserTyping(handleUserTyping);
 
     return () => {
-      removeListener('user-typing', handleUserTyping);
+      removeListener('user-typing', handleUserTyping as (...args: unknown[]) => void);
     };
   }, [locationId, currentUserId, onUserTyping, removeListener]);
 

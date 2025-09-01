@@ -50,7 +50,7 @@ export const useGigUpdates = ({ locationId }: UseGigUpdatesProps): UseGigUpdates
     onGigUpdate(handleGigUpdate);
 
     return () => {
-      removeListener('gig-update', handleGigUpdate);
+      removeListener('gig-update', handleGigUpdate as (...args: unknown[]) => void);
     };
   }, [locationId, onGigUpdate, removeListener]);
 

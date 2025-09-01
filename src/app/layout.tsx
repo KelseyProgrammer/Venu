@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Montserrat } from "next/font/google"
 import { Open_Sans } from "next/font/google"
 import "./globals.css"
+import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -29,7 +30,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} dark`}>
-      <body className="font-sans antialiased bg-background text-foreground min-h-screen">{children}</body>
+      <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <WindowManagerProvider>
+          {children}
+        </WindowManagerProvider>
+      </body>
     </html>
   )
 }
