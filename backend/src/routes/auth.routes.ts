@@ -45,7 +45,7 @@ router.post('/register', validateBody(registerSchema), async (req: Request, res:
     try {
       validateJWTConfig();
       token = generateToken({
-        userId: user._id,
+        userId: (user._id as any).toString(),
         email: user.email,
         role: user.role,
       });
@@ -118,7 +118,7 @@ router.post('/login', validateBody(loginSchema), async (req: Request, res: Respo
     try {
       validateJWTConfig();
       token = generateToken({
-        userId: user._id,
+        userId: (user._id as any).toString(),
         email: user.email,
         role: user.role,
       });

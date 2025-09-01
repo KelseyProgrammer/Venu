@@ -747,7 +747,7 @@ export function FanDashboard() {
                       The Blue Notes
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setSearchQuery("Muggsy's Bar")} className="text-xs">
-                      Muggsy's Bar
+                      Muggsy&apos;s Bar
                     </Button>
                   </div>
                 </div>

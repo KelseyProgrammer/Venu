@@ -39,10 +39,10 @@ export const generateToken = (payload: Omit<JWTPayload, 'iat' | 'exp' | 'iss' | 
   
   return jwt.sign(payload, config.SECRET, {
     expiresIn: config.EXPIRES_IN,
-    algorithm: config.ALGORITHM,
+    algorithm: 'HS256' as jwt.Algorithm,
     issuer: config.ISSUER,
     audience: config.AUDIENCE,
-  });
+  } as jwt.SignOptions);
 };
 
 // Verify JWT token with consistent options

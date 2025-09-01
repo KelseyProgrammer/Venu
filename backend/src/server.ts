@@ -1,4 +1,6 @@
 import express, { Request, Response } from "express";
+import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
@@ -7,10 +9,22 @@ import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
 import artistsRoutes from "./routes/artists.routes.js";
 import connectDB from "./config/database.js";
+import { setupSocketHandlers } from "./socket/socketHandlers.js";
+import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+
+// Initialize Socket.IO with CORS configuration
+const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 // Enable CORS for frontend communication
 app.use(cors({
@@ -84,10 +98,15 @@ const startServer = async () => {
     // Connect to MongoDB first
     await connectDB();
     
+    // Setup Socket.IO handlers
+    setupSocketHandlers(io);
+    console.log('✅ Socket.IO handlers configured');
+    
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log('Server running on port', PORT);
       console.log('API available at http://localhost:' + PORT);
+      console.log('Socket.IO server ready for real-time connections');
       console.log('Server startup complete - ready to accept requests');
     });
   } catch (error) {

@@ -74,6 +74,14 @@ VENU is "The Transparent Booking Platform for Live Music" that streamlines the e
 - **Guest List Management**: Handle VIP lists and special access requirements
 - **Event Coordination**: Access to event details, timing, and special instructions
 
+### Real-time Communication Features
+- **Live Chat**: Location-specific chat rooms for real-time venue communication
+- **Gig Updates**: Instant notifications for gig creation, updates, and status changes
+- **User Notifications**: System-wide notification system with read/unread tracking
+- **Connection Management**: Robust Socket.io integration with automatic reconnection
+- **Window Management**: Context-based window management for real-time components
+- **Performance Optimized**: Memoized functions and efficient room management
+
 ## 🏗️ Project Architecture
 
 VENU is built as a **full-stack application** with:
@@ -82,6 +90,7 @@ VENU is built as a **full-stack application** with:
 - **Backend**: Node.js with Express 4.21.2 and TypeScript 5.9.2
 - **Database**: MongoDB Atlas (cloud database) with Mongoose 8.17.1 and optimized indexing
 - **Authentication**: JWT-based authentication system with bcryptjs 3.0.2 and secure configuration
+- **Real-time Communication**: Socket.io for live chat, notifications, and gig updates
 - **UI Components**: shadcn/ui component library built on Radix UI primitives (latest versions)
 - **Forms**: React Hook Form 7.60.0 with Zod 3.25.67 validation
 - **Icons**: Lucide React 0.454.0 for consistent iconography
@@ -102,6 +111,7 @@ VENU is built as a **full-stack application** with:
 - **Git** for version control
 - **MongoDB** (local installation recommended for development)
 - **Homebrew** (for macOS MongoDB installation)
+- **Socket.io** (automatically installed with dependencies)
 
 ### Installation
 
@@ -204,6 +214,17 @@ npm run dev:backend   # Backend only
 
 3. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000) to view the application.
+
+### Socket.io Real-time Features
+
+The application includes real-time communication features powered by Socket.io:
+
+- **Live Chat**: Real-time messaging in location-specific chat rooms
+- **Gig Updates**: Instant notifications for gig creation, updates, and status changes
+- **User Notifications**: System-wide notification system with read/unread tracking
+- **Connection Management**: Automatic reconnection and JWT-based authentication
+
+The Socket.io server runs on the same port as the backend (3001) and is automatically configured when you start the backend server.
 
 ## 🔧 Troubleshooting
 
@@ -336,7 +357,16 @@ The backend provides RESTful API endpoints with comprehensive security and valid
 ## 🚀 Recent Improvements
 
 ### Latest Performance & Code Quality Enhancements (Current)
-VENU has been significantly optimized for better performance and maintainability with major new features:
+VENU has been significantly optimized for better performance and maintainability with major new features including real-time Socket.io integration:
+
+#### Socket.io Real-time Implementation (Latest)
+- **Real-time Chat**: Location-specific chat rooms for venue communication with typing indicators
+- **Live Gig Updates**: Real-time notifications for gig creation, updates, and status changes
+- **User Notifications**: System-wide notification system with read/unread tracking and window management
+- **Connection Management**: Robust connection handling with automatic reconnection and JWT authentication
+- **Performance Optimized**: Memoized functions, singleton socket connections, and efficient room management
+- **Type Safety**: Comprehensive TypeScript interfaces for all Socket.io events and components
+- **Clean Architecture**: Modular hooks and components with proper separation of concerns
 
 #### Post-Gig Flow Component Enhancement (Latest)
 - **Multi-Step Form Flow**: 5-step guided process for gig creation with comprehensive progress tracking

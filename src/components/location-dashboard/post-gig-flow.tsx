@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 import { Promoter, DoorPerson, Band, Requirement } from "./types"
+import { useSocket } from "@/lib/socket"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ interface PostGigFlowProps {
 
 export function PostGigFlow({ onClose }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const socket = useSocket()
   
   // Saved promoters state
   const [savedPromoters, setSavedPromoters] = useState<Promoter[]>([])
@@ -178,10 +180,71 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
     // Here you would typically send the data to your backend
     // Data would be sent to backend API here
     
+    // Create gig data object
+    const gigData = {
+      eventName,
+      eventDate,
+      eventTime,
+      eventGenre,
+      ticketCapacity: parseInt(ticketCapacity) || 0,
+      ticketPrice: parseFloat(ticketPrice) || 0,
+      guarantee: parseFloat(guarantee) || 0,
+      bands,
+      promoterPercentage: parseFloat(promoterPercentage) || 0,
+      doorPerson: selectedDoorPerson,
+      requirements,
+      createdBy: "current-user-id", // This would come from auth context
+      createdAt: new Date().toISOString()
+    }
+
+    // Generate a unique gig ID (in real app, this would come from backend)
+    const gigId = `gig-${Date.now()}`
+    const locationId = "default-location" // This would come from props or context
+
+    // Send real-time gig update via Socket.io
+    if (socket.connected) {
+      socket.sendGigUpdate(gigId, locationId, "created", gigData)
+      
+      // Send notifications to relevant users
+      bands.forEach(band => {
+        if (band.email) {
+          socket.sendNotification(
+            "band-user-id", // This would be the actual band's user ID
+            "gig-invitation",
+            "New Gig Invitation",
+            `You've been invited to perform at ${eventName} on ${eventDate}`,
+            { gigId, gigData }
+          )
+        }
+      })
+
+      // Notify promoter if selected
+      if (selectedPromoter && promoterEmail) {
+        socket.sendNotification(
+          "promoter-user-id", // This would be the actual promoter's user ID
+          "gig-invitation", 
+          "New Gig Assignment",
+          `You've been assigned to promote ${eventName} on ${eventDate}`,
+          { gigId, gigData }
+        )
+      }
+
+      // Notify door person if selected
+      if (selectedDoorPerson && doorPersonEmail) {
+        socket.sendNotification(
+          "door-person-user-id", // This would be the actual door person's user ID
+          "gig-invitation",
+          "New Gig Assignment", 
+          `You've been assigned as door person for ${eventName} on ${eventDate}`,
+          { gigId, gigData }
+        )
+      }
+    }
+    
     // Reset and close
     resetForm()
     onClose()
-  }, [resetForm, onClose])
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, socket])
 
   // Promoter management functions
   const addPromoter = useCallback(() => {

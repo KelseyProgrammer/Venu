@@ -11,8 +11,16 @@ import { ScheduleTab } from "./schedule-tab"
 import { ApplicationsTab } from "./applications-tab"
 import { ChatTab } from "./chat-tab"
 import { MoreTab } from "./more-tab"
+import { RealTimeNotifications } from "@/components/real-time-notifications"
+import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
+import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 
-export function LocationDashboard() {
+interface LocationDashboardProps {
+  locationId?: string;
+  currentUserId?: string;
+}
+
+export function LocationDashboard({ locationId = "default-location", currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   
@@ -73,10 +81,16 @@ export function LocationDashboard() {
             <Image src="/images/venu-logo.png" alt="venu" width={40} height={40} />
             <h1 className="font-serif font-bold text-xl">Location Dashboard</h1>
           </div>
-          <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setShowPostGig(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Post a Gig
-          </Button>
+          <div className="flex items-center gap-2">
+            <WindowManagerProvider>
+              <RealTimeNotifications />
+              <RealTimeGigUpdates locationId={locationId} />
+            </WindowManagerProvider>
+            <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setShowPostGig(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Post a Gig
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -127,7 +141,7 @@ export function LocationDashboard() {
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="space-y-4">
-            <ChatTab />
+            <ChatTab locationId={locationId} currentUserId={currentUserId} />
           </TabsContent>
 
           {/* More Tab */}
