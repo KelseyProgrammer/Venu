@@ -1,0 +1,55 @@
+"use client"
+
+import { RealTimeEventCard } from "./real-time-event-card"
+
+interface Event {
+  id: number
+  artist: string
+  location: string
+  address: string
+  date: string
+  time: string
+  genre: string
+  ticketPrice: number
+  ticketsRemaining: number
+  totalTickets: number
+  rating: number
+  description: string
+  image: string
+  tags: string[]
+}
+
+interface RealTimeEventsGridProps {
+  events: Event[]
+  favoriteEvents: Set<number>
+  onToggleFavorite: (eventId: number) => void
+  onBuyTickets: (eventId: string) => void
+  userId: string
+  showDescription?: boolean
+  buttonVariant?: "default" | "purple"
+}
+
+export function RealTimeEventsGrid({ 
+  events, 
+  favoriteEvents, 
+  onToggleFavorite, 
+  onBuyTickets,
+  userId,
+  showDescription = true,
+  buttonVariant = "default"
+}: RealTimeEventsGridProps) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {events.map((event) => (
+        <RealTimeEventCard
+          key={event.id}
+          event={event}
+          isFavorite={favoriteEvents.has(event.id)}
+          onToggleFavorite={onToggleFavorite}
+          onBuyTickets={onBuyTickets}
+          userId={userId}
+        />
+      ))}
+    </div>
+  )
+}

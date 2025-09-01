@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Calendar } from "lucide-react"
 import { ScheduleListView } from "./schedule-list-view"

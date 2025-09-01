@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, DollarSign, Users, Plus, Building2, Clock, Instagram, Music, BarChart3, ArrowLeft, ArrowRight } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -68,7 +68,7 @@ const GigCard = memo(function GigCard({
   gig: Gig
   gigBonusTiers: Record<number, ReturnType<typeof calculateEventBonusTiers>>
   onSelectGig: (gigId: string) => void
-  onBookGig: (gigId: string, gigData: any) => void
+  onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
 }) {
   const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
 
@@ -188,12 +188,11 @@ export function ArtistDashboard() {
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   
   // Socket connection for real-time features
-  const { autoConnect, connected } = useSocket()
+  const { autoConnect } = useSocket()
   
   // Artist-specific real-time features
   const {
     notifications,
-    unreadCount,
     gigUpdates,
     sendGigUpdate,
     isConnected: realTimeConnected
@@ -346,7 +345,7 @@ export function ArtistDashboard() {
     ];
   }, [])
 
-  const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
+  // const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
   // Calculate dynamic bonus tiers for each gig - memoized for performance
   const getGigBonusTiers = useCallback((gig: Gig) => {
@@ -370,19 +369,20 @@ export function ArtistDashboard() {
     }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>)
   }, [mockGigs, getGigBonusTiers])
 
-  const getCurrentTier = useCallback((gig: Gig) => {
-    // Use memoized bonus tiers if available
-    const bandTiers = gigBonusTiers[gig.id]
-    if (bandTiers && bandTiers.length > 0) {
-      return bandTiers[0].currentTier
-    }
-    
-    // Fallback to old system if no bands or memoized data not available
-    if (gig.ticketsSold >= gig.tier3.threshold) return { ...gig.tier3, name: "Tier 3" }
-    if (gig.ticketsSold >= gig.tier2.threshold) return { ...gig.tier2, name: "Tier 2" }
-    if (gig.ticketsSold >= gig.tier1.threshold) return { ...gig.tier1, name: "Tier 1" }
-    return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
-  }, [gigBonusTiers])
+  // Remove unused getCurrentTier function
+  // const getCurrentTier = useCallback((gig: Gig) => {
+  //   // Use memoized bonus tiers if available
+  //   const bandTiers = gigBonusTiers[gig.id]
+  //   if (bandTiers && bandTiers.length > 0) {
+  //     return bandTiers[0].currentTier
+  //   }
+  //   
+  //   // Fallback to old system if no bands or memoized data not available
+  //   if (gig.ticketsSold >= gig.tier3.threshold) return { ...gig.tier3, name: "Tier 3" }
+  //   if (gig.ticketsSold >= gig.tier2.threshold) return { ...gig.tier2, name: "Tier 2" }
+  //   if (gig.ticketsSold >= gig.tier1.threshold) return { ...gig.tier1, name: "Tier 1" }
+  //   return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
+  // }, [gigBonusTiers])
 
   // Calendar navigation functions
   const goToPreviousMonth = useCallback(() => {

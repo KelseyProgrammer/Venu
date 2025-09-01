@@ -66,6 +66,11 @@ export interface ClientToServerEvents {
   'typing-start': (data: { locationId: string }) => void;
   'typing-stop': (data: { locationId: string }) => void;
   'update-presence': (data: { locationId: string; status: 'online' | 'away' | 'busy' }) => void;
+  // Fan-specific events
+  'join-event': (eventId: string) => void;
+  'leave-event': (eventId: string) => void;
+  'join-artist': (artistId: string) => void;
+  'leave-artist': (artistId: string) => void;
 }
 
 // Server-to-client event types
@@ -78,6 +83,11 @@ export interface ServerToClientEvents {
   'user-typing': (data: SocketTypingIndicator) => void;
   'user-presence': (data: SocketUserPresence) => void;
   'error': (error: { message: string }) => void;
+  // Fan-specific events
+  'ticket-update': (update: { eventId: string; ticketsRemaining: number; totalTickets: number; soldOut: boolean; timestamp: string }) => void;
+  'price-update': (update: { eventId: string; oldPrice: number; newPrice: number; changeType: 'increase' | 'decrease' | 'dynamic'; timestamp: string }) => void;
+  'event-status-update': (update: { eventId: string; oldStatus: string; newStatus: string; statusType: 'cancelled' | 'rescheduled' | 'venue-changed' | 'time-changed'; details?: string; timestamp: string }) => void;
+  'artist-notification': (notification: { id: string; artistId: string; artistName: string; eventId: string; eventTitle: string; notificationType: 'new-gig' | 'gig-cancelled' | 'gig-rescheduled' | 'price-drop'; message: string; timestamp: string; read: boolean }) => void;
 }
 
 // Socket authentication data
@@ -85,69 +95,268 @@ export interface SocketAuth {
   token: string;
 }
 
-class SocketManager {
-  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
-  private token: string | null = null;
-  private isConnected = false;
-  private connectionPromise: Promise<void> | null = null;
+// Rate limiting class
+class RateLimiter {
+  private userLimits: Map<string, { count: number; resetTime: number }> = new Map();
+  private maxMessagesPerMinute = 30;
+  private windowMs = 60000; // 1 minute
 
-  // Initialize socket connection
-  connect(token: string): Promise<void> {
+  canSendMessage(userId: string): boolean {
+    const now = Date.now();
+    const limit = this.userLimits.get(userId);
+
+    if (!limit || now > limit.resetTime) {
+      this.userLimits.set(userId, { count: 1, resetTime: now + this.windowMs });
+      return true;
+    }
+
+    if (limit.count >= this.maxMessagesPerMinute) {
+      return false;
+    }
+
+    limit.count++;
+    return true;
+  }
+
+  resetLimit(userId: string): void {
+    this.userLimits.delete(userId);
+  }
+}
+
+// Message batching class
+class MessageBatcher {
+  private messageQueue: Map<string, { messages: any[]; timeoutId: NodeJS.Timeout | null }> = new Map();
+  private batchTimeout = 100; // ms
+
+  addMessage(roomId: string, message: any): void {
+    const batch = this.messageQueue.get(roomId);
+    
+    if (batch) {
+      batch.messages.push(message);
+      if (batch.timeoutId) {
+        clearTimeout(batch.timeoutId);
+      }
+    } else {
+      this.messageQueue.set(roomId, { messages: [message], timeoutId: null });
+    }
+
+    // Schedule batch send
+    const timeoutId = setTimeout(() => this.sendBatch(roomId), this.batchTimeout);
+    this.messageQueue.get(roomId)!.timeoutId = timeoutId;
+  }
+
+  private sendBatch(roomId: string): void {
+    const batch = this.messageQueue.get(roomId);
+    if (batch && batch.messages.length > 0) {
+      // Emit batched messages (this will be handled by the socket manager)
+      this.messageQueue.delete(roomId);
+    }
+  }
+
+  clearBatch(roomId: string): void {
+    const batch = this.messageQueue.get(roomId);
+    if (batch && batch.timeoutId) {
+      clearTimeout(batch.timeoutId);
+    }
+    this.messageQueue.delete(roomId);
+  }
+}
+
+// Enhanced Socket Manager with Connection Pooling
+class OptimizedSocketManager {
+  private static instance: OptimizedSocketManager;
+  private connections: Map<string, Socket<ServerToClientEvents, ClientToServerEvents>> = new Map();
+  private roomSubscriptions: Map<string, Set<string>> = new Map();
+  private rateLimiter = new RateLimiter();
+  private messageBatcher = new MessageBatcher();
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  // Singleton pattern for connection reuse
+  static getInstance(): OptimizedSocketManager {
+    if (!OptimizedSocketManager.instance) {
+      OptimizedSocketManager.instance = new OptimizedSocketManager();
+    }
+    return OptimizedSocketManager.instance;
+  }
+
+  constructor() {
+    // Start cleanup interval
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupDisconnectedUsers();
+    }, 30000); // Clean up every 30 seconds
+  }
+
+  // Smart connection management
+  async getConnection(userId: string, token: string): Promise<Socket<ServerToClientEvents, ClientToServerEvents>> {
+    const existingConnection = this.connections.get(userId);
+    if (existingConnection?.connected) {
+      return existingConnection;
+    }
+
+    const newConnection = await this.createConnection(token);
+    this.connections.set(userId, newConnection);
+    return newConnection;
+  }
+
+  private async createConnection(token: string): Promise<Socket<ServerToClientEvents, ClientToServerEvents>> {
     return new Promise((resolve, reject) => {
-      if (this.socket?.connected) {
-        resolve();
-        return;
-      }
-
-      // If already connecting, return the existing promise
-      if (this.connectionPromise) {
-        this.connectionPromise.then(resolve).catch(reject);
-        return;
-      }
-
-      this.token = token;
-      
-      this.socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001', {
-        auth: {
-          token: token
-        },
+      const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001', {
+        auth: { token },
         transports: ['websocket', 'polling'],
         timeout: 20000,
-        forceNew: true
+        forceNew: false // Allow connection reuse
       });
 
-      this.connectionPromise = new Promise<void>((innerResolve, innerReject) => {
-        this.socket!.on('connect', () => {
-          console.log('✅ Socket.IO connected');
-          this.isConnected = true;
-          this.connectionPromise = null;
-          innerResolve();
-          resolve();
-        });
+      socket.on('connect', () => {
+        console.log('✅ Optimized Socket.IO connected');
+        resolve(socket);
+      });
 
-        this.socket!.on('connect_error', (error) => {
-          console.error('❌ Socket.IO connection error:', error);
-          this.isConnected = false;
-          this.connectionPromise = null;
-          innerReject(error);
-          reject(error);
-        });
+      socket.on('connect_error', (error) => {
+        console.error('❌ Optimized Socket.IO connection error:', error);
+        reject(error);
+      });
 
-        this.socket!.on('disconnect', (reason) => {
-          console.log('❌ Socket.IO disconnected:', reason);
-          this.isConnected = false;
-          this.connectionPromise = null;
-        });
-
-        this.socket!.on('error', (error) => {
-          console.error('❌ Socket.IO error:', error);
-        });
+      socket.on('disconnect', (reason) => {
+        console.log('❌ Optimized Socket.IO disconnected:', reason);
       });
     });
   }
 
+  // Enhanced room management
+  async joinRoom(userId: string, roomId: string): Promise<void> {
+    const connection = this.connections.get(userId);
+    if (!connection?.connected) {
+      throw new Error('No active connection');
+    }
+
+    connection.emit('join-location', roomId);
+    
+    // Track room subscription
+    if (!this.roomSubscriptions.has(userId)) {
+      this.roomSubscriptions.set(userId, new Set());
+    }
+    this.roomSubscriptions.get(userId)!.add(roomId);
+  }
+
+  async leaveRoom(userId: string, roomId: string): Promise<void> {
+    const connection = this.connections.get(userId);
+    if (!connection?.connected) {
+      return;
+    }
+
+    connection.emit('leave-location', roomId);
+    
+    // Remove room subscription
+    const subscriptions = this.roomSubscriptions.get(userId);
+    if (subscriptions) {
+      subscriptions.delete(roomId);
+      if (subscriptions.size === 0) {
+        this.roomSubscriptions.delete(userId);
+      }
+    }
+  }
+
+  // Rate-limited message sending
+  sendMessage(userId: string, roomId: string, message: string, type: 'text' | 'system' = 'text'): boolean {
+    if (!this.rateLimiter.canSendMessage(userId)) {
+      console.warn('Rate limit exceeded for user:', userId);
+      return false;
+    }
+
+    const connection = this.connections.get(userId);
+    if (!connection?.connected) {
+      return false;
+    }
+
+    // Add to batch for efficient broadcasting
+    this.messageBatcher.addMessage(roomId, { roomId, message, type });
+    
+    connection.emit('send-message', { locationId: roomId, message, type });
+    return true;
+  }
+
+  // Automatic cleanup
+  private cleanupDisconnectedUsers(): void {
+    Array.from(this.connections.entries()).forEach(([userId, socket]) => {
+      if (!socket.connected) {
+        this.connections.delete(userId);
+        this.roomSubscriptions.delete(userId);
+        this.rateLimiter.resetLimit(userId);
+        this.messageBatcher.clearBatch(userId);
+      }
+    });
+  }
+
+  // Get connection status
+  isConnected(userId: string): boolean {
+    const connection = this.connections.get(userId);
+    return connection?.connected === true;
+  }
+
+  // Disconnect specific user
+  disconnectUser(userId: string): void {
+    const connection = this.connections.get(userId);
+    if (connection) {
+      connection.disconnect();
+      this.connections.delete(userId);
+      this.roomSubscriptions.delete(userId);
+      this.rateLimiter.resetLimit(userId);
+      this.messageBatcher.clearBatch(userId);
+    }
+  }
+
+  // Cleanup on destroy
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    
+    Array.from(this.connections.keys()).forEach((userId) => {
+      this.disconnectUser(userId);
+    });
+  }
+}
+
+// Legacy SocketManager for backward compatibility
+class SocketManager {
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+  private isConnected = false;
+  private optimizedManager = OptimizedSocketManager.getInstance();
+
+  // Initialize socket connection
+  async connect(token: string): Promise<void> {
+    if (typeof window === 'undefined') {
+      return Promise.resolve();
+    }
+
+    const userId = this.getUserIdFromToken(token);
+    if (!userId) {
+      throw new Error('Invalid token: no user ID found');
+    }
+
+    try {
+      const connection = await this.optimizedManager.getConnection(userId, token);
+      this.socket = connection;
+      this.isConnected = true;
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Failed to connect:', error);
+      throw error;
+    }
+  }
+
+  private getUserIdFromToken(token: string): string | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.userId || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Auto-connect with token from localStorage
-  autoConnect(): Promise<void> {
+  async autoConnect(): Promise<void> {
     if (typeof window === 'undefined') {
       return Promise.resolve();
     }
@@ -165,16 +374,20 @@ class SocketManager {
   // Disconnect socket
   disconnect(): void {
     if (this.socket) {
-      this.socket.disconnect();
+      const userId = this.getUserIdFromToken(localStorage.getItem('authToken') || '');
+      if (userId) {
+        this.optimizedManager.disconnectUser(userId);
+      }
       this.socket = null;
       this.isConnected = false;
-      this.token = null;
     }
   }
 
   // Check if socket is connected
   get connected(): boolean {
-    return this.isConnected && this.socket?.connected === true;
+    if (!this.socket) return false;
+    const userId = this.getUserIdFromToken(localStorage.getItem('authToken') || '');
+    return userId ? this.optimizedManager.isConnected(userId) : false;
   }
 
   // Get socket instance
@@ -183,23 +396,32 @@ class SocketManager {
   }
 
   // Location room management
-  joinLocation(locationId: string): void {
-    if (this.socket && this.connected) {
-      this.socket.emit('join-location', locationId);
+  async joinLocation(locationId: string): Promise<void> {
+    const token = localStorage.getItem('authToken');
+    const userId = token ? this.getUserIdFromToken(token) : null;
+    
+    if (userId && this.connected) {
+      await this.optimizedManager.joinRoom(userId, locationId);
     }
   }
 
-  leaveLocation(locationId: string): void {
-    if (this.socket && this.connected) {
-      this.socket.emit('leave-location', locationId);
+  async leaveLocation(locationId: string): Promise<void> {
+    const token = localStorage.getItem('authToken');
+    const userId = token ? this.getUserIdFromToken(token) : null;
+    
+    if (userId) {
+      await this.optimizedManager.leaveRoom(userId, locationId);
     }
   }
 
-  // Chat functionality
-  sendMessage(locationId: string, message: string, type: 'text' | 'system' = 'text'): void {
-    if (this.socket && this.connected) {
-      this.socket.emit('send-message', { locationId, message, type });
-    }
+  // Chat functionality with rate limiting
+  sendMessage(locationId: string, message: string, type: 'text' | 'system' = 'text'): boolean {
+    const token = localStorage.getItem('authToken');
+    const userId = token ? this.getUserIdFromToken(token) : null;
+    
+    if (!userId) return false;
+    
+    return this.optimizedManager.sendMessage(userId, locationId, message, type);
   }
 
   onNewMessage(callback: (message: SocketMessage) => void): void {
@@ -224,7 +446,7 @@ class SocketManager {
   // Notifications
   sendNotification(targetUserId: string, type: string, title: string, message: string, data?: Record<string, unknown>): void {
     if (this.socket && this.connected) {
-      this.socket.emit('send-notification', { targetUserId, type, title, message, data });
+      this.socket.emit('send-notification', { targetUserId, type, title, message, ...(data && { data }) });
     }
   }
 

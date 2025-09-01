@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '@/lib/socket';
 import { SocketMessage, SocketTypingIndicator } from '@/lib/socket';
 
@@ -16,11 +16,10 @@ interface UseChatReturn {
 }
 
 export const useChat = ({ locationId, currentUserId }: UseChatProps): UseChatReturn => {
-  const { socket, connected, autoConnect, joinLocation, leaveLocation, sendMessage: socketSendMessage, onNewMessage, onUserTyping, removeListener } = useSocket();
+  const { connected, autoConnect, joinLocation, leaveLocation, sendMessage: socketSendMessage, onNewMessage, onUserTyping, removeListener } = useSocket();
   const [messages, setMessages] = useState<SocketMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-connect when hook is used
   useEffect(() => {
@@ -61,7 +60,7 @@ export const useChat = ({ locationId, currentUserId }: UseChatProps): UseChatRet
   // Listen for typing indicators
   useEffect(() => {
     const handleUserTyping = (data: SocketTypingIndicator) => {
-      if (data.locationId === locationId && data.userId !== currentUserId) {
+      if (data.locationId === locationId && data.userId !== currentUserId && currentUserId) {
         setTypingUsers(prev => {
           if (data.isTyping) {
             return prev.includes(data.userEmail) ? prev : [...prev, data.userEmail];

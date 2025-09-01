@@ -6,7 +6,7 @@ import { useWindowManagerContext } from '@/contexts/WindowManagerContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, BellRing, X, Check, CheckCheck } from 'lucide-react';
+import { Bell, BellRing, X, CheckCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface RealTimeNotificationsProps {
@@ -15,7 +15,7 @@ interface RealTimeNotificationsProps {
 
 export function RealTimeNotifications({ className = "" }: RealTimeNotificationsProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } = useNotifications();
-  const { activeWindow, openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
+  const { openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
   const isOpen = isWindowOpen('notifications');
 
   const getNotificationIcon = useCallback((type: string) => {

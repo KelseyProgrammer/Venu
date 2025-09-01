@@ -14,6 +14,9 @@ import { MoreTab } from "./more-tab"
 import { ErrorBoundary } from "./error-boundary"
 import { PostGigFlow } from "./post-gig-flow"
 import { getMyLocations } from "./data"
+import { RealTimeNotifications } from "@/components/real-time-notifications"
+import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
+import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -91,13 +94,19 @@ export function PromoterDashboard() {
                 </Select>
               </div>
             </div>
-            <Button 
-              onClick={() => setShowPostGig(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Post Gig
-            </Button>
+            <div className="flex items-center gap-2">
+              <WindowManagerProvider>
+                <RealTimeNotifications />
+                <RealTimeGigUpdates locationId={selectedLocation} />
+              </WindowManagerProvider>
+              <Button 
+                onClick={() => setShowPostGig(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Post Gig
+              </Button>
+            </div>
           </div>
         </div>
       </div>

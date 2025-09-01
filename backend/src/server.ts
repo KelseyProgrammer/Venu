@@ -9,7 +9,7 @@ import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
 import artistsRoutes from "./routes/artists.routes.js";
 import connectDB from "./config/database.js";
-import { setupSocketHandlers } from "./socket/socketHandlers.js";
+import { setupOptimizedSocketHandlers } from "./socket/socketHandlers.js";
 import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
 
 dotenv.config();
@@ -98,9 +98,9 @@ const startServer = async () => {
     // Connect to MongoDB first
     await connectDB();
     
-    // Setup Socket.IO handlers
-    setupSocketHandlers(io);
-    console.log('✅ Socket.IO handlers configured');
+    // Setup optimized Socket.IO handlers
+    setupOptimizedSocketHandlers(io);
+    console.log('✅ Optimized Socket.IO handlers configured');
     
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {

@@ -13,94 +13,99 @@ import { getLocationDisplayName } from "@/lib/location-data"
 import { GenreFilters } from "./genre-filters"
 import { EventsGrid } from "./events-grid"
 import { ArtistListing } from "./artist-listing"
+import { RealTimeFanNotifications } from "./real-time-fan-notifications"
+import { RealTimeEventCard } from "./real-time-event-card"
+import { RealTimeEventsGrid } from "./real-time-events-grid"
+import { useFanRealTime } from "@/hooks/useFanRealTime"
 
-// Artist Card Component for Fan Dashboard
-interface ArtistCardProps {
-  artist: {
-    id: string
-    artist: string
-    genre: string
-    rating: number
-    followers: string
-    bio: string
-    image: string
-    location: string
-    instagram: string
-    spotify: string
-    appleMusic: string
-  }
-}
+// Remove unused interface and component
+// interface ArtistCardProps {
+//   artist: {
+//     id: string
+//     artist: string
+//     genre: string
+//     rating: number
+//     followers: string
+//     bio: string
+//     image: string
+//     location: string
+//     instagram: string
+//     spotify: string
+//     appleMusic: string
+//   }
+// }
 
-const ArtistCard = memo(function ArtistCard({ artist }: ArtistCardProps) {
-  return (
-    <Card className="p-4 bg-card border-border">
-      <div className="flex items-start gap-4">
-        <Image
-          src={artist.image || "/images/BandFallBack.PNG"}
-          alt={artist.artist}
-          width={80}
-          height={80}
-          className="rounded-lg object-cover"
-        />
-        
-        <div className="flex-1 space-y-2">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">{artist.artist}</h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline" className="text-xs">
-                  {artist.genre}
-                </Badge>
-                <span className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  {artist.rating}
-                </span>
-                <span>{artist.followers} followers</span>
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {artist.bio}
-          </p>
-          
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3" />
-            <span>{artist.location}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 pt-2">
-            <Button variant="outline" size="sm" className="text-xs flex-1">
-              <Heart className="w-3 h-3 mr-1" />
-              Favorite
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-2 pt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={() => window.open(artist.spotify, '_blank')}
-            >
-              <span className="text-green-600 font-semibold">♪</span>
-              <span className="ml-1">Spotify</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={() => window.open(artist.appleMusic, '_blank')}
-            >
-              <span className="text-pink-600 font-semibold">♫</span>
-              <span className="ml-1">Apple Music</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-})
+// Remove unused ArtistCard component - it's not being used in the current implementation
+// const ArtistCard = memo(function ArtistCard({ artist }: ArtistCardProps) {
+//   return (
+//     <Card className="p-4 bg-card border-border">
+//       <div className="flex items-start gap-4">
+//         <Image
+//           src={artist.image || "/images/BandFallBack.PNG"}
+//           alt={artist.artist}
+//           width={80}
+//           height={80}
+//           className="rounded-lg object-cover"
+//         />
+//         
+//         <div className="flex-1 space-y-2">
+//           <div className="flex items-start justify-between">
+//             <div>
+//               <h3 className="font-semibold text-foreground">{artist.artist}</h3>
+//               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+//                 <Badge variant="outline" className="text-xs">
+//                   {artist.genre}
+//                 </Badge>
+//                 <span className="flex items-center gap-1">
+//                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+//                   {artist.rating}
+//                 </span>
+//                 <span>{artist.followers} followers</span>
+//               </div>
+//             </div>
+//           </div>
+//           
+//           <p className="text-sm text-muted-foreground line-clamp-2">
+//             {artist.bio}
+//           </p>
+//           
+//           <div className="flex items-center gap-2 text-xs text-muted-foreground">
+//             <MapPin className="w-3 h-3" />
+//             <span>{artist.location}</span>
+//           </div>
+//           
+//           <div className="flex items-center gap-2 pt-2">
+//             <Button variant="outline" size="sm" className="text-xs flex-1">
+//               <Heart className="w-3 h-3 mr-1" />
+//               Favorite
+//             </Button>
+//           </div>
+//           
+//           <div className="flex items-center gap-2 pt-2">
+//             <Button 
+//               variant="outline" 
+//               size="sm" 
+//               className="text-xs"
+//               onClick={() => window.open(artist.spotify, '_blank')}
+//             >
+//               <span className="text-green-600 font-semibold">♪</span>
+//               <span className="ml-1">Spotify</span>
+//             </Button>
+//             <Button 
+//               variant="outline" 
+//               size="sm" 
+//               className="text-xs"
+//               onClick={() => window.open(artist.appleMusic, '_blank')}
+//             >
+//               <span className="text-pink-600 font-semibold">♫</span>
+//               <span className="ml-1">Apple Music</span>
+//             </Button>
+//           </div>
+//         </div>
+//       </div>
+//     </Card>
+//   )
+// })
 
 // Location Card Component for Fan Dashboard
 interface LocationCardProps {
@@ -193,6 +198,36 @@ export function FanDashboard() {
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<number>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
+
+  // Mock user ID - in a real app, this would come from authentication
+  const userId = "fan-user-123"
+  
+  // Mock favorite artists - in a real app, this would come from user preferences
+  const favoriteArtists = useMemo(() => [
+    "artist1", // The Blue Notes
+    "artist2", // Urban Beats
+    "artist3", // The Acoustic Trio
+  ], [])
+
+  // Convert favorite events to string array for the hook
+  const favoriteEventIds = useMemo(() => 
+    Array.from(favoriteEvents).map(id => id.toString()), 
+    [favoriteEvents]
+  )
+
+  // Initialize real-time functionality
+  const {
+    isConnected,
+    error: realTimeError,
+    subscribeToEvent,
+    unsubscribeFromEvent,
+    subscribeToArtist,
+    unsubscribeFromArtist
+  } = useFanRealTime({
+    userId,
+    favoriteArtists,
+    favoriteEvents: favoriteEventIds
+  })
 
   // Debounce search query for better performance
   useEffect(() => {
@@ -483,12 +518,16 @@ export function FanDashboard() {
       const newFavorites = new Set(prevFavorites)
       if (newFavorites.has(eventId)) {
         newFavorites.delete(eventId)
+        // Unsubscribe from real-time updates when removing from favorites
+        unsubscribeFromEvent(eventId.toString())
       } else {
         newFavorites.add(eventId)
+        // Subscribe to real-time updates when adding to favorites
+        subscribeToEvent(eventId.toString())
       }
       return newFavorites
     })
-  }, [])
+  }, [subscribeToEvent, unsubscribeFromEvent])
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(event => {
@@ -529,20 +568,29 @@ export function FanDashboard() {
 
   if (showTicketPurchase && selectedEvent) {
     const event = allEvents.find(e => e.id.toString() === selectedEvent)
-    return (
-      <TicketPurchase
-        eventId={selectedEvent}
-        onBack={() => {
-          setShowTicketPurchase(false)
-          setSelectedEvent(null)
-        }}
-        eventData={event}
-      />
-    )
+    if (event) {
+      return (
+        <TicketPurchase
+          eventId={event.id.toString()}
+          onBack={() => {
+            setShowTicketPurchase(false)
+            setSelectedEvent(null)
+          }}
+          eventData={event}
+        />
+      )
+    }
   }
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Real-time Notifications */}
+      <RealTimeFanNotifications
+        userId={userId}
+        favoriteArtists={favoriteArtists}
+        favoriteEvents={favoriteEventIds}
+      />
+
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
@@ -552,6 +600,13 @@ export function FanDashboard() {
               <MapPin className="w-4 h-4 mr-2" />
               St. Augustine, FL
             </Button>
+            {/* Connection Status Indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-xs text-muted-foreground">
+                {isConnected ? 'Live' : 'Offline'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -587,7 +642,7 @@ export function FanDashboard() {
           </div>
 
           {/* Events Grid */}
-          <EventsGrid
+          <RealTimeEventsGrid
             events={filteredEvents}
             favoriteEvents={favoriteEvents}
             onToggleFavorite={toggleFavorite}
@@ -595,6 +650,7 @@ export function FanDashboard() {
               setSelectedEvent(eventId)
               setShowTicketPurchase(true)
             }}
+            userId={userId}
           />
         </TabsContent>
 
@@ -712,7 +768,7 @@ export function FanDashboard() {
                   </div>
                   
                   <div role="list" aria-label="Event search results">
-                    <EventsGrid
+                    <RealTimeEventsGrid
                       events={filteredEvents}
                       favoriteEvents={favoriteEvents}
                       onToggleFavorite={toggleFavorite}
@@ -720,6 +776,7 @@ export function FanDashboard() {
                         setSelectedEvent(eventId)
                         setShowTicketPurchase(true)
                       }}
+                      userId={userId}
                     />
                   </div>
                 </section>
@@ -802,7 +859,7 @@ export function FanDashboard() {
                         <p className="text-sm font-medium text-foreground">{ticket.ticketType}</p>
                         <p className="text-sm text-muted-foreground">${ticket.price}</p>
                       </div>
-                      <Badge variant={ticket.status === 'confirmed' ? 'default' : 'secondary'}>
+                      <Badge variant={ticket.status === 'confirmed' ? 'default' : 'secondary'} className={ticket.status === 'confirmed' ? 'bg-purple-600 text-white' : ''}>
                         {ticket.status}
                       </Badge>
                     </div>
@@ -810,11 +867,11 @@ export function FanDashboard() {
                 </div>
                 
                 <div className="mt-4 flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </Button>
@@ -827,7 +884,7 @@ export function FanDashboard() {
         {/* Favorites Tab */}
         <TabsContent value="favorites" className="space-y-6">
           {favoriteEvents.size > 0 ? (
-            <EventsGrid
+            <RealTimeEventsGrid
               events={allEvents.filter(event => favoriteEvents.has(event.id))}
               favoriteEvents={favoriteEvents}
               onToggleFavorite={toggleFavorite}
@@ -835,6 +892,7 @@ export function FanDashboard() {
                 setSelectedEvent(eventId)
                 setShowTicketPurchase(true)
               }}
+              userId={userId}
               showDescription={false}
               buttonVariant="purple"
             />

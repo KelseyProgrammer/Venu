@@ -20,7 +20,7 @@ export function ChatTab({ locationId, currentUserId }: ChatTabProps) {
       {/* Real-time Chat Component */}
       <RealTimeChat 
         locationId={locationId}
-        currentUserId={currentUserId}
+        currentUserId={currentUserId || "location-user"}
         className="h-[600px]"
       />
     </div>

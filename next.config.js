@@ -1,12 +1,39 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // appDir is enabled by default in Next.js 13+
-  images: {
-    unoptimized: false, // Enable image optimization even in development
-    domains: [], // No external domains needed for local images
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  reactStrictMode: true,
+  // Remove turbopack for more stable builds
+  // turbopack: {
+  //   root: path.join(__dirname, ".."),
+  // },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:3001/api/:path*", // Fixed port to match backend
+      },
+    ];
   },
-}
+  // Add build optimizations
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
+  // Add webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Optimize bundle size
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      };
+    }
+    return config;
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 

@@ -6,8 +6,9 @@ import { useWindowManagerContext } from '@/contexts/WindowManagerContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Music, Wifi, WifiOff, X, RefreshCw } from 'lucide-react';
+import { Music, Wifi, WifiOff, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { SocketGigUpdate } from '@/lib/socket';
 
 interface RealTimeGigUpdatesProps {
   locationId: string;
@@ -15,8 +16,8 @@ interface RealTimeGigUpdatesProps {
 }
 
 export function RealTimeGigUpdates({ locationId, className = "" }: RealTimeGigUpdatesProps) {
-  const { gigUpdates, sendGigUpdate, isConnected, error } = useGigUpdates({ locationId });
-  const { activeWindow, openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
+  const { gigUpdates, isConnected, error } = useGigUpdates({ locationId });
+  const { openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
   const isOpen = isWindowOpen('gig-updates');
 
   const getUpdateIcon = (updateType: string) => {
@@ -49,7 +50,7 @@ export function RealTimeGigUpdates({ locationId, className = "" }: RealTimeGigUp
     }
   };
 
-  const getUpdateMessage = useCallback((update: any) => {
+  const getUpdateMessage = useCallback((update: SocketGigUpdate) => {
     const { updateType, updatedBy, gigData } = update;
     const gigName = gigData?.name || gigData?.title || 'Gig';
     

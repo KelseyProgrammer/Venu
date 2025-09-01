@@ -7,7 +7,14 @@
   "scripts": {
     "dev": "PORT=3001 nodemon -e ts,js --watch src --exec \"tsx src/server.ts\"",
     "build": "tsc -p tsconfig.json",
-    "start": "PORT=3001 node dist/server.js"
+    "start": "PORT=3001 node dist/server.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.js",
+    "lint:fix": "eslint src --ext .ts,.js --fix",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
+    "postinstall": "npm run type-check",
+    "validate": "npm run type-check && npm run lint && npm run build"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -30,6 +37,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
     "@types/node": "^20.19.11",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

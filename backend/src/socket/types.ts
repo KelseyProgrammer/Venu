@@ -64,6 +64,11 @@ export interface ClientToServerEvents {
   'typing-start': (data: { locationId: string }) => void;
   'typing-stop': (data: { locationId: string }) => void;
   'update-presence': (data: { locationId: string; status: 'online' | 'away' | 'busy' }) => void;
+  // Fan-specific events
+  'join-event': (eventId: string) => void;
+  'leave-event': (eventId: string) => void;
+  'join-artist': (artistId: string) => void;
+  'leave-artist': (artistId: string) => void;
 }
 
 // Server-to-client event types
@@ -76,6 +81,11 @@ export interface ServerToClientEvents {
   'user-typing': (data: SocketTypingIndicator) => void;
   'user-presence': (data: SocketUserPresence) => void;
   'error': (error: { message: string }) => void;
+  // Fan-specific events
+  'ticket-update': (update: { eventId: string; ticketsRemaining: number; totalTickets: number; soldOut: boolean; timestamp: string }) => void;
+  'price-update': (update: { eventId: string; oldPrice: number; newPrice: number; changeType: 'increase' | 'decrease' | 'dynamic'; timestamp: string }) => void;
+  'event-status-update': (update: { eventId: string; oldStatus: string; newStatus: string; statusType: 'cancelled' | 'rescheduled' | 'venue-changed' | 'time-changed'; details?: string; timestamp: string }) => void;
+  'artist-notification': (notification: { id: string; artistId: string; artistName: string; eventId: string; eventTitle: string; notificationType: 'new-gig' | 'gig-cancelled' | 'gig-rescheduled' | 'price-drop'; message: string; timestamp: string; read: boolean }) => void;
 }
 
 // Socket authentication data

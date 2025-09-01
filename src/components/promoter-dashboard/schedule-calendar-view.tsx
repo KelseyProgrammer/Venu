@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
 import { getMockEvents } from "./data"
-import { Event } from "./types"
 
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;

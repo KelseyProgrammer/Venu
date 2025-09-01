@@ -13,7 +13,7 @@ interface UseNotificationsReturn {
 }
 
 export const useNotifications = (): UseNotificationsReturn => {
-  const { socket, connected, autoConnect, sendNotification: socketSendNotification, onNotification, removeListener } = useSocket();
+  const { connected, autoConnect, sendNotification: socketSendNotification, onNotification, removeListener } = useSocket();
   const [notifications, setNotifications] = useState<SocketNotification[]>([]);
   const [error, setError] = useState<string | null>(null);
 

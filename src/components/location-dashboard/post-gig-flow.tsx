@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
-import { Promoter, DoorPerson, Band, Requirement } from "./types"
+import { Band, Requirement } from "./types"
 import { useSocket } from "@/lib/socket"
 
 interface PostGigFlowProps {
@@ -21,16 +21,16 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const socket = useSocket()
   
-  // Saved promoters state
-  const [savedPromoters, setSavedPromoters] = useState<Promoter[]>([])
-  const [newPromoterName, setNewPromoterName] = useState("")
-  const [newPromoterEmail, setNewPromoterEmail] = useState("")
-  const [newPromoterPayout, setNewPromoterPayout] = useState("")
+  // Saved promoters state - commented out for now
+  // const [savedPromoters, setSavedPromoters] = useState<Promoter[]>([])
+  // const [newPromoterName, setNewPromoterName] = useState("")
+  // const [newPromoterEmail, setNewPromoterEmail] = useState("")
+  // const [newPromoterPayout, setNewPromoterPayout] = useState("")
   
-  // Saved door persons state
-  const [savedDoorPersons, setSavedDoorPersons] = useState<DoorPerson[]>([])
-  const [newDoorPersonName, setNewDoorPersonName] = useState("")
-  const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
+  // Saved door persons state - commented out for now
+  // const [savedDoorPersons, setSavedDoorPersons] = useState<DoorPerson[]>([])
+  // const [newDoorPersonName, setNewDoorPersonName] = useState("")
+  // const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   
   // Form state
   const [eventName, setEventName] = useState("")
@@ -71,7 +71,6 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       case 1:
         return eventName.trim() && eventDate && eventTime && eventGenre && ticketCapacity.trim() && ticketPrice.trim() && selectedPromoter && 
                (selectedPromoter === "self" || 
-                savedPromoters.some(p => p.id === selectedPromoter) ||
                 (selectedPromoter === "add-by-email" && promoterEmail.trim()))
       case 2:
         return bands.length > 0
@@ -82,7 +81,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       default:
         return true
     }
-  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, savedPromoters, bands, guarantee, promoterPercentage, bandsTotal])
+  }, [currentStep, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, selectedPromoter, promoterEmail, bands, guarantee, promoterPercentage, bandsTotal])
 
   const handleRequirementsKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -247,55 +246,56 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
   }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, socket])
 
   // Promoter management functions
-  const addPromoter = useCallback(() => {
-    if (newPromoterName.trim() && newPromoterEmail.trim() && newPromoterPayout.trim()) {
-      const newPromoter = {
-        id: Date.now().toString(),
-        name: newPromoterName.trim(),
-        email: newPromoterEmail.trim(),
-        payoutPercentage: newPromoterPayout.trim()
-      }
-      setSavedPromoters(prev => [...prev, newPromoter])
-      setNewPromoterName("")
-      setNewPromoterEmail("")
-      setNewPromoterPayout("")
-    }
-  }, [newPromoterName, newPromoterEmail, newPromoterPayout])
+  // const addPromoter = useCallback(() => {
+  //   if (newPromoterName.trim() && newPromoterEmail.trim() && newPromoterPayout.trim()) {
+  //     const newPromoter = {
+  //       id: Date.now().toString(),
+  //       name: newPromoterName.trim(),
+  //       email: newPromoterEmail.trim(),
+  //       payoutPercentage: newPromoterPayout.trim()
+  //     }
+  //     setSavedPromoters(prev => [...prev, newPromoter])
+  //     setNewPromoterName("")
+  //     setNewPromoterEmail("")
+  //     setNewPromoterPayout("")
+  //   }
+  // }, [newPromoterName, newPromoterEmail, newPromoterPayout])
 
-  const removePromoter = useCallback((id: string) => {
-    setSavedPromoters(prev => prev.filter(promoter => promoter.id !== id))
-  }, [])
+  // const removePromoter = useCallback((id: string) => {
+  //   setSavedPromoters(prev => prev.filter(promoter => promoter.id !== id))
+  // }, [])
 
   // Handle promoter selection and auto-update payout percentage
   const handlePromoterSelection = useCallback((promoterId: string) => {
     setSelectedPromoter(promoterId)
     if (promoterId !== "self" && promoterId !== "add-by-email") {
-      const selectedPromoterData = savedPromoters.find(p => p.id === promoterId)
-      if (selectedPromoterData) {
-        setPromoterPercentage(selectedPromoterData.payoutPercentage)
-      }
+      // const selectedPromoterData = savedPromoters.find(p => p.id === promoterId)
+      // if (selectedPromoterData) {
+      //   setPromoterPercentage(selectedPromoterData.payoutPercentage)
+      // }
+      setPromoterPercentage("")
     } else {
       setPromoterPercentage("")
     }
-  }, [savedPromoters])
+  }, [])
 
   // Door person management functions
-  const addDoorPerson = useCallback(() => {
-    if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
-      const newDoorPerson = {
-        id: Date.now().toString(),
-        name: newDoorPersonName.trim(),
-        email: newDoorPersonEmail.trim()
-      }
-      setSavedDoorPersons(prev => [...prev, newDoorPerson])
-      setNewDoorPersonName("")
-      setNewDoorPersonEmail("")
-    }
-  }, [newDoorPersonName, newDoorPersonEmail])
+  // const addDoorPerson = useCallback(() => {
+  //   if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
+  //     const newDoorPerson = {
+  //       id: Date.now().toString(),
+  //       name: newDoorPersonName.trim(),
+  //       email: newDoorPersonEmail.trim()
+  //     }
+  //     setSavedDoorPersons(prev => [...prev, newDoorPerson])
+  //     setNewDoorPersonName("")
+  //     setNewDoorPersonEmail("")
+  //   }
+  // }, [newDoorPersonName, newDoorPersonEmail])
 
-  const removeDoorPerson = useCallback((id: string) => {
-    setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
-  }, [])
+  // const removeDoorPerson = useCallback((id: string) => {
+  //   setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
+  // }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -412,11 +412,11 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="self">SELF</SelectItem>
-                  {savedPromoters.filter(promoter => promoter.id && promoter.id.trim() !== "").map((promoter) => (
+                  {/* {savedPromoters.filter(promoter => promoter.id && promoter.id.trim() !== "").map((promoter) => (
                     <SelectItem key={promoter.id} value={promoter.id}>
                       {promoter.name} ({promoter.email})
                     </SelectItem>
-                  ))}
+                  ))} */}
                   <SelectItem value="add-by-email">
                     <div className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
@@ -832,11 +832,11 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="self">SELF</SelectItem>
-                      {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
+                      {/* {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
                         <SelectItem key={doorPerson.id} value={doorPerson.id}>
                           {doorPerson.name} ({doorPerson.email})
                         </SelectItem>
-                      ))}
+                      ))} */}
                       <SelectItem value="add-by-email">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4" />
@@ -931,7 +931,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                   <span className="text-foreground font-medium">
                     {selectedPromoter === "self" ? "SELF" : 
                      selectedPromoter === "add-by-email" ? promoterEmail : 
-                     selectedPromoter ? savedPromoters.find(p => p.id === selectedPromoter)?.name || 'Not selected' : 'Not selected'}
+                     selectedPromoter ? 'Not selected' : 'Not selected'}
                   </span>
                 </div>
                 <div className="flex justify-between">

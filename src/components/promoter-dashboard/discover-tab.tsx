@@ -8,7 +8,7 @@ import { Users, DollarSign, Star, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 import { ArtistListing } from "../artist-listing"
 import { getLocalArtists } from "./data"
-import { LocalArtist } from "./types"
+// import { LocalArtist } from "./types"
 
 export function DiscoverTab() {
   const localArtists = useMemo(() => getLocalArtists(), [])

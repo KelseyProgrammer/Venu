@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, MapPin, Heart, Music, Filter, X } from "lucide-react"
+import { Search, Star, MapPin, Heart, Music, X } from "lucide-react"
 import Image from "next/image"
 import { artistApi, ArtistProfile } from "@/lib/api"
 
@@ -67,14 +67,29 @@ export function ArtistListing({
         response = await artistApi.getArtistsByLocation(selectedLocation, pageNum, limit)
       } else {
         // Get all artists with filters
-        response = await artistApi.getAllArtists({
+        const params: {
+          page?: number;
+          limit?: number;
+          genre?: string;
+          location?: string;
+          sortBy?: string;
+          sortOrder?: string;
+        } = {
           page: pageNum,
           limit,
-          genre: selectedGenre !== "all" ? selectedGenre : undefined,
-          location: selectedLocation !== "all" ? selectedLocation : undefined,
           sortBy,
           sortOrder
-        })
+        };
+        
+        if (selectedGenre !== "all") {
+          params.genre = selectedGenre;
+        }
+        
+        if (selectedLocation !== "all") {
+          params.location = selectedLocation;
+        }
+        
+        response = await artistApi.getAllArtists(params);
       }
 
       if (response.success && response.data) {
@@ -261,7 +276,7 @@ export function ArtistListing({
             <ArtistCard
               key={artist._id}
               artist={artist}
-              onSelect={onArtistSelect}
+              onSelect={onArtistSelect || (() => {})}
             />
           ))}
         </div>

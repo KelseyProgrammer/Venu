@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock, X } from "lucide-react"
+import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
-import { DoorPerson, Band, Requirement } from "../location-dashboard/types"
+import { Band, Requirement } from "../location-dashboard/types"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -19,10 +19,10 @@ interface PostGigFlowProps {
 export function PostGigFlow({ onClose }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
   
-  // Saved door persons state
-  const [savedDoorPersons, setSavedDoorPersons] = useState<DoorPerson[]>([])
-  const [newDoorPersonName, setNewDoorPersonName] = useState("")
-  const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
+  // Saved door persons state - commented out for now
+  // const [savedDoorPersons, setSavedDoorPersons] = useState<DoorPerson[]>([])
+  // const [newDoorPersonName, setNewDoorPersonName] = useState("")
+  // const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   
   // Form state
   const [eventName, setEventName] = useState("")
@@ -167,23 +167,23 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
     onClose()
   }, [resetForm, onClose])
 
-  // Door person management functions
-  const addDoorPerson = useCallback(() => {
-    if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
-      const newDoorPerson = {
-        id: Date.now().toString(),
-        name: newDoorPersonName.trim(),
-        email: newDoorPersonEmail.trim()
-      }
-      setSavedDoorPersons(prev => [...prev, newDoorPerson])
-      setNewDoorPersonName("")
-      setNewDoorPersonEmail("")
-    }
-  }, [newDoorPersonName, newDoorPersonEmail])
+  // Door person management functions - commented out for now
+  // const addDoorPerson = useCallback(() => {
+  //   if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
+  //     const newDoorPerson = {
+  //       id: Date.now().toString(),
+  //       name: newDoorPersonName.trim(),
+  //       email: newDoorPersonEmail.trim()
+  //     }
+  //     setSavedDoorPersons(prev => [...prev, newDoorPerson])
+  //     setNewDoorPersonName("")
+  //     setNewDoorPersonEmail("")
+  //   }
+  // }, [newDoorPersonName, newDoorPersonEmail])
 
-  const removeDoorPerson = useCallback((id: string) => {
-    setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
-  }, [])
+  // const removeDoorPerson = useCallback((id: string) => {
+  //   setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
+  // }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -649,11 +649,11 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="self">SELF</SelectItem>
-                      {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
+                      {/* {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
                         <SelectItem key={doorPerson.id} value={doorPerson.id}>
                           {doorPerson.name} ({doorPerson.email})
                         </SelectItem>
-                      ))}
+                      ))} */}
                       <SelectItem value="add-by-email">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4" />

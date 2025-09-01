@@ -40,7 +40,7 @@ interface GigDetailsProps {
   }
 }
 
-export function GigDetails({ gigId, onBack, gigData }: GigDetailsProps) {
+export function GigDetails({ onBack, gigData }: GigDetailsProps) {
   const [showBookingFlow, setShowBookingFlow] = useState(false)
   const [checklistAgreed, setChecklistAgreed] = useState(false)
   const [bookingStep, setBookingStep] = useState<"checklist" | "payment" | "confirmation">("checklist")

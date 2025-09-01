@@ -141,7 +141,7 @@ export function LocationDashboard({ locationId = "default-location", currentUser
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="space-y-4">
-            <ChatTab locationId={locationId} currentUserId={currentUserId} />
+            <ChatTab locationId={locationId} currentUserId={currentUserId || "location-user"} />
           </TabsContent>
 
           {/* More Tab */}

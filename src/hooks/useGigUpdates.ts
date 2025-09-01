@@ -14,7 +14,7 @@ interface UseGigUpdatesReturn {
 }
 
 export const useGigUpdates = ({ locationId }: UseGigUpdatesProps): UseGigUpdatesReturn => {
-  const { socket, connected, autoConnect, joinLocation, leaveLocation, sendGigUpdate: socketSendGigUpdate, onGigUpdate, removeListener } = useSocket();
+  const { connected, autoConnect, joinLocation, leaveLocation, sendGigUpdate: socketSendGigUpdate, onGigUpdate, removeListener } = useSocket();
   const [gigUpdates, setGigUpdates] = useState<SocketGigUpdate[]>([]);
   const [error, setError] = useState<string | null>(null);
 

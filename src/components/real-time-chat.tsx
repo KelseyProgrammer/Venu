@@ -16,9 +16,9 @@ interface RealTimeChatProps {
 }
 
 export function RealTimeChat({ locationId, currentUserId, className = "" }: RealTimeChatProps) {
-  const { messages, sendMessage, isConnected, typingUsers, error } = useChat({ 
+    const { messages, sendMessage, isConnected, typingUsers, error } = useChat({ 
     locationId, 
-    currentUserId 
+    currentUserId: currentUserId || "anonymous"
   });
   
   const [messageInput, setMessageInput] = useState('');

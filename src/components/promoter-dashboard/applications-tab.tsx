@@ -5,18 +5,33 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Users, Star, Building2 } from "lucide-react"
+import { Filter, Users, Star, Building2, Wifi, WifiOff } from "lucide-react"
 import Image from "next/image"
 import { getArtistApplications } from "./data"
+import { usePromoterRealTime } from "@/hooks/usePromoterRealTime"
 
 export function ApplicationsTab() {
   const artistApplications = useMemo(() => getArtistApplications(), [])
+  const { gigUpdates, isConnected, error } = usePromoterRealTime({ 
+    promoterId: "promoter-123", 
+    selectedLocation: "all" 
+  })
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-serif font-bold text-xl">Artist Applications</h2>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {isConnected ? (
+              <Wifi className="w-4 h-4 text-green-500" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-red-500" />
+            )}
+            <span className="text-xs text-muted-foreground">
+              {isConnected ? 'Live' : 'Offline'}
+            </span>
+          </div>
           <Filter className="w-4 h-4 text-muted-foreground" />
           <Select>
             <SelectTrigger className="w-32 bg-background">
@@ -31,6 +46,34 @@ export function ApplicationsTab() {
           </Select>
         </div>
       </div>
+
+      {/* Real-time Updates Section */}
+      {gigUpdates.length > 0 && (
+        <Card className="p-4 bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            <h3 className="font-semibold text-blue-800">Recent Updates</h3>
+          </div>
+          <div className="space-y-2">
+            {gigUpdates.slice(0, 3).map((update, index) => (
+              <div key={index} className="text-sm text-blue-700">
+                <span className="font-medium">{update.updatedBy?.email || 'Unknown'}</span>
+                {' '}updated application status for{' '}
+                <span className="font-medium">
+                  {String((update.gigData as Record<string, unknown>)?.name || 'gig')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <Card className="p-4 bg-red-50 border-red-200">
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      )}
 
       <div className="space-y-4">
         {artistApplications.map((artist) => (

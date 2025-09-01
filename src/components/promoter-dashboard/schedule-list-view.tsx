@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar } from "lucide-react"
 import Image from "next/image"
 import { getMockEvents } from "./data"
-import { Event } from "./types"
 
 interface ScheduleListViewProps {
   scheduleFilter: string;

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download } from "lucide-react"
 import Image from "next/image"
-import { getLocationDisplayName, getLocationImage } from "@/lib/location-data"
+import { getLocationDisplayName } from "@/lib/location-data"
 
 interface TicketPurchaseProps {
   eventId: string
@@ -27,7 +27,7 @@ interface TicketPurchaseProps {
   }
 }
 
-export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchaseProps) {
+export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
   const [purchaseStep, setPurchaseStep] = useState<"details" | "payment" | "ticket">("details")
 
   // Use passed event data or fall back to default
@@ -199,11 +199,11 @@ export function TicketPurchase({ eventId, onBack, eventData }: TicketPurchasePro
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="bg-transparent">
+            <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
               <Download className="w-4 h-4 mr-2" />
               Save Ticket
             </Button>
-            <Button variant="outline" className="bg-transparent">
+            <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
               <Share2 className="w-4 h-4 mr-2" />
               Share Event
             </Button>

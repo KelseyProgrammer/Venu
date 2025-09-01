@@ -29,6 +29,7 @@ export function SplashScreen() {
         videoElement.removeEventListener('ended', handleVideoEnd)
       }
     }
+    return undefined
   }, [])
 
   if (currentView === "onboarding") {
