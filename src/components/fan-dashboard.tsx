@@ -18,6 +18,7 @@ import { RealTimeEventCard } from "./real-time-event-card"
 import { RealTimeEventsGrid } from "./real-time-events-grid"
 import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
+import { useGigs } from "@/hooks/useGigs"
 
 // Remove unused interface and component
 // interface ArtistCardProps {
@@ -197,11 +198,14 @@ export function FanDashboard() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
-  const [favoriteEvents, setFavoriteEvents] = useState<Set<number>>(new Set())
+  const [favoriteEvents, setFavoriteEvents] = useState<Set<string>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
 
   // Mock user ID - in a real app, this would come from authentication
   const userId = "fan-user-123"
+
+  // Fetch real gigs from backend
+  const { gigs, loading: gigsLoading, error: gigsError, refreshGigs } = useGigs()
   
   // Mock favorite artists - in a real app, this would come from user preferences
   const favoriteArtists = useMemo(() => [
@@ -212,7 +216,7 @@ export function FanDashboard() {
 
   // Convert favorite events to string array for the hook
   const favoriteEventIds = useMemo(() => 
-    Array.from(favoriteEvents).map(id => id.toString()), 
+    Array.from(favoriteEvents), 
     [favoriteEvents]
   )
 
@@ -403,89 +407,31 @@ export function FanDashboard() {
     },
   ], [])
 
-  // Memoized mock events data
-  const allEvents = useMemo(() => [
-    {
-      id: 1,
-      artist: "Uncle Marty",
-      location: "muggys", // Use standardized location key
-      address: "213 W King St, St. Augustine, FL 32084",
-      date: "Sat, Oct 12",
-      time: "8 PM doors",
-      genre: "Jazz",
-      ticketPrice: 25,
-      ticketsRemaining: 25,
-      totalTickets: 75,
-      rating: 4.8,
-      description: "An intimate evening of modern jazz in the heart of downtown.",
-      image: "/images/MUGS.jpeg",
-      tags: ["Live Music", "Intimate Location", "Craft Cocktails"],
-    },
-    {
-      id: 2,
-      artist: "86 Hope",
-      location: "sarbez", // Use standardized location key
-      address: "115 Anastasia Blvd, St. Augustine, FL 32080",
-      date: "Wed, Oct 16",
-      time: "9 PM",
-      genre: "Electronic",
-      ticketPrice: 20,
-      ticketsRemaining: 45,
-      totalTickets: 100,
-      rating: 4.5,
-      description: "High-energy electronic beats and immersive light show.",
-      image: "/images/SARBEZ.jpg",
-      tags: ["Electronic", "Light Show", "Dance"],
-    },
-    {
-      id: 3,
-      artist: "Naum",
-      location: "alfreds", // Use standardized location key
-      address: "222 West King Street, St. Augustine, FL 32084",
-      date: "Fri, Oct 18",
-      time: "7 PM",
-      genre: "Folk",
-      ticketPrice: 30,
-      ticketsRemaining: 100,
-      totalTickets: 100,
-      rating: 4.9,
-      description: "Intimate folk music in a cozy cellar setting.",
-      image: "/images/Alfreds.jpg",
-      tags: ["Folk", "Acoustic", "Intimate"],
-    },
-    {
-      id: 4,
-      artist: "Rock Revolution",
-      location: "The Underground",
-      address: "Downtown District",
-      date: "Sat, Oct 19",
-      time: "10 PM",
-      genre: "Rock",
-      ticketPrice: 35,
-      ticketsRemaining: 15,
-      totalTickets: 80,
-      rating: 4.7,
-      description: "High-octane rock performance with full band setup.",
-      image: "/images/MUGS.jpeg",
-      tags: ["Rock", "Full Band", "High Energy"],
-    },
-    {
-      id: 5,
-      artist: "Blues Brothers",
-      location: "Riverfront Blues",
-      address: "Waterfront",
-      date: "Sun, Oct 20",
-      time: "6 PM",
-      genre: "Blues",
-      ticketPrice: 28,
-      ticketsRemaining: 60,
-      totalTickets: 120,
-      rating: 4.6,
-      description: "Authentic blues music with riverfront views.",
-      image: "/images/SARBEZ.jpg",
-      tags: ["Blues", "Riverfront", "Sunset"],
-    },
-  ], [])
+  // Transform gigs data to match the expected event format
+  const allEvents = useMemo(() => {
+    return gigs.map(gig => ({
+      id: gig._id,
+      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+      location: gig.selectedLocation?.name || "TBA",
+      address: gig.selectedLocation?.address || `${gig.selectedLocation?.city}, ${gig.selectedLocation?.state}`,
+      date: new Date(gig.eventDate).toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      }),
+      time: gig.eventTime,
+      genre: gig.eventGenre,
+      ticketPrice: gig.ticketPrice,
+      ticketsRemaining: gig.ticketCapacity - gig.ticketsSold,
+      totalTickets: gig.ticketCapacity,
+      rating: gig.rating,
+      description: `${gig.eventGenre} performance at ${gig.selectedLocation?.name || 'TBA'}`,
+      image: gig.image || "/images/venu-logo.png",
+      tags: gig.tags || [gig.eventGenre],
+      status: gig.status,
+      createdAt: gig.createdAt
+    }))
+  }, [gigs])
 
   const myTickets = useMemo(() => [
     {
@@ -514,17 +460,17 @@ export function FanDashboard() {
     },
   ], [])
 
-  const toggleFavorite = useCallback((eventId: number) => {
+  const toggleFavorite = useCallback((eventId: string) => {
     setFavoriteEvents(prevFavorites => {
       const newFavorites = new Set(prevFavorites)
       if (newFavorites.has(eventId)) {
         newFavorites.delete(eventId)
         // Unsubscribe from real-time updates when removing from favorites
-        unsubscribeFromEvent(eventId.toString())
+        unsubscribeFromEvent(eventId)
       } else {
         newFavorites.add(eventId)
         // Subscribe to real-time updates when adding to favorites
-        subscribeToEvent(eventId.toString())
+        subscribeToEvent(eventId)
       }
       return newFavorites
     })
@@ -568,11 +514,11 @@ export function FanDashboard() {
   }, [allLocations, debouncedSearchQuery, selectedGenre])
 
   if (showTicketPurchase && selectedEvent) {
-    const event = allEvents.find(e => e.id.toString() === selectedEvent)
+    const event = allEvents.find(e => e.id === selectedEvent)
     if (event) {
       return (
         <TicketPurchase
-          eventId={event.id.toString()}
+          eventId={event.id}
           onBack={() => {
             setShowTicketPurchase(false)
             setSelectedEvent(null)
@@ -643,6 +589,27 @@ export function FanDashboard() {
           </div>
 
           {/* Events Grid - Vertical Layout for Better Date Prominence */}
+          {gigsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
+          ) : gigsError ? (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-2">Error loading events</h3>
+              <p className="text-muted-foreground mb-4">{gigsError}</p>
+              <Button 
+                onClick={refreshGigs}
+                variant="default"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : filteredEvents.length > 0 ? (
           <VerticalEventsGrid
             events={filteredEvents}
             favoriteEvents={favoriteEvents}
@@ -653,6 +620,20 @@ export function FanDashboard() {
             }}
             userId={userId}
           />
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <Calendar className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-3">No events found</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                {selectedGenre !== "All Genres" 
+                  ? `No events found for ${selectedGenre}. Try selecting a different genre.`
+                  : "No events are currently available. Check back later for new events!"
+                }
+              </p>
+            </div>
+          )}
         </TabsContent>
 
         {/* Search Tab */}
@@ -884,7 +865,27 @@ export function FanDashboard() {
 
         {/* Favorites Tab */}
         <TabsContent value="favorites" className="space-y-6">
-          {favoriteEvents.size > 0 ? (
+          {gigsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
+          ) : gigsError ? (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-2">Error loading events</h3>
+              <p className="text-muted-foreground mb-4">{gigsError}</p>
+              <Button 
+                onClick={refreshGigs}
+                variant="default"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : favoriteEvents.size > 0 ? (
             <RealTimeEventsGrid
               events={allEvents.filter(event => favoriteEvents.has(event.id))}
               favoriteEvents={favoriteEvents}

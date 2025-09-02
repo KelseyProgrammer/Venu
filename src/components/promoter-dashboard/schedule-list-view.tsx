@@ -20,7 +20,15 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
       status: "confirmed",
       time: "8:00 PM",
       genre: "Rock",
-      image: "/images/BandFallBack.PNG"
+      image: "/images/BandFallBack.PNG",
+      artist: "Rock Night",
+      expectedBands: 3,
+      confirmedBands: 3,
+      ticketsSold: 45,
+      totalTickets: 100,
+      guarantee: 500,
+      currentEarnings: 750,
+      applications: 8
     },
     {
       id: 2,
@@ -30,7 +38,15 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
       status: "pending",
       time: "9:00 PM",
       genre: "Jazz",
-      image: "/images/BandFallBack.PNG"
+      image: "/images/BandFallBack.PNG",
+      artist: "Jazz Evening",
+      expectedBands: 2,
+      confirmedBands: 1,
+      ticketsSold: 23,
+      totalTickets: 80,
+      guarantee: 300,
+      currentEarnings: 345,
+      applications: 5
     }
   ], [])
 

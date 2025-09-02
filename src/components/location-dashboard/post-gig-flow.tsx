@@ -175,75 +175,102 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
     setBandEmail("")
   }, [])
 
-  const handlePublish = useCallback(() => {
-    // Here you would typically send the data to your backend
-    // Data would be sent to backend API here
-    
-    // Create gig data object
-    const gigData = {
-      eventName,
-      eventDate,
-      eventTime,
-      eventGenre,
-      ticketCapacity: parseInt(ticketCapacity) || 0,
-      ticketPrice: parseFloat(ticketPrice) || 0,
-      guarantee: parseFloat(guarantee) || 0,
-      bands,
-      promoterPercentage: parseFloat(promoterPercentage) || 0,
-      doorPerson: selectedDoorPerson,
-      requirements,
-      createdBy: "current-user-id", // This would come from auth context
-      createdAt: new Date().toISOString()
-    }
-
-    // Generate a unique gig ID (in real app, this would come from backend)
-    const gigId = `gig-${Date.now()}`
-    const locationId = "default-location" // This would come from props or context
-
-    // Send real-time gig update via Socket.io
-    if (socket.connected) {
-      socket.sendGigUpdate(gigId, locationId, "created", gigData)
-      
-      // Send notifications to relevant users
-      bands.forEach(band => {
-        if (band.email) {
-          socket.sendNotification(
-            "band-user-id", // This would be the actual band's user ID
-            "gig-invitation",
-            "New Gig Invitation",
-            `You've been invited to perform at ${eventName} on ${eventDate}`,
-            { gigId, gigData }
-          )
+  const handlePublish = useCallback(async () => {
+    try {
+      // Create gig data object for backend API
+      const gigData = {
+        eventName,
+        eventDate: new Date(eventDate).toISOString(),
+        eventTime,
+        eventGenre,
+        ticketCapacity: parseInt(ticketCapacity) || 0,
+        ticketPrice: parseFloat(ticketPrice) || 0,
+        guarantee: parseFloat(guarantee) || 0,
+        bands,
+        promoterPercentage: parseFloat(promoterPercentage) || 0,
+        selectedDoorPerson,
+        doorPersonEmail,
+        requirements,
+        numberOfBands: bands.length,
+        status: 'posted', // Set status to posted so it shows up in fan dashboard
+        tags: [eventGenre], // Add genre as tag for better searchability
+        ticketsSold: 0,
+        rating: 0,
+        image: '/images/venu-logo.png', // Default image
+        bonusTiers: {
+          tier1: { amount: 0, threshold: 0, color: '#8B5CF6' },
+          tier2: { amount: 0, threshold: 0, color: '#8B5CF6' },
+          tier3: { amount: 0, threshold: 0, color: '#8B5CF6' }
         }
+      }
+
+      // Call the backend API to create the gig
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const response = await fetch(`${API_BASE_URL}/gigs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(gigData)
       })
 
-      // Notify promoter if selected
-      if (selectedPromoter && promoterEmail) {
-        socket.sendNotification(
-          "promoter-user-id", // This would be the actual promoter's user ID
-          "gig-invitation", 
-          "New Gig Assignment",
-          `You've been assigned to promote ${eventName} on ${eventDate}`,
-          { gigId, gigData }
-        )
+      if (!response.ok) {
+        throw new Error('Failed to create gig')
       }
 
-      // Notify door person if selected
-      if (selectedDoorPerson && doorPersonEmail) {
-        socket.sendNotification(
-          "door-person-user-id", // This would be the actual door person's user ID
-          "gig-invitation",
-          "New Gig Assignment", 
-          `You've been assigned as door person for ${eventName} on ${eventDate}`,
-          { gigId, gigData }
-        )
+      const result = await response.json()
+      const createdGig = result.data
+
+      // Send real-time gig update via Socket.io
+      if (socket.connected) {
+        socket.sendGigUpdate(createdGig._id, "default-location", "created", createdGig)
+        
+        // Send notifications to relevant users
+        bands.forEach(band => {
+          if (band.email) {
+            socket.sendNotification(
+              "band-user-id", // This would be the actual band's user ID
+              "gig-invitation",
+              "New Gig Invitation",
+              `You've been invited to perform at ${eventName} on ${eventDate}`,
+              { gigId: createdGig._id, gigData: createdGig }
+            )
+          }
+        })
+
+        // Notify promoter if selected
+        if (selectedPromoter && promoterEmail) {
+          socket.sendNotification(
+            "promoter-user-id", // This would be the actual promoter's user ID
+            "gig-invitation", 
+            "New Gig Assignment",
+            `You've been assigned to promote ${eventName} on ${eventDate}`,
+            { gigId: createdGig._id, gigData: createdGig }
+          )
+        }
+
+        // Notify door person if selected
+        if (selectedDoorPerson && doorPersonEmail) {
+          socket.sendNotification(
+            "door-person-user-id", // This would be the actual door person's user ID
+            "gig-invitation",
+            "New Gig Assignment", 
+            `You've been assigned as door person for ${eventName} on ${eventDate}`,
+            { gigId: createdGig._id, gigData: createdGig }
+          )
+        }
       }
+      
+      // Reset and close
+      resetForm()
+      onClose()
+    } catch (error) {
+      console.error('Error creating gig:', error)
+      // You might want to show an error message to the user here
+      alert('Failed to create gig. Please try again.')
     }
-    
-    // Reset and close
-    resetForm()
-    onClose()
-  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, socket])
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket])
 
   // Promoter management functions
   // const addPromoter = useCallback(() => {
