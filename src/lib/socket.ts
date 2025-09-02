@@ -71,6 +71,8 @@ export interface ClientToServerEvents {
   'leave-event': (eventId: string) => void;
   'join-artist': (artistId: string) => void;
   'leave-artist': (artistId: string) => void;
+  // Schedule update events
+  'schedule-update': (data: { locationId: string; gigId: string; action: string; gigData: Record<string, unknown> }) => void;
 }
 
 // Server-to-client event types
@@ -88,6 +90,8 @@ export interface ServerToClientEvents {
   'price-update': (update: { eventId: string; oldPrice: number; newPrice: number; changeType: 'increase' | 'decrease' | 'dynamic'; timestamp: string }) => void;
   'event-status-update': (update: { eventId: string; oldStatus: string; newStatus: string; statusType: 'cancelled' | 'rescheduled' | 'venue-changed' | 'time-changed'; details?: string; timestamp: string }) => void;
   'artist-notification': (notification: { id: string; artistId: string; artistName: string; eventId: string; eventTitle: string; notificationType: 'new-gig' | 'gig-cancelled' | 'gig-rescheduled' | 'price-drop'; message: string; timestamp: string; read: boolean }) => void;
+  // Schedule update events
+  'schedule-update': (data: { locationId: string; gigId: string; action: string; gigData: Record<string, unknown> }) => void;
 }
 
 // Socket authentication data

@@ -1,61 +1,42 @@
-import { useState, useEffect, useCallback } from 'react'
-import { gigApi } from '@/lib/api'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { gigApi, GigProfile } from '@/lib/api'
 
-export interface Gig {
-  _id: string
-  eventName: string
-  eventDate: string
-  eventTime: string
-  eventGenre: string
-  ticketCapacity: number
-  ticketPrice: number
-  selectedLocation?: {
-    _id: string
-    name: string
-    city: string
-    state: string
-    address?: string
-  }
-  selectedPromoter?: {
-    _id: string
-    firstName: string
-    lastName: string
-    email: string
-  }
-  bands: Array<{
-    name: string
-    genre: string
-    setTime: string
-    percentage: number
-    email: string
-  }>
-  status: 'draft' | 'posted' | 'live' | 'completed'
-  rating: number
-  tags: string[]
-  ticketsSold: number
-  image: string
-  createdBy: {
-    _id: string
-    firstName: string
-    lastName: string
-    email: string
-  }
-  createdAt: string
-  updatedAt: string
+// Re-export the GigProfile interface for consistency
+export type Gig = GigProfile
+
+interface UseGigsParams {
+  page?: number
+  limit?: number
+  status?: string
+  genre?: string
+  location?: string
 }
 
-export function useGigs() {
+interface UseGigsReturn {
+  gigs: Gig[]
+  loading: boolean
+  error: string | null
+  fetchGigs: (params?: UseGigsParams) => Promise<void>
+  refreshGigs: () => Promise<void>
+  hasMore: boolean
+  totalPages: number
+}
+
+export function useGigs(): UseGigsReturn {
   const [gigs, setGigs] = useState<Gig[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState<{
+    page: number
+    totalPages: number
+    hasMore: boolean
+  }>({
+    page: 1,
+    totalPages: 1,
+    hasMore: false
+  })
 
-  const fetchGigs = useCallback(async (params?: {
-    page?: number
-    limit?: number
-    status?: string
-    genre?: string
-    location?: string
-  }) => {
+  const fetchGigs = useCallback(async (params?: UseGigsParams) => {
     try {
       setLoading(true)
       setError(null)
@@ -68,30 +49,45 @@ export function useGigs() {
 
       if (response.success && response.data) {
         setGigs(response.data)
+        
+        // Update pagination info if available
+        if (response.pagination) {
+          setPagination({
+            page: response.pagination.page,
+            totalPages: response.pagination.totalPages,
+            hasMore: response.pagination.page < response.pagination.totalPages
+          })
+        }
       } else {
         setError(response.error || 'Failed to fetch gigs')
       }
     } catch (err) {
       console.error('Error fetching gigs:', err)
-      setError('Failed to fetch gigs')
+      setError(err instanceof Error ? err.message : 'Failed to fetch gigs')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  const refreshGigs = useCallback(() => {
-    fetchGigs()
+  const refreshGigs = useCallback(async () => {
+    await fetchGigs()
   }, [fetchGigs])
+
+  // Memoized return object to prevent unnecessary re-renders
+  const returnValue = useMemo(() => ({
+    gigs,
+    loading,
+    error,
+    fetchGigs,
+    refreshGigs,
+    hasMore: pagination.hasMore,
+    totalPages: pagination.totalPages
+  }), [gigs, loading, error, fetchGigs, refreshGigs, pagination.hasMore, pagination.totalPages])
 
   useEffect(() => {
     fetchGigs()
   }, [fetchGigs])
 
-  return {
-    gigs,
-    loading,
-    error,
-    fetchGigs,
-    refreshGigs
-  }
+  return returnValue
 }
+

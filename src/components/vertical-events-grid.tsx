@@ -17,6 +17,10 @@ interface Event {
   description: string
   image: string
   tags: string[]
+  eventStatus?: string
+  needsMoreBands?: boolean
+  expectedBands?: number
+  confirmedBands?: number
 }
 
 interface VerticalEventsGridProps {

@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button"
 import { BarChart3, Calendar } from "lucide-react"
 import { ScheduleListView } from "./schedule-list-view"
 import { ScheduleCalendarView } from "./schedule-calendar-view"
+import { LocationProfile, GigProfile } from "@/lib/api"
 
 interface ScheduleTabProps {
   locationId: string;
+  location?: LocationProfile | null;
+  gigs: GigProfile[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
+  onRefreshGigs: () => void;
 }
 
-export function ScheduleTab({ locationId, unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
+export function ScheduleTab({ locationId, location, gigs, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
 
@@ -76,13 +80,21 @@ export function ScheduleTab({ locationId, unavailableDates, onToggleDateAvailabi
 
       {/* List View Subcategory */}
       {scheduleSubcategory === "list" && (
-        <ScheduleListView scheduleFilter={scheduleFilter} />
+        <ScheduleListView 
+          scheduleFilter={scheduleFilter} 
+          gigs={gigs}
+          locationId={locationId}
+          onRefreshGigs={onRefreshGigs}
+        />
       )}
 
       {/* Calendar View Subcategory */}
       {scheduleSubcategory === "calendar" && (
         <ScheduleCalendarView 
           scheduleFilter={scheduleFilter}
+          gigs={gigs}
+          locationId={locationId}
+          onRefreshGigs={onRefreshGigs}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
         />

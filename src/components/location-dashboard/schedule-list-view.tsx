@@ -1,17 +1,110 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "lucide-react"
 import Image from "next/image"
+import { useSocket, socketManager } from "@/lib/socket"
+import { GigProfile, gigApi } from "@/lib/api"
+
 interface ScheduleListViewProps {
   scheduleFilter: string;
+  gigs: GigProfile[];
+  locationId: string;
+  onRefreshGigs: () => void;
 }
 
-export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
-  const myEvents = useMemo(() => [
+export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGigs }: ScheduleListViewProps) {
+  const socket = useSocket()
+
+  // Listen for real-time schedule updates
+  useEffect(() => {
+    if (socket.connected && socketManager.getSocket()) {
+      const handleScheduleUpdate = (data: any) => {
+        if (data.locationId === locationId) {
+          // Refresh gigs data when schedule is updated
+          onRefreshGigs()
+        }
+      }
+
+      socketManager.getSocket()!.on('schedule-update', handleScheduleUpdate)
+      
+      return () => {
+        socketManager.getSocket()!.off('schedule-update', handleScheduleUpdate)
+      }
+    }
+    return undefined
+  }, [socket, locationId, onRefreshGigs])
+
+  // Handle band confirmation
+  const handleBandConfirmation = async (gigId: string, bandIndex: number) => {
+    try {
+      const gig = gigs.find(g => g._id === gigId)
+      if (!gig) return
+
+      // Update the band's confirmation status
+      const updatedBands = gig.bands.map((band, index) => 
+        index === bandIndex 
+          ? { ...band, confirmed: true }
+          : band
+      )
+
+      // Determine new status based on band count
+      const confirmedBandsCount = updatedBands.filter(band => (band as any).confirmed).length
+      const newStatus = confirmedBandsCount >= gig.numberOfBands ? 'completed' : 
+                       confirmedBandsCount > 0 ? 'posted' : 'posted'
+
+      // Update the gig in the backend
+      const response = await gigApi.updateGig(gigId, {
+        bands: updatedBands,
+        status: newStatus
+      })
+
+      if (response.success) {
+        // Send real-time update
+        if (socketManager.getSocket() && response.data) {
+          socketManager.getSocket()!.emit('schedule-update', {
+            locationId,
+            gigId,
+            action: 'band-confirmed',
+            gigData: response.data as unknown as Record<string, unknown>
+          })
+        }
+        
+        // Refresh the gigs data
+        onRefreshGigs()
+      }
+    } catch (error) {
+      console.error('Error confirming band:', error)
+    }
+  }
+
+  // Transform gigs data to match the expected event format
+  const myEvents = useMemo(() => {
+    return gigs.map(gig => ({
+      id: gig._id,
+      name: gig.eventName,
+      date: new Date(gig.eventDate).toISOString().split('T')[0],
+      location: gig.selectedLocation?.name || "TBA",
+      status: gig.status,
+      time: gig.eventTime,
+      genre: gig.eventGenre,
+      image: gig.image || "/images/BandFallBack.PNG",
+      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+      expectedBands: gig.numberOfBands,
+      confirmedBands: gig.bands.length,
+      ticketsSold: gig.ticketsSold,
+      totalTickets: gig.ticketCapacity,
+      guarantee: gig.guarantee,
+      currentEarnings: gig.ticketsSold * gig.ticketPrice,
+      applications: 0 // This would come from applications data
+    }))
+  }, [gigs])
+
+  // Fallback to mock data if no gigs are available
+  const fallbackEvents = useMemo(() => [
     {
       id: 1,
       name: "Rock Night",
@@ -50,11 +143,14 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
     }
   ], [])
 
+  // Use real gigs data if available, otherwise fallback to mock data
+  const eventsToUse = myEvents.length > 0 ? myEvents : fallbackEvents
+
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
-    if (scheduleFilter === "all") return myEvents;
+    if (scheduleFilter === "all") return eventsToUse;
     
-    return myEvents.filter(event => {
+    return eventsToUse.filter(event => {
       switch (scheduleFilter) {
         case "complete":
           return event.expectedBands <= event.confirmedBands;
@@ -72,14 +168,14 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
           return true;
       }
     });
-  }, [myEvents, scheduleFilter])
+  }, [eventsToUse, scheduleFilter])
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-lg text-foreground">My Events</h3>
         <div className="text-sm text-muted-foreground">
-          Showing {filteredEvents.length} of {myEvents.length} events
+          Showing {filteredEvents.length} of {eventsToUse.length} events
         </div>
       </div>
 
@@ -185,6 +281,25 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
                   <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
                     Manage
                   </Button>
+                  {event.expectedBands > event.confirmedBands && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-32 border-yellow-200 text-yellow-700 hover:bg-yellow-50"
+                      onClick={() => {
+                        // Find the gig and confirm the first unconfirmed band
+                        const gig = gigs.find(g => g._id === event.id)
+                        if (gig) {
+                          const unconfirmedBandIndex = gig.bands.findIndex(band => !(band as any).confirmed)
+                          if (unconfirmedBandIndex !== -1) {
+                            handleBandConfirmation(event.id.toString(), unconfirmedBandIndex)
+                          }
+                        }
+                      }}
+                    >
+                      Confirm Band
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

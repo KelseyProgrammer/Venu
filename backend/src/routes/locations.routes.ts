@@ -175,6 +175,49 @@ router.get('/search/capacity', async (req: Request, res: Response) => {
   }
 });
 
+// Get location by user ID - PROTECTED ROUTE (Owner or Admin only)
+router.get('/user/:userId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Check if user is admin or accessing their own location
+    if (currentUserRole !== 'admin' && currentUserId !== userId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Access denied - you can only view your own location',
+      };
+      return res.status(403).json(response);
+    }
+
+    const location = await Location.findOne({ createdBy: userId })
+      .populate('createdBy', 'firstName lastName email phone');
+
+    if (!location) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Location not found for this user',
+      };
+      return res.status(404).json(response);
+    }
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: location,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get location by user ID error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
 // Get location by ID - PUBLIC ROUTE
 router.get('/:id', async (req: Request, res: Response) => {
   try {

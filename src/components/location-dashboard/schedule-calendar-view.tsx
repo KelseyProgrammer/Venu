@@ -1,22 +1,75 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
+import { useSocket, socketManager } from "@/lib/socket"
+import { GigProfile } from "@/lib/api"
+
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
+  gigs: GigProfile[];
+  locationId: string;
+  onRefreshGigs: () => void;
 }
 
 export function ScheduleCalendarView({ 
   scheduleFilter, 
   unavailableDates, 
-  onToggleDateAvailability 
+  onToggleDateAvailability,
+  gigs,
+  locationId,
+  onRefreshGigs
 }: ScheduleCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const myEvents = useMemo(() => [
+  const socket = useSocket()
+
+  // Listen for real-time schedule updates
+  useEffect(() => {
+    if (socket.connected && socketManager.getSocket()) {
+      const handleScheduleUpdate = (data: any) => {
+        if (data.locationId === locationId) {
+          // Refresh gigs data when schedule is updated
+          onRefreshGigs()
+        }
+      }
+
+      socketManager.getSocket()!.on('schedule-update', handleScheduleUpdate)
+      
+      return () => {
+        socketManager.getSocket()!.off('schedule-update', handleScheduleUpdate)
+      }
+    }
+    return undefined
+  }, [socket, locationId, onRefreshGigs])
+
+  // Transform gigs data to match the expected event format
+  const myEvents = useMemo(() => {
+    return gigs.map(gig => ({
+      id: gig._id,
+      name: gig.eventName,
+      date: new Date(gig.eventDate).toISOString().split('T')[0],
+      location: gig.selectedLocation?.name || "TBA",
+      status: gig.status,
+      time: gig.eventTime,
+      genre: gig.eventGenre,
+      image: gig.image || "/images/BandFallBack.PNG",
+      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+      expectedBands: gig.numberOfBands,
+      confirmedBands: gig.bands.length,
+      ticketsSold: gig.ticketsSold,
+      totalTickets: gig.ticketCapacity,
+      guarantee: gig.guarantee,
+      currentEarnings: gig.ticketsSold * gig.ticketPrice,
+      applications: 0 // This would come from applications data
+    }))
+  }, [gigs])
+
+  // Fallback to mock data if no gigs are available
+  const fallbackEvents = useMemo(() => [
     {
       id: 1,
       name: "Rock Night",
@@ -55,11 +108,14 @@ export function ScheduleCalendarView({
     }
   ], [])
 
+  // Use real gigs data if available, otherwise fallback to mock data
+  const eventsToUse = myEvents.length > 0 ? myEvents : fallbackEvents
+
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
-    if (scheduleFilter === "all") return myEvents;
+    if (scheduleFilter === "all") return eventsToUse;
     
-    return myEvents.filter(event => {
+    return eventsToUse.filter(event => {
       switch (scheduleFilter) {
         case "complete":
           return event.expectedBands <= event.confirmedBands;
@@ -77,7 +133,7 @@ export function ScheduleCalendarView({
           return true;
       }
     });
-  }, [myEvents, scheduleFilter])
+  }, [eventsToUse, scheduleFilter])
 
   // Memoize calendar days calculation for better performance
   const calendarDays = useMemo(() => {
@@ -157,7 +213,7 @@ export function ScheduleCalendarView({
             ? `Showing available dates`
             : scheduleFilter === "all"
             ? `Showing all dates (available and unavailable)`
-            : `Showing ${filteredEvents.length} of ${myEvents.length} events`
+            : `Showing ${filteredEvents.length} of ${eventsToUse.length} events`
           }
         </div>
       </div>

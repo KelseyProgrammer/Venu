@@ -16,13 +16,16 @@ export interface ApiResponse<T> {
 }
 
 export interface User {
-  id: string;
+  _id: string;
+  id?: string; // For backward compatibility
   email: string;
   role: string;
   firstName: string;
   lastName: string;
   phone?: string;
   isVerified: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -56,7 +59,73 @@ export interface ArtistProfile {
   updatedAt: string;
 }
 
-// Generic API request function
+export interface LocationProfile {
+  _id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  capacity: number;
+  description?: string;
+  amenities: string[];
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  images: string[];
+  rating: number;
+  tags: string[];
+  isActive: boolean;
+  createdBy: string;
+  authorizedPromoters: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GigProfile {
+  _id: string;
+  eventName: string;
+  eventDate: string;
+  eventTime: string;
+  eventGenre: string;
+  ticketCapacity: number;
+  ticketPrice: number;
+  selectedLocation?: LocationProfile;
+  selectedPromoter?: User;
+  promoterEmail?: string;
+  promoterPercentage?: number;
+  selectedDoorPerson?: User;
+  doorPersonEmail: string;
+  requirements: Array<{
+    text: string;
+    checked: boolean;
+  }>;
+  bands: Array<{
+    name: string;
+    genre: string;
+    setTime: string;
+    percentage: number;
+    email: string;
+  }>;
+  guarantee: number;
+  numberOfBands: number;
+  status: 'draft' | 'posted' | 'live' | 'completed';
+  rating: number;
+  tags: string[];
+  ticketsSold: number;
+  image: string;
+  bonusTiers: {
+    tier1: { amount: number; threshold: number; color: string };
+    tier2: { amount: number; threshold: number; color: string };
+    tier3: { amount: number; threshold: number; color: string };
+  };
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Generic API request function with enhanced error handling and performance
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -83,15 +152,39 @@ async function apiRequest<T>(
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
+    
+    // Handle non-JSON responses
+    let data: any;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = { error: await response.text() };
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || 'Request failed');
+      // Return the error response instead of throwing for client errors
+      return {
+        success: false,
+        error: data.error || data.message || `Request failed with status ${response.status}`,
+        data: undefined
+      };
     }
 
     return data;
   } catch (error) {
     console.error('API request failed:', error);
+    
+    // Handle different types of errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return {
+        success: false,
+        error: 'Network error - please check your connection',
+        data: undefined
+      };
+    }
+    
+    // For other errors, still throw to maintain existing behavior
     throw error;
   }
 }
@@ -223,6 +316,131 @@ export const artistApi = {
   },
 };
 
+// Location API functions
+export const locationApi = {
+  async getAllLocations(params?: {
+    page?: number;
+    limit?: number;
+    city?: string;
+    state?: string;
+    capacity?: number;
+    isActive?: boolean;
+  }): Promise<ApiResponse<LocationProfile[]>> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/locations?${queryString}` : '/locations';
+    
+    return apiRequest<LocationProfile[]>(endpoint);
+  },
+
+  async getLocationById(locationId: string): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>(`/locations/${locationId}`);
+  },
+
+  async getLocationByUserId(userId: string): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>(`/locations/user/${userId}`);
+  },
+
+  async searchLocationsByArea(params: {
+    city?: string;
+    state?: string;
+    radius?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<LocationProfile[]>> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/locations/search/area?${queryString}` : '/locations/search/area';
+    
+    return apiRequest<LocationProfile[]>(endpoint);
+  },
+
+  async searchLocationsByCapacity(params: {
+    minCapacity?: number;
+    maxCapacity?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<LocationProfile[]>> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/locations/search/capacity?${queryString}` : '/locations/search/capacity';
+    
+    return apiRequest<LocationProfile[]>(endpoint);
+  },
+
+  async createLocation(locationData: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country?: string;
+    capacity: number;
+    description?: string;
+    amenities?: string[];
+    contactPerson: string;
+    contactEmail: string;
+    contactPhone: string;
+    images?: string[];
+    tags?: string[];
+  }): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>('/locations', {
+      method: 'POST',
+      body: JSON.stringify(locationData),
+    });
+  },
+
+  async updateLocation(locationId: string, locationData: Partial<LocationProfile>): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>(`/locations/${locationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(locationData),
+    });
+  },
+
+  async deleteLocation(locationId: string): Promise<ApiResponse<null>> {
+    return apiRequest<null>(`/locations/${locationId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async addPromoterToLocation(locationId: string, promoterId: string): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>(`/locations/${locationId}/promoters`, {
+      method: 'POST',
+      body: JSON.stringify({ promoterId }),
+    });
+  },
+
+  async removePromoterFromLocation(locationId: string, promoterId: string): Promise<ApiResponse<LocationProfile>> {
+    return apiRequest<LocationProfile>(`/locations/${locationId}/promoters/${promoterId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getAuthorizedPromoters(locationId: string): Promise<ApiResponse<User[]>> {
+    return apiRequest<User[]>(`/locations/${locationId}/promoters`);
+  },
+};
+
 // Gig API functions
 export const gigApi = {
   async getAllGigs(params?: {
@@ -232,7 +450,7 @@ export const gigApi = {
     genre?: string;
     location?: string;
     promoter?: string;
-  }): Promise<ApiResponse<any[]>> {
+  }): Promise<ApiResponse<GigProfile[]>> {
     const queryParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -245,34 +463,64 @@ export const gigApi = {
     const queryString = queryParams.toString();
     const endpoint = queryString ? `/gigs?${queryString}` : '/gigs';
     
-    return apiRequest<any[]>(endpoint);
+    return apiRequest<GigProfile[]>(endpoint);
   },
 
-  async getGigById(gigId: string): Promise<ApiResponse<any>> {
-    return apiRequest<any>(`/gigs/${gigId}`);
+  async getGigById(gigId: string): Promise<ApiResponse<GigProfile>> {
+    return apiRequest<GigProfile>(`/gigs/${gigId}`);
   },
 
-  async getGigsByStatus(status: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
-    return apiRequest<any[]>(`/gigs/by-status/${encodeURIComponent(status)}?page=${page}&limit=${limit}`);
+  async getGigsByStatus(status: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
+    return apiRequest<GigProfile[]>(`/gigs/by-status/${encodeURIComponent(status)}?page=${page}&limit=${limit}`);
   },
 
-  async getGigsByCreator(userId: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
-    return apiRequest<any[]>(`/gigs/by-creator/${encodeURIComponent(userId)}?page=${page}&limit=${limit}`);
+  async getGigsByCreator(userId: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
+    return apiRequest<GigProfile[]>(`/gigs/by-creator/${encodeURIComponent(userId)}?page=${page}&limit=${limit}`);
   },
 
-  async getGigsByLocation(locationId: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
-    return apiRequest<any[]>(`/gigs?location=${encodeURIComponent(locationId)}&page=${page}&limit=${limit}`);
+  async getGigsByLocation(locationId: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
+    return apiRequest<GigProfile[]>(`/gigs?location=${encodeURIComponent(locationId)}&page=${page}&limit=${limit}`);
   },
 
-  async createGig(gigData: any): Promise<ApiResponse<any>> {
-    return apiRequest<any>('/gigs', {
+  async createGig(gigData: {
+    eventName: string;
+    eventDate: string;
+    eventTime: string;
+    eventGenre: string;
+    ticketCapacity: number;
+    ticketPrice: number;
+    selectedLocation?: string;
+    selectedPromoter?: string;
+    promoterEmail?: string;
+    promoterPercentage?: number;
+    selectedDoorPerson?: string;
+    doorPersonEmail: string;
+    requirements?: Array<{ text: string; checked: boolean }>;
+    bands?: Array<{
+      name: string;
+      genre: string;
+      setTime: string;
+      percentage: number;
+      email: string;
+    }>;
+    guarantee: number;
+    numberOfBands: number;
+    tags?: string[];
+    image?: string;
+    bonusTiers?: {
+      tier1: { amount: number; threshold: number; color: string };
+      tier2: { amount: number; threshold: number; color: string };
+      tier3: { amount: number; threshold: number; color: string };
+    };
+  }): Promise<ApiResponse<GigProfile>> {
+    return apiRequest<GigProfile>('/gigs', {
       method: 'POST',
       body: JSON.stringify(gigData),
     });
   },
 
-  async updateGig(gigId: string, gigData: any): Promise<ApiResponse<any>> {
-    return apiRequest<any>(`/gigs/${gigId}`, {
+  async updateGig(gigId: string, gigData: Partial<GigProfile>): Promise<ApiResponse<GigProfile>> {
+    return apiRequest<GigProfile>(`/gigs/${gigId}`, {
       method: 'PUT',
       body: JSON.stringify(gigData),
     });
@@ -285,21 +533,56 @@ export const gigApi = {
   },
 };
 
-// Utility functions
+// Utility functions with enhanced validation and error handling
 export const apiUtils = {
   setAuthToken(token: string): void {
+    if (!token || typeof token !== 'string') {
+      throw new Error('Invalid token provided');
+    }
     localStorage.setItem('authToken', token);
   },
 
   getAuthToken(): string | null {
-    return localStorage.getItem('authToken');
+    try {
+      return localStorage.getItem('authToken');
+    } catch (error) {
+      console.warn('Failed to get auth token from localStorage:', error);
+      return null;
+    }
   },
 
   removeAuthToken(): void {
-    localStorage.removeItem('authToken');
+    try {
+      localStorage.removeItem('authToken');
+    } catch (error) {
+      console.warn('Failed to remove auth token from localStorage:', error);
+    }
   },
 
   isAuthenticated(): boolean {
     return !!this.getAuthToken();
   },
+
+  // Input validation utilities
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  },
+
+  validatePassword(password: string): boolean {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  },
+
+  sanitizeInput(input: string): string {
+    return input.trim().replace(/[<>]/g, '');
+  },
+
+  // Pagination validation
+  validatePaginationParams(params: { page?: number; limit?: number }): { page: number; limit: number } {
+    const page = Math.max(1, Math.floor(params.page || 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(params.limit || 10)));
+    return { page, limit };
+  }
 };

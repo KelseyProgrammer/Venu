@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star } from "lucide-react"
 import Image from "next/image"
 import { PostGigFlow } from "./post-gig-flow"
+import { LocationCreationForm } from "./location-creation-form"
 import { DiscoverTab } from "./discover-tab"
 import { ScheduleTab } from "./schedule-tab"
 import { ApplicationsTab } from "./applications-tab"
@@ -14,15 +15,45 @@ import { MoreTab } from "./more-tab"
 import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
+import { useCurrentUserLocation } from "@/hooks/useLocation"
+import { Card } from "@/components/ui/card"
+import { authUtils } from "@/lib/utils"
+import { AuthDebugPanel } from "@/components/auth-debug-panel"
 
 interface LocationDashboardProps {
   locationId?: string;
   currentUserId?: string;
 }
 
-export function LocationDashboard({ locationId = "default-location", currentUserId }: LocationDashboardProps) {
+interface LocationDisplayInfo {
+  name: string;
+  city: string;
+  state: string;
+  capacity: number;
+  rating: number;
+}
+
+interface AnalyticsCard {
+  title: string;
+  value: string | number;
+  color: string;
+}
+
+export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
+  const [showLocationCreation, setShowLocationCreation] = useState(false)
+  
+  // Use the custom hook to fetch current user's location data
+  const { 
+    location, 
+    gigs, 
+    authorizedPromoters, 
+    analytics, 
+    loading, 
+    error, 
+    refreshData 
+  } = useCurrentUserLocation()
   
   // Unavailable dates state (dates when venue is closed or unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
@@ -47,29 +78,149 @@ export function LocationDashboard({ locationId = "default-location", currentUser
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
-  // Toggle date availability
+  // Toggle date availability with optimized localStorage handling
   const toggleDateAvailability = useCallback((dateString: string) => {
     setUnavailableDates(prevDates => {
-      let newDates: string[]
-      if (prevDates.includes(dateString)) {
-        // Remove from unavailable dates (make available)
-        newDates = prevDates.filter(date => date !== dateString)
-      } else {
-        // Add to unavailable dates (make unavailable)
-        newDates = [...prevDates, dateString]
-      }
+      const isCurrentlyUnavailable = prevDates.includes(dateString)
+      const newDates = isCurrentlyUnavailable
+        ? prevDates.filter(date => date !== dateString)
+        : [...prevDates, dateString]
       
-      // Save to localStorage
+      // Save to localStorage with error handling
       if (typeof window !== 'undefined') {
-        localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
+        try {
+          localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
+        } catch (error) {
+          console.warn('Failed to save unavailable dates to localStorage:', error)
+        }
       }
       
       return newDates
     })
   }, [])
 
+  // Memoized location display info to prevent unnecessary re-renders
+  const locationDisplayInfo = useMemo(() => {
+    if (!location) return null
+    
+    return {
+      name: location.name,
+      city: location.city,
+      state: location.state,
+      capacity: location.capacity,
+      rating: location.rating
+    } as LocationDisplayInfo
+  }, [location])
+
+  // Memoized analytics cards to prevent unnecessary re-renders
+  const analyticsCards = useMemo(() => {
+    if (!analytics) return null
+
+    return [
+      {
+        title: "Total Gigs",
+        value: analytics.totalGigs,
+        color: "text-purple-600"
+      },
+      {
+        title: "Upcoming",
+        value: analytics.upcomingGigs,
+        color: "text-green-600"
+      },
+      {
+        title: "Avg Fill Rate",
+        value: `${analytics.averageFillRate}%`,
+        color: "text-blue-600"
+      },
+      {
+        title: "Monthly Revenue",
+        value: `$${analytics.monthlyRevenue.toLocaleString()}`,
+        color: "text-orange-600"
+      }
+    ] as AnalyticsCard[]
+  }, [analytics])
+
+  // Check authentication before allowing gig creation
+  const handlePostGigClick = useCallback(() => {
+    if (!authUtils.isAuthenticated()) {
+      alert('Please log in to create a gig. You will be redirected to the login page.');
+      window.location.href = '/';
+      return;
+    }
+    setShowPostGig(true);
+  }, []);
+
   if (showPostGig) {
     return <PostGigFlow onClose={() => setShowPostGig(false)} />
+  }
+
+  if (showLocationCreation) {
+    return (
+      <LocationCreationForm 
+        onClose={() => setShowLocationCreation(false)} 
+        onSuccess={() => {
+          setShowLocationCreation(false)
+          refreshData()
+        }} 
+      />
+    )
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading location data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    const isAuthError = error.includes('log in') || error.includes('Authentication failed');
+    const isNoLocationError = error.includes('No location found') || error.includes('create a location');
+    
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Image src="/images/venu-logo.png" alt="venu" width={80} height={80} className="mx-auto mb-6" />
+          <h1 className="text-2xl font-bold mb-4">Location Dashboard</h1>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          {isAuthError ? (
+            <div className="space-y-4">
+              <Button 
+                onClick={() => window.location.href = '/'} 
+                className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+              >
+                Go to Login
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Don't have an account? <a href="/" className="text-purple-600 hover:underline">Sign up here</a>
+              </p>
+            </div>
+          ) : isNoLocationError ? (
+            <div className="space-y-4">
+              <Button 
+                onClick={() => setShowLocationCreation(true)} 
+                className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+              >
+                Create Location Profile
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Set up your venue to start booking gigs
+              </p>
+            </div>
+          ) : (
+            <Button onClick={refreshData} className="bg-purple-600 hover:bg-purple-700 text-white">
+              Retry
+            </Button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -79,20 +230,56 @@ export function LocationDashboard({ locationId = "default-location", currentUser
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <Image src="/images/venu-logo.png" alt="venu" width={40} height={40} />
-            <h1 className="font-serif font-bold text-xl">Location Dashboard</h1>
+            <div>
+              <h1 className="font-serif font-bold text-xl">
+                {locationDisplayInfo?.name || 'Location Dashboard'}
+              </h1>
+              {locationDisplayInfo && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {locationDisplayInfo.city}, {locationDisplayInfo.state}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {locationDisplayInfo.capacity} capacity
+                  </div>
+                  {locationDisplayInfo.rating > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3" />
+                      {locationDisplayInfo.rating.toFixed(1)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <WindowManagerProvider>
               <RealTimeNotifications />
-              <RealTimeGigUpdates locationId={locationId} />
+              <RealTimeGigUpdates locationId={location?._id || ""} />
             </WindowManagerProvider>
-            <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setShowPostGig(true)}>
+            <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={handlePostGigClick}>
               <Plus className="w-4 h-4 mr-2" />
               Post a Gig
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Location Stats Cards */}
+      {analyticsCards && (
+        <div className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {analyticsCards.map((card, index) => (
+              <Card key={index} className="p-4 text-center">
+                <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
+                <div className="text-sm text-muted-foreground">{card.title}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="p-4">
@@ -129,9 +316,12 @@ export function LocationDashboard({ locationId = "default-location", currentUser
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4">
             <ScheduleTab 
-              locationId={locationId}
+              locationId={location?._id || ""}
+              location={location}
+              gigs={gigs}
               unavailableDates={unavailableDates}
               onToggleDateAvailability={toggleDateAvailability}
+              onRefreshGigs={refreshData}
             />
           </TabsContent>
 
@@ -142,15 +332,18 @@ export function LocationDashboard({ locationId = "default-location", currentUser
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="space-y-4">
-            <ChatTab locationId={locationId} currentUserId={currentUserId || "location-user"} />
+            <ChatTab locationId={location?._id || ""} currentUserId={currentUserId || "location-user"} />
           </TabsContent>
 
           {/* More Tab */}
           <TabsContent value="more" className="space-y-4">
-            <MoreTab />
+            <MoreTab location={location} analytics={analytics} authorizedPromoters={authorizedPromoters} />
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Debug panel for development */}
+      <AuthDebugPanel />
     </div>
   )
 }

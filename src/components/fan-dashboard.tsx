@@ -409,28 +409,38 @@ export function FanDashboard() {
 
   // Transform gigs data to match the expected event format
   const allEvents = useMemo(() => {
-    return gigs.map(gig => ({
-      id: gig._id,
-      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
-      location: gig.selectedLocation?.name || "TBA",
-      address: gig.selectedLocation?.address || `${gig.selectedLocation?.city}, ${gig.selectedLocation?.state}`,
-      date: new Date(gig.eventDate).toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric' 
-      }),
-      time: gig.eventTime,
-      genre: gig.eventGenre,
-      ticketPrice: gig.ticketPrice,
-      ticketsRemaining: gig.ticketCapacity - gig.ticketsSold,
-      totalTickets: gig.ticketCapacity,
-      rating: gig.rating,
-      description: `${gig.eventGenre} performance at ${gig.selectedLocation?.name || 'TBA'}`,
-      image: gig.image || "/images/venu-logo.png",
-      tags: gig.tags || [gig.eventGenre],
-      status: gig.status,
-      createdAt: gig.createdAt
-    }))
+    return gigs.map(gig => {
+      // Determine event status based on band count
+      const needsMoreBands = gig.bands.length < gig.numberOfBands
+      const eventStatus = needsMoreBands ? 'needs-bands' : 'complete'
+      
+      return {
+        id: gig._id,
+        artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+        location: gig.selectedLocation?.name || "TBA",
+        address: gig.selectedLocation?.address || `${gig.selectedLocation?.city}, ${gig.selectedLocation?.state}`,
+        date: new Date(gig.eventDate).toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        time: gig.eventTime,
+        genre: gig.eventGenre,
+        ticketPrice: gig.ticketPrice,
+        ticketsRemaining: gig.ticketCapacity - gig.ticketsSold,
+        totalTickets: gig.ticketCapacity,
+        rating: gig.rating,
+        description: `${gig.eventGenre} performance at ${gig.selectedLocation?.name || 'TBA'}`,
+        image: gig.image || "/images/venu-logo.png",
+        tags: gig.tags || [gig.eventGenre],
+        status: gig.status,
+        eventStatus, // Add computed status for UI
+        needsMoreBands, // Add flag for easy checking
+        expectedBands: gig.numberOfBands,
+        confirmedBands: gig.bands.length,
+        createdAt: gig.createdAt
+      }
+    })
   }, [gigs])
 
   const myTickets = useMemo(() => [

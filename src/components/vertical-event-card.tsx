@@ -24,6 +24,10 @@ interface Event {
   description: string;
   image: string;
   tags: string[];
+  eventStatus?: string;
+  needsMoreBands?: boolean;
+  expectedBands?: number;
+  confirmedBands?: number;
 }
 
 interface VerticalEventCardProps {
@@ -102,8 +106,18 @@ export function VerticalEventCard({
   const dayOfWeek = dateParts[0]; // "Sat"
   const monthDay = dateParts[1]; // "Oct 12"
 
+  // Determine card border color based on event status
+  const getCardBorderClass = () => {
+    if (event.needsMoreBands === true) {
+      return 'border-yellow-200 border-2'
+    } else if (event.needsMoreBands === false) {
+      return 'border-green-200 border-2'
+    }
+    return 'border-border'
+  }
+
   return (
-    <Card className={`p-6 bg-card border-border relative overflow-hidden hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 bg-card relative overflow-hidden hover:shadow-lg transition-shadow duration-200 ${getCardBorderClass()} ${className}`}>
       {/* Real-time indicators */}
       {showTicketUpdate && (
         <div className="absolute top-3 right-3 z-10">
@@ -189,6 +203,23 @@ export function VerticalEventCard({
               <span className="font-medium">{getLocationDisplayName(event.location)}</span>
             </div>
           </div>
+          
+          {/* Event Status Display */}
+          {event.needsMoreBands !== undefined && (
+            <div className="flex items-center gap-2">
+              {event.needsMoreBands ? (
+                <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                  Needs {event.expectedBands && event.confirmedBands ? event.expectedBands - event.confirmedBands : 0} more bands
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                  Lineup complete
+                </Badge>
+              )}
+            </div>
+          )}
           
           {/* Price and Ticket Info */}
           <div className="flex items-center justify-between pt-2">

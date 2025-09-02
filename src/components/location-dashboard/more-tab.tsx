@@ -7,8 +7,16 @@ import { MoreAnalytics } from "./more-analytics"
 import { MoreSettings } from "./more-settings"
 import { MoreReports } from "./more-reports"
 import { MoreSupport } from "./more-support"
+import { LocationProfile } from "@/lib/api"
+import { LocationAnalytics } from "@/hooks/useLocation"
 
-export function MoreTab() {
+interface MoreTabProps {
+  location?: LocationProfile | null;
+  analytics?: LocationAnalytics | null;
+  authorizedPromoters?: any[];
+}
+
+export function MoreTab({ location, analytics, authorizedPromoters }: MoreTabProps) {
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
 
   return (
@@ -58,13 +66,13 @@ export function MoreTab() {
       </div>
 
       {/* Analytics Subcategory */}
-      {moreSubcategory === "analytics" && <MoreAnalytics />}
+      {moreSubcategory === "analytics" && <MoreAnalytics analytics={analytics} />}
 
       {/* Settings Subcategory */}
-      {moreSubcategory === "settings" && <MoreSettings />}
+      {moreSubcategory === "settings" && <MoreSettings location={location} authorizedPromoters={authorizedPromoters} />}
 
       {/* Reports Subcategory */}
-      {moreSubcategory === "reports" && <MoreReports />}
+      {moreSubcategory === "reports" && <MoreReports analytics={analytics} />}
 
       {/* Support Subcategory */}
       {moreSubcategory === "support" && <MoreSupport />}

@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 import { Band, Requirement } from "./types"
-import { useSocket } from "@/lib/socket"
+import { useSocket, socketManager } from "@/lib/socket"
+import { authUtils } from "@/lib/utils"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -21,16 +22,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const socket = useSocket()
   
-  // Saved promoters state - commented out for now
-  // const [savedPromoters, setSavedPromoters] = useState<Promoter[]>([])
-  // const [newPromoterName, setNewPromoterName] = useState("")
-  // const [newPromoterEmail, setNewPromoterEmail] = useState("")
-  // const [newPromoterPayout, setNewPromoterPayout] = useState("")
-  
-  // Saved door persons state - commented out for now
-  // const [savedDoorPersons, setSavedDoorPersons] = useState<DoorPerson[]>([])
-  // const [newDoorPersonName, setNewDoorPersonName] = useState("")
-  // const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
+  // Note: Saved promoters and door persons functionality can be added in future iterations
   
   // Form state
   const [eventName, setEventName] = useState("")
@@ -177,6 +169,13 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
 
   const handlePublish = useCallback(async () => {
     try {
+      // Validate user permissions using utility function
+      const validation = await authUtils.validateGigCreationPermission();
+      if (!validation.success) {
+        authUtils.handleAuthError(validation.error || 'Authentication failed');
+        return;
+      }
+
       // Create gig data object for backend API
       const gigData = {
         eventName,
@@ -186,17 +185,27 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         ticketCapacity: parseInt(ticketCapacity) || 0,
         ticketPrice: parseFloat(ticketPrice) || 0,
         guarantee: parseFloat(guarantee) || 0,
-        bands,
+        bands: bands.map(band => ({
+          name: band.name,
+          genre: band.genre,
+          setTime: band.setTime,
+          percentage: parseFloat(band.percentage) || 0,
+          email: band.email
+        })),
         promoterPercentage: parseFloat(promoterPercentage) || 0,
         selectedDoorPerson,
         doorPersonEmail,
-        requirements,
-        numberOfBands: bands.length,
+        requirements: requirements.map(req => ({
+          text: req.text,
+          checked: req.checked
+        })),
+        numberOfBands: Math.max(bands.length, 1), // Ensure at least 1 band
         status: 'posted', // Set status to posted so it shows up in fan dashboard
         tags: [eventGenre], // Add genre as tag for better searchability
         ticketsSold: 0,
         rating: 0,
         image: '/images/venu-logo.png', // Default image
+        selectedLocation: "68b71511c22812d0788af654", // Default location ID - this should be dynamic
         bonusTiers: {
           tier1: { amount: 0, threshold: 0, color: '#8B5CF6' },
           tier2: { amount: 0, threshold: 0, color: '#8B5CF6' },
@@ -206,17 +215,31 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
 
       // Call the backend API to create the gig
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const token = authUtils.getAuthToken();
       const response = await fetch(`${API_BASE_URL}/gigs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(gigData)
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create gig')
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Gig creation failed:', response.status, errorData);
+        
+        if (response.status === 403) {
+          alert('You do not have permission to create gigs for this location. Please contact the location owner or administrator.');
+          return;
+        } else if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          alert('Your session has expired. Please log in again.');
+          window.location.href = '/';
+          return;
+        } else {
+          throw new Error(`Failed to create gig: ${errorData.error || response.statusText}`);
+        }
       }
 
       const result = await response.json()
@@ -224,7 +247,18 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
 
       // Send real-time gig update via Socket.io
       if (socket.connected) {
-        socket.sendGigUpdate(createdGig._id, "default-location", "created", createdGig)
+        // Send schedule update to location dashboard
+        if (socketManager.getSocket()) {
+          socketManager.getSocket()!.emit('schedule-update', {
+            locationId: createdGig.selectedLocation || "68b71511c22812d0788af654",
+            gigId: createdGig._id,
+            action: 'created',
+            gigData: createdGig
+          })
+        }
+        
+        // Send general gig update
+        socket.sendGigUpdate(createdGig._id, "68b71511c22812d0788af654", "created", createdGig)
         
         // Send notifications to relevant users
         bands.forEach(band => {
@@ -267,62 +301,22 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       onClose()
     } catch (error) {
       console.error('Error creating gig:', error)
-      // You might want to show an error message to the user here
-      alert('Failed to create gig. Please try again.')
+      // Show more specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create gig';
+      alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
     }
   }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket])
 
-  // Promoter management functions
-  // const addPromoter = useCallback(() => {
-  //   if (newPromoterName.trim() && newPromoterEmail.trim() && newPromoterPayout.trim()) {
-  //     const newPromoter = {
-  //       id: Date.now().toString(),
-  //       name: newPromoterName.trim(),
-  //       email: newPromoterEmail.trim(),
-  //       payoutPercentage: newPromoterPayout.trim()
-  //     }
-  //     setSavedPromoters(prev => [...prev, newPromoter])
-  //     setNewPromoterName("")
-  //     setNewPromoterEmail("")
-  //     setNewPromoterPayout("")
-  //   }
-  // }, [newPromoterName, newPromoterEmail, newPromoterPayout])
-
-  // const removePromoter = useCallback((id: string) => {
-  //   setSavedPromoters(prev => prev.filter(promoter => promoter.id !== id))
-  // }, [])
+  // Promoter management functions - can be implemented in future iterations
 
   // Handle promoter selection and auto-update payout percentage
   const handlePromoterSelection = useCallback((promoterId: string) => {
     setSelectedPromoter(promoterId)
-    if (promoterId !== "self" && promoterId !== "add-by-email") {
-      // const selectedPromoterData = savedPromoters.find(p => p.id === promoterId)
-      // if (selectedPromoterData) {
-      //   setPromoterPercentage(selectedPromoterData.payoutPercentage)
-      // }
-      setPromoterPercentage("")
-    } else {
-      setPromoterPercentage("")
-    }
+    // Reset promoter percentage when selection changes
+    setPromoterPercentage("")
   }, [])
 
-  // Door person management functions
-  // const addDoorPerson = useCallback(() => {
-  //   if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {
-  //     const newDoorPerson = {
-  //       id: Date.now().toString(),
-  //       name: newDoorPersonName.trim(),
-  //       email: newDoorPersonEmail.trim()
-  //     }
-  //     setSavedDoorPersons(prev => [...prev, newDoorPerson])
-  //     setNewDoorPersonName("")
-  //     setNewDoorPersonEmail("")
-  //   }
-  // }, [newDoorPersonName, newDoorPersonEmail])
-
-  // const removeDoorPerson = useCallback((id: string) => {
-  //   setSavedDoorPersons(prev => prev.filter(doorPerson => doorPerson.id !== id))
-  // }, [])
+  // Door person management functions - can be implemented in future iterations
 
   return (
     <div className="min-h-screen bg-background">
@@ -439,11 +433,6 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="self">SELF</SelectItem>
-                  {/* {savedPromoters.filter(promoter => promoter.id && promoter.id.trim() !== "").map((promoter) => (
-                    <SelectItem key={promoter.id} value={promoter.id}>
-                      {promoter.name} ({promoter.email})
-                    </SelectItem>
-                  ))} */}
                   <SelectItem value="add-by-email">
                     <div className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
@@ -859,11 +848,6 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="self">SELF</SelectItem>
-                      {/* {savedDoorPersons.filter(doorPerson => doorPerson.id && doorPerson.id.trim() !== "").map((doorPerson) => (
-                        <SelectItem key={doorPerson.id} value={doorPerson.id}>
-                          {doorPerson.name} ({doorPerson.email})
-                        </SelectItem>
-                      ))} */}
                       <SelectItem value="add-by-email">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4" />
