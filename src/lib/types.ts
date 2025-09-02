@@ -1,9 +1,9 @@
 export interface Band {
-  id: string
+  id?: string
   name: string
   genre: string
   setTime: string
-  percentage: string
+  percentage: number
   email: string
 }
 
@@ -14,22 +14,37 @@ export interface Requirement {
 }
 
 export interface Gig {
+  id?: string
+  _id?: string
   eventName: string
   eventDate: string
   eventTime: string
   eventGenre: string
-  ticketCapacity: string
-  ticketPrice: string // Price per ticket for bonus tier calculations
+  ticketCapacity: number
+  ticketPrice: number // Price per ticket for bonus tier calculations
+  ticketsSold?: number
   selectedLocation?: string
   selectedPromoter?: string
   promoterEmail?: string
-  promoterPercentage?: string
+  promoterPercentage?: number
   selectedDoorPerson: string
   doorPersonEmail: string
   requirements: Requirement[]
   bands: Band[]
-  guarantee: string
+  guarantee: number
   numberOfBands: number // New field for total expected bands
+  image?: string
+  status?: 'draft' | 'posted' | 'live' | 'completed'
+  rating?: number
+  tags?: string[]
+  bonusTiers?: {
+    tier1: { amount: number; threshold: number; color: string }
+    tier2: { amount: number; threshold: number; color: string }
+    tier3: { amount: number; threshold: number; color: string }
+  }
+  createdBy?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface PostedGig extends Gig {

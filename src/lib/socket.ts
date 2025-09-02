@@ -123,16 +123,29 @@ class RateLimiter {
   }
 }
 
-// Message batching class
+// Enhanced Message Batching System
 class MessageBatcher {
   private messageQueue: Map<string, { messages: any[]; timeoutId: NodeJS.Timeout | null }> = new Map();
   private batchTimeout = 100; // ms
+  private maxBatchSize = 10; // Maximum messages per batch
+  private onBatchReady?: (roomId: string, messages: any[]) => void;
+
+  constructor(onBatchReady?: (roomId: string, messages: any[]) => void) {
+    this.onBatchReady = onBatchReady;
+  }
 
   addMessage(roomId: string, message: any): void {
     const batch = this.messageQueue.get(roomId);
     
     if (batch) {
       batch.messages.push(message);
+      
+      // Send immediately if batch is full
+      if (batch.messages.length >= this.maxBatchSize) {
+        this.sendBatch(roomId);
+        return;
+      }
+      
       if (batch.timeoutId) {
         clearTimeout(batch.timeoutId);
       }
@@ -148,7 +161,10 @@ class MessageBatcher {
   private sendBatch(roomId: string): void {
     const batch = this.messageQueue.get(roomId);
     if (batch && batch.messages.length > 0) {
-      // Emit batched messages (this will be handled by the socket manager)
+      // Call the batch ready callback if provided
+      if (this.onBatchReady) {
+        this.onBatchReady(roomId, [...batch.messages]);
+      }
       this.messageQueue.delete(roomId);
     }
   }
@@ -160,6 +176,85 @@ class MessageBatcher {
     }
     this.messageQueue.delete(roomId);
   }
+
+  getBatchSize(roomId: string): number {
+    const batch = this.messageQueue.get(roomId);
+    return batch ? batch.messages.length : 0;
+  }
+
+  flushAllBatches(): void {
+    for (const roomId of this.messageQueue.keys()) {
+      this.sendBatch(roomId);
+    }
+  }
+}
+
+// Memory-Efficient Message Storage
+class MessageStore {
+  private messages: Map<string, CircularBuffer<SocketMessage>> = new Map();
+  private maxMessagesPerRoom = 100;
+  private offlineQueue: Map<string, SocketMessage[]> = new Map();
+
+  addMessage(roomId: string, message: SocketMessage): void {
+    const buffer = this.messages.get(roomId) || new CircularBuffer(this.maxMessagesPerRoom);
+    buffer.add(message);
+    this.messages.set(roomId, buffer);
+  }
+
+  getMessages(roomId: string): SocketMessage[] {
+    const buffer = this.messages.get(roomId);
+    return buffer ? buffer.getAll() : [];
+  }
+
+  addOfflineMessage(userId: string, message: SocketMessage): void {
+    if (!this.offlineQueue.has(userId)) {
+      this.offlineQueue.set(userId, []);
+    }
+    this.offlineQueue.get(userId)!.push(message);
+  }
+
+  getOfflineMessages(userId: string): SocketMessage[] {
+    const messages = this.offlineQueue.get(userId) || [];
+    this.offlineQueue.delete(userId); // Clear after retrieval
+    return messages;
+  }
+
+  clearRoomMessages(roomId: string): void {
+    this.messages.delete(roomId);
+  }
+}
+
+// Circular Buffer for Efficient Memory Usage
+class CircularBuffer<T> {
+  private buffer: T[] = [];
+  private maxSize: number;
+  private currentIndex = 0;
+  
+  constructor(maxSize: number) {
+    this.maxSize = maxSize;
+  }
+  
+  add(item: T): void {
+    if (this.buffer.length < this.maxSize) {
+      this.buffer.push(item);
+    } else {
+      this.buffer[this.currentIndex] = item;
+      this.currentIndex = (this.currentIndex + 1) % this.maxSize;
+    }
+  }
+
+  getAll(): T[] {
+    return [...this.buffer];
+  }
+
+  getSize(): number {
+    return this.buffer.length;
+  }
+
+  clear(): void {
+    this.buffer = [];
+    this.currentIndex = 0;
+  }
 }
 
 // Enhanced Socket Manager with Connection Pooling
@@ -168,7 +263,8 @@ class OptimizedSocketManager {
   private connections: Map<string, Socket<ServerToClientEvents, ClientToServerEvents>> = new Map();
   private roomSubscriptions: Map<string, Set<string>> = new Map();
   private rateLimiter = new RateLimiter();
-  private messageBatcher = new MessageBatcher();
+  private messageBatcher: MessageBatcher;
+  private messageStore = new MessageStore();
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   // Singleton pattern for connection reuse
@@ -180,10 +276,24 @@ class OptimizedSocketManager {
   }
 
   constructor() {
+    // Initialize message batcher with callback
+    this.messageBatcher = new MessageBatcher((roomId: string, messages: any[]) => {
+      this.handleBatchedMessages(roomId, messages);
+    });
+    
     // Start cleanup interval
     this.cleanupInterval = setInterval(() => {
       this.cleanupDisconnectedUsers();
     }, 30000); // Clean up every 30 seconds
+  }
+
+  private handleBatchedMessages(roomId: string, messages: any[]): void {
+    // Process batched messages for efficient broadcasting
+    const connection = this.connections.get(roomId);
+    if (connection?.connected) {
+      // Emit batched messages to reduce network overhead
+      connection.emit('batch-messages', { roomId, messages });
+    }
   }
 
   // Smart connection management
@@ -257,7 +367,7 @@ class OptimizedSocketManager {
     }
   }
 
-  // Rate-limited message sending
+  // Rate-limited message sending with persistence
   sendMessage(userId: string, roomId: string, message: string, type: 'text' | 'system' = 'text'): boolean {
     if (!this.rateLimiter.canSendMessage(userId)) {
       console.warn('Rate limit exceeded for user:', userId);
@@ -266,14 +376,56 @@ class OptimizedSocketManager {
 
     const connection = this.connections.get(userId);
     if (!connection?.connected) {
+      // Store message for offline delivery
+      const offlineMessage: SocketMessage = {
+        id: Date.now().toString(),
+        userId,
+        userEmail: '', // Will be populated from user data
+        userRole: '', // Will be populated from user data
+        locationId: roomId,
+        message,
+        type,
+        timestamp: new Date().toISOString()
+      };
+      this.messageStore.addOfflineMessage(userId, offlineMessage);
       return false;
     }
 
+    // Create message data
+    const messageData: SocketMessage = {
+      id: Date.now().toString(),
+      userId,
+      userEmail: '', // Will be populated from user data
+      userRole: '', // Will be populated from user data
+      locationId: roomId,
+      message,
+      type,
+      timestamp: new Date().toISOString()
+    };
+
+    // Store message for persistence
+    this.messageStore.addMessage(roomId, messageData);
+
     // Add to batch for efficient broadcasting
-    this.messageBatcher.addMessage(roomId, { roomId, message, type });
+    this.messageBatcher.addMessage(roomId, messageData);
     
     connection.emit('send-message', { locationId: roomId, message, type });
     return true;
+  }
+
+  // Get offline messages for a user
+  getOfflineMessages(userId: string): SocketMessage[] {
+    return this.messageStore.getOfflineMessages(userId);
+  }
+
+  // Get room message history
+  getRoomMessages(roomId: string): SocketMessage[] {
+    return this.messageStore.getMessages(roomId);
+  }
+
+  // Clear room messages
+  clearRoomMessages(roomId: string): void {
+    this.messageStore.clearRoomMessages(roomId);
   }
 
   // Automatic cleanup
@@ -306,11 +458,52 @@ class OptimizedSocketManager {
     }
   }
 
+  // Real-time Analytics
+  getAnalytics(): {
+    activeConnections: number;
+    totalRooms: number;
+    messagesPerSecond: number;
+    averageLatency: number;
+    memoryUsage: number;
+  } {
+    return {
+      activeConnections: this.connections.size,
+      totalRooms: this.roomSubscriptions.size,
+      messagesPerSecond: this.calculateMessageRate(),
+      averageLatency: this.calculateAverageLatency(),
+      memoryUsage: this.calculateMemoryUsage()
+    };
+  }
+
+  private calculateMessageRate(): number {
+    // This would track messages per second over time
+    // For now, return a placeholder
+    return 0;
+  }
+
+  private calculateAverageLatency(): number {
+    // This would track average message latency
+    // For now, return a placeholder
+    return 0;
+  }
+
+  private calculateMemoryUsage(): number {
+    // Calculate approximate memory usage
+    let totalMessages = 0;
+    for (const [_, buffer] of this.messageStore['messages']) {
+      totalMessages += buffer.getSize();
+    }
+    return totalMessages * 0.001; // Rough estimate in MB
+  }
+
   // Cleanup on destroy
   destroy(): void {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
+    
+    // Flush all pending batches
+    this.messageBatcher.flushAllBatches();
     
     Array.from(this.connections.keys()).forEach((userId) => {
       this.disconnectUser(userId);

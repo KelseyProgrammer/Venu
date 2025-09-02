@@ -4,9 +4,6 @@ import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
-import { getMockEvents } from "./data"
-// import { Event } from "./types"
-
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   unavailableDates: string[];
@@ -19,7 +16,44 @@ export function ScheduleCalendarView({
   onToggleDateAvailability 
 }: ScheduleCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const myEvents = useMemo(() => getMockEvents(), [])
+  const myEvents = useMemo(() => [
+    {
+      id: 1,
+      name: "Rock Night",
+      date: "2024-12-15",
+      location: "Muggsy's",
+      status: "confirmed",
+      time: "8:00 PM",
+      genre: "Rock",
+      image: "/images/BandFallBack.PNG",
+      artist: "Rock Night",
+      expectedBands: 3,
+      confirmedBands: 3,
+      ticketsSold: 45,
+      totalTickets: 100,
+      guarantee: 500,
+      currentEarnings: 750,
+      applications: 8
+    },
+    {
+      id: 2,
+      name: "Jazz Evening",
+      date: "2024-12-20",
+      location: "Sarbez",
+      status: "pending",
+      time: "9:00 PM",
+      genre: "Jazz",
+      image: "/images/BandFallBack.PNG",
+      artist: "Jazz Evening",
+      expectedBands: 2,
+      confirmedBands: 1,
+      ticketsSold: 23,
+      totalTickets: 80,
+      guarantee: 300,
+      currentEarnings: 345,
+      applications: 5
+    }
+  ], [])
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
@@ -44,6 +78,52 @@ export function ScheduleCalendarView({
       }
     });
   }, [myEvents, scheduleFilter])
+
+  // Memoize calendar days calculation for better performance
+  const calendarDays = useMemo(() => {
+    const today = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    return Array.from({ length: 35 }, (_, i) => {
+      const day = i - 3; // Start from previous month to fill first week
+      
+      // Check if this date has an event (considering filter)
+      const eventOnDate = filteredEvents.find(event => {
+        const eventDate = new Date(event.date);
+        return eventDate.getDate() === day && 
+               eventDate.getMonth() === currentMonth && 
+               eventDate.getFullYear() === currentYear;
+      });
+      
+      // Check if date is unavailable
+      const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isUnavailable = unavailableDates.includes(dateString);
+      
+      // Check if date is in the past
+      const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+      
+      // Check if date is today
+      const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+      
+      // Check if date is in current month
+      const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
+      
+      // Determine if event needs more bands
+      const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
+      
+      return {
+        day,
+        eventOnDate,
+        isUnavailable,
+        isPast,
+        isToday,
+        isCurrentMonth,
+        needsMoreBands,
+        dateString
+      };
+    });
+  }, [currentDate, filteredEvents, unavailableDates])
 
   // Calendar navigation functions
   const goToPreviousMonth = useCallback(() => {
@@ -161,35 +241,8 @@ export function ScheduleCalendarView({
         
         <div className="grid grid-cols-7 gap-1">
           {/* Generate calendar days for current month */}
-          {Array.from({ length: 35 }, (_, i) => {
-            const day = i - 3; // Start from previous month to fill first week
-            const today = new Date();
-            const currentMonth = currentDate.getMonth();
-            const currentYear = currentDate.getFullYear();
-            
-            // Check if this date has an event (considering filter)
-            const eventOnDate = filteredEvents.find(event => {
-              const eventDate = new Date(event.date);
-              return eventDate.getDate() === day && 
-                     eventDate.getMonth() === currentMonth && 
-                     eventDate.getFullYear() === currentYear;
-            });
-            
-            // Check if date is unavailable
-            const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const isUnavailable = unavailableDates.includes(dateString);
-            
-            // Check if date is in the past
-            const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-            
-            // Check if date is today
-            const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-            
-            // Check if date is in current month
-            const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
-            
-            // Determine if event needs more bands
-            const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
+          {calendarDays.map((dayData, i) => {
+            const { day, eventOnDate, isUnavailable, isPast, isToday, isCurrentMonth, needsMoreBands, dateString } = dayData;
             
             // For unavailable filter, only show unavailable days
             if (scheduleFilter === "unavailable" && !isUnavailable) {
@@ -258,8 +311,8 @@ export function ScheduleCalendarView({
                       .filter(event => {
                         const eventDate = new Date(event.date);
                         return eventDate.getDate() === day && 
-                               eventDate.getMonth() === currentMonth && 
-                               eventDate.getFullYear() === currentYear;
+                               eventDate.getMonth() === currentDate.getMonth() && 
+                               eventDate.getFullYear() === currentDate.getFullYear();
                       })
                       .slice(0, 2) // Limit to 2 events max
                       .map((event) => (
@@ -284,15 +337,15 @@ export function ScheduleCalendarView({
                     {filteredEvents.filter(event => {
                       const eventDate = new Date(event.date);
                       return eventDate.getDate() === day && 
-                             eventDate.getMonth() === currentMonth && 
-                             eventDate.getFullYear() === currentYear;
+                             eventDate.getMonth() === currentDate.getMonth() && 
+                             eventDate.getFullYear() === currentDate.getFullYear();
                     }).length > 2 && (
                       <div className="text-xs text-muted-foreground font-medium">
                         +{filteredEvents.filter(event => {
                           const eventDate = new Date(event.date);
                           return eventDate.getDate() === day && 
-                                 eventDate.getMonth() === currentMonth && 
-                                 eventDate.getFullYear() === currentYear;
+                                 eventDate.getMonth() === currentDate.getMonth() && 
+                                 eventDate.getFullYear() === currentDate.getFullYear();
                         }).length - 2} more
                       </div>
                     )}

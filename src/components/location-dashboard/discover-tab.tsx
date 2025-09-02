@@ -7,10 +7,51 @@ import { Badge } from "@/components/ui/badge"
 import { Users, DollarSign, Star, MapPin, Instagram, Music } from "lucide-react"
 import Image from "next/image"
 import { ArtistListing } from "../artist-listing"
-import { getLocalArtists } from "./data"
-
 export function DiscoverTab() {
-  const localArtists = useMemo(() => getLocalArtists(), [])
+  const localArtists = useMemo(() => [
+    {
+      id: 1,
+      artist: "The Midnight Keys",
+      genre: "Rock",
+      rating: 4.8,
+      location: "St. Augustine, FL",
+      followers: "2.3K",
+      priceRange: "$200-400",
+      availability: "Available",
+      bio: "High-energy rock band with a modern twist. Known for electrifying live performances and original compositions.",
+      image: "/images/BandFallBack.PNG",
+      instagram: "@midnightkeys",
+      spotify: "The Midnight Keys"
+    },
+    {
+      id: 2,
+      artist: "Jazz Collective",
+      genre: "Jazz",
+      rating: 4.6,
+      location: "Jacksonville, FL",
+      followers: "1.8K",
+      priceRange: "$150-300",
+      availability: "Available",
+      bio: "Smooth jazz ensemble bringing classic standards and contemporary arrangements to intimate venues.",
+      image: "/images/BandFallBack.PNG",
+      instagram: "@jazzcollective",
+      spotify: "Jazz Collective"
+    },
+    {
+      id: 3,
+      artist: "Acoustic Dreams",
+      genre: "Folk",
+      rating: 4.7,
+      location: "St. Augustine, FL",
+      followers: "3.1K",
+      priceRange: "$100-250",
+      availability: "Available",
+      bio: "Intimate acoustic performances featuring original folk songs and beautiful harmonies.",
+      image: "/images/BandFallBack.PNG",
+      instagram: "@acousticdreams",
+      spotify: "Acoustic Dreams"
+    }
+  ], [])
 
   return (
     <div className="space-y-4">

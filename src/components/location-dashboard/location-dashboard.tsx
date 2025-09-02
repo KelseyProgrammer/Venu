@@ -129,6 +129,7 @@ export function LocationDashboard({ locationId = "default-location", currentUser
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4">
             <ScheduleTab 
+              locationId={locationId}
               unavailableDates={unavailableDates}
               onToggleDateAvailability={toggleDateAvailability}
             />

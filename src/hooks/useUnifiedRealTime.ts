@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSocket } from '@/lib/socket';
 import { SocketNotification, SocketGigUpdate, SocketMessage } from '@/lib/socket';
+import { useMessagePersistence } from './useMessagePersistence';
 
 interface UseUnifiedRealTimeProps {
   userId: string;
@@ -30,6 +31,11 @@ interface UseUnifiedRealTimeReturn {
   isConnected: boolean;
   error: string | null;
   
+  // Offline message support
+  hasOfflineMessages: boolean;
+  offlineMessages: SocketMessage[];
+  clearOfflineMessages: () => void;
+  
   // Event handlers for role-specific functionality
   eventHandlers: {
     onGigUpdate: (update: SocketGigUpdate) => void;
@@ -51,6 +57,15 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     onNewMessage,
     removeListener 
   } = useSocket();
+
+  // Message persistence for offline support
+  const {
+    offlineMessages,
+    hasOfflineMessages,
+    clearOfflineMessages,
+    storeOfflineMessage,
+    getStoredMessages
+  } = useMessagePersistence({ userId, locationId });
   
   // Shared state across all dashboards
   const [notifications, setNotifications] = useState<SocketNotification[]>([]);
@@ -66,6 +81,29 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
       setError('Failed to connect to server');
     });
   }, [autoConnect]);
+
+  // Handle offline messages when coming online
+  useEffect(() => {
+    if (connected && hasOfflineMessages) {
+      // Add offline messages to the current messages
+      setMessages(prev => [...offlineMessages, ...prev]);
+      
+      // Clear offline messages after a short delay
+      setTimeout(() => {
+        clearOfflineMessages();
+      }, 2000);
+    }
+  }, [connected, hasOfflineMessages, offlineMessages, clearOfflineMessages]);
+
+  // Load stored messages for the current location
+  useEffect(() => {
+    if (locationId) {
+      const storedMessages = getStoredMessages(locationId);
+      if (storedMessages.length > 0) {
+        setMessages(prev => [...storedMessages, ...prev]);
+      }
+    }
+  }, [locationId, getStoredMessages]);
 
   // Role-specific event handlers
   const eventHandlers = useMemo(() => {
@@ -208,9 +246,9 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     }
   }, [connected, locationId, socketSendGigUpdate]);
 
-  // Send message function
+  // Send message function with offline support
   const sendMessage = useCallback((message: string) => {
-    if (!connected || !message.trim()) {
+    if (!message.trim()) {
       return;
     }
 
@@ -219,18 +257,41 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
       return;
     }
 
+    // Create message object
+    const messageData: SocketMessage = {
+      id: Date.now().toString(),
+      userId,
+      userEmail: '', // Will be populated from user context
+      userRole,
+      locationId,
+      message: message.trim(),
+      type: 'text',
+      timestamp: new Date().toISOString()
+    };
+
+    if (!connected) {
+      // Store message for offline delivery
+      storeOfflineMessage(messageData);
+      setError('Message saved for delivery when online');
+      return;
+    }
+
     try {
       const success = socketSendMessage(locationId, message.trim());
       if (!success) {
-        setError('Rate limit exceeded or connection lost');
+        // Store message for offline delivery if sending fails
+        storeOfflineMessage(messageData);
+        setError('Message saved for delivery when online');
       } else {
         setError(null);
       }
     } catch (err) {
-      setError('Failed to send message');
+      // Store message for offline delivery on error
+      storeOfflineMessage(messageData);
+      setError('Message saved for delivery when online');
       console.error('Error sending message:', err);
     }
-  }, [connected, locationId, socketSendMessage]);
+  }, [connected, locationId, socketSendMessage, userId, userRole, storeOfflineMessage]);
 
   // Clear error when connection is restored
   useEffect(() => {
@@ -251,6 +312,10 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     typingUsers,
     isConnected: connected,
     error,
-    eventHandlers
+    eventHandlers,
+    // Offline message support
+    hasOfflineMessages,
+    offlineMessages,
+    clearOfflineMessages
   };
 };

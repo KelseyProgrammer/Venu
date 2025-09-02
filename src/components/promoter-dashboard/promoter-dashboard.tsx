@@ -13,7 +13,7 @@ import { ChatTab } from "./chat-tab"
 import { MoreTab } from "./more-tab"
 import { ErrorBoundary } from "./error-boundary"
 import { PostGigFlow } from "./post-gig-flow"
-import { getMyLocations } from "./data"
+
 import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
@@ -45,7 +45,11 @@ export function PromoterDashboard() {
     ]
   })
 
-  const myLocations = getMyLocations()
+  const myLocations = [
+    { id: "muggys", name: "Muggsy's" },
+    { id: "sarbez", name: "Sarbez" },
+    { id: "alfreds", name: "Alfred's" }
+  ]
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 

@@ -4,8 +4,6 @@ import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
-import { getMockEvents } from "./data"
-
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   unavailableDates: string[];
@@ -18,7 +16,28 @@ export function ScheduleCalendarView({
   onToggleDateAvailability 
 }: ScheduleCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const myEvents = useMemo(() => getMockEvents(), [])
+  const myEvents = useMemo(() => [
+    {
+      id: 1,
+      name: "Rock Night",
+      date: "2024-12-15",
+      location: "Muggsy's",
+      status: "confirmed",
+      time: "8:00 PM",
+      genre: "Rock",
+      image: "/images/BandFallBack.PNG"
+    },
+    {
+      id: 2,
+      name: "Jazz Evening",
+      date: "2024-12-20",
+      location: "Sarbez",
+      status: "pending",
+      time: "9:00 PM",
+      genre: "Jazz",
+      image: "/images/BandFallBack.PNG"
+    }
+  ], [])
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {

@@ -7,16 +7,17 @@ import { ScheduleListView } from "./schedule-list-view"
 import { ScheduleCalendarView } from "./schedule-calendar-view"
 
 interface ScheduleTabProps {
+  locationId: string;
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
 }
 
-export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
+export function ScheduleTab({ locationId, unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-serif font-bold text-xl">Schedule</h2>
       </div>

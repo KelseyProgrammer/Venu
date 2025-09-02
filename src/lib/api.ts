@@ -223,6 +223,68 @@ export const artistApi = {
   },
 };
 
+// Gig API functions
+export const gigApi = {
+  async getAllGigs(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    genre?: string;
+    location?: string;
+    promoter?: string;
+  }): Promise<ApiResponse<any[]>> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/gigs?${queryString}` : '/gigs';
+    
+    return apiRequest<any[]>(endpoint);
+  },
+
+  async getGigById(gigId: string): Promise<ApiResponse<any>> {
+    return apiRequest<any>(`/gigs/${gigId}`);
+  },
+
+  async getGigsByStatus(status: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
+    return apiRequest<any[]>(`/gigs/by-status/${encodeURIComponent(status)}?page=${page}&limit=${limit}`);
+  },
+
+  async getGigsByCreator(userId: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
+    return apiRequest<any[]>(`/gigs/by-creator/${encodeURIComponent(userId)}?page=${page}&limit=${limit}`);
+  },
+
+  async getGigsByLocation(locationId: string, page = 1, limit = 10): Promise<ApiResponse<any[]>> {
+    return apiRequest<any[]>(`/gigs?location=${encodeURIComponent(locationId)}&page=${page}&limit=${limit}`);
+  },
+
+  async createGig(gigData: any): Promise<ApiResponse<any>> {
+    return apiRequest<any>('/gigs', {
+      method: 'POST',
+      body: JSON.stringify(gigData),
+    });
+  },
+
+  async updateGig(gigId: string, gigData: any): Promise<ApiResponse<any>> {
+    return apiRequest<any>(`/gigs/${gigId}`, {
+      method: 'PUT',
+      body: JSON.stringify(gigData),
+    });
+  },
+
+  async deleteGig(gigId: string): Promise<ApiResponse<null>> {
+    return apiRequest<null>(`/gigs/${gigId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Utility functions
 export const apiUtils = {
   setAuthToken(token: string): void {

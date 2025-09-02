@@ -4,7 +4,6 @@ import { useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Building2, Calendar, Users, DollarSign, Clock } from "lucide-react"
-import { getMyLocations, getMockEvents, getArtistApplications } from "./data"
 import { LocationCard } from "./location-card"
 
 interface OverviewTabProps {
@@ -15,9 +14,47 @@ interface OverviewTabProps {
 
 export function OverviewTab({ searchQuery, onSearchChange, selectedLocation }: OverviewTabProps) {
   // Memoize data fetching to prevent unnecessary re-renders
-  const myLocations = useMemo(() => getMyLocations(), [])
-  const allEvents = useMemo(() => getMockEvents(), [])
-  const allArtistApplications = useMemo(() => getArtistApplications(), [])
+  const myLocations = useMemo(() => [
+    { id: "muggys", name: "Muggsy's" },
+    { id: "sarbez", name: "Sarbez" },
+    { id: "alfreds", name: "Alfred's" }
+  ], [])
+  const allEvents = useMemo(() => [
+    {
+      id: 1,
+      name: "Rock Night",
+      date: "2024-12-15",
+      location: "Muggsy's",
+      status: "confirmed"
+    },
+    {
+      id: 2,
+      name: "Jazz Evening",
+      date: "2024-12-20",
+      location: "Sarbez",
+      status: "pending"
+    }
+  ], [])
+  const allArtistApplications = useMemo(() => [
+    {
+      id: 1,
+      artist: "The Midnight Keys",
+      genre: "Rock",
+      rating: 4.8,
+      followers: "2.3K",
+      bio: "High-energy rock band with a modern twist. Known for electrifying live performances and original compositions.",
+      image: "/images/BandFallBack.PNG"
+    },
+    {
+      id: 2,
+      artist: "Jazz Collective",
+      genre: "Jazz",
+      rating: 4.6,
+      followers: "1.8K",
+      bio: "Smooth jazz ensemble bringing classic standards and contemporary arrangements to intimate venues.",
+      image: "/images/BandFallBack.PNG"
+    }
+  ], [])
 
   // Filtered data based on search and location selection
   const filteredLocations = useMemo(() => {

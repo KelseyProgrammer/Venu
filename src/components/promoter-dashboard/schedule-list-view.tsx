@@ -6,14 +6,33 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "lucide-react"
 import Image from "next/image"
-import { getMockEvents } from "./data"
-
 interface ScheduleListViewProps {
   scheduleFilter: string;
 }
 
 export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
-  const myEvents = useMemo(() => getMockEvents(), [])
+  const myEvents = useMemo(() => [
+    {
+      id: 1,
+      name: "Rock Night",
+      date: "2024-12-15",
+      location: "Muggsy's",
+      status: "confirmed",
+      time: "8:00 PM",
+      genre: "Rock",
+      image: "/images/BandFallBack.PNG"
+    },
+    {
+      id: 2,
+      name: "Jazz Evening",
+      date: "2024-12-20",
+      location: "Sarbez",
+      status: "pending",
+      time: "9:00 PM",
+      genre: "Jazz",
+      image: "/images/BandFallBack.PNG"
+    }
+  ], [])
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {

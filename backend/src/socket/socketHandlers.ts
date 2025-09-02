@@ -1,15 +1,12 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { verifyToken, JWTPayload } from '../config/jwt.config.js';
-import { ApiResponse } from '../shared/types.js';
 import { 
   ClientToServerEvents, 
   ServerToClientEvents, 
   SocketAuth,
   SocketMessage,
   SocketGigUpdate,
-  SocketNotification,
-  SocketTypingIndicator,
-  SocketUserPresence
+  SocketNotification
 } from './types.js';
 
 // Extend Socket interface to include user data
@@ -45,16 +42,29 @@ class RateLimiter {
   }
 }
 
-// Message batching class
+// Enhanced Message Batching System
 class MessageBatcher {
   private messageQueue: Map<string, { messages: any[]; timeoutId: NodeJS.Timeout | null }> = new Map();
   private batchTimeout = 100; // ms
+  private maxBatchSize = 10; // Maximum messages per batch
+  private onBatchReady?: (roomId: string, messages: any[], io: SocketIOServer) => void;
+
+  constructor(onBatchReady?: (roomId: string, messages: any[], io: SocketIOServer) => void) {
+    this.onBatchReady = onBatchReady || (() => {});
+  }
 
   addMessage(roomId: string, message: any): void {
     const batch = this.messageQueue.get(roomId);
     
     if (batch) {
       batch.messages.push(message);
+      
+      // Send immediately if batch is full
+      if (batch.messages.length >= this.maxBatchSize) {
+        this.sendBatch(roomId);
+        return;
+      }
+      
       if (batch.timeoutId) {
         clearTimeout(batch.timeoutId);
       }
@@ -70,7 +80,10 @@ class MessageBatcher {
   private sendBatch(roomId: string): void {
     const batch = this.messageQueue.get(roomId);
     if (batch && batch.messages.length > 0) {
-      // Emit batched messages (this will be handled by the socket manager)
+      // Call the batch ready callback if provided
+      if (this.onBatchReady) {
+        this.onBatchReady(roomId, [...batch.messages], this.io);
+      }
       this.messageQueue.delete(roomId);
     }
   }
@@ -81,6 +94,22 @@ class MessageBatcher {
       clearTimeout(batch.timeoutId);
     }
     this.messageQueue.delete(roomId);
+  }
+
+  getBatchSize(roomId: string): number {
+    const batch = this.messageQueue.get(roomId);
+    return batch ? batch.messages.length : 0;
+  }
+
+  flushAllBatches(): void {
+    for (const roomId of this.messageQueue.keys()) {
+      this.sendBatch(roomId);
+    }
+  }
+
+  private io!: SocketIOServer;
+  setIO(io: SocketIOServer): void {
+    this.io = io;
   }
 }
 
@@ -240,11 +269,111 @@ const authenticateSocket = (socket: AuthenticatedSocket, next: (err?: Error) => 
   }
 };
 
+// Memory-Efficient Message Storage
+class MessageStore {
+  private messages: Map<string, CircularBuffer<SocketMessage>> = new Map();
+  private maxMessagesPerRoom = 100;
+  private offlineQueue: Map<string, SocketMessage[]> = new Map();
+
+  addMessage(roomId: string, message: SocketMessage): void {
+    const buffer = this.messages.get(roomId) || new CircularBuffer(this.maxMessagesPerRoom);
+    buffer.add(message);
+    this.messages.set(roomId, buffer);
+  }
+
+  getMessages(roomId: string): SocketMessage[] {
+    const buffer = this.messages.get(roomId);
+    return buffer ? buffer.getAll() : [];
+  }
+
+  addOfflineMessage(userId: string, message: SocketMessage): void {
+    if (!this.offlineQueue.has(userId)) {
+      this.offlineQueue.set(userId, []);
+    }
+    this.offlineQueue.get(userId)!.push(message);
+  }
+
+  getOfflineMessages(userId: string): SocketMessage[] {
+    const messages = this.offlineQueue.get(userId) || [];
+    this.offlineQueue.delete(userId); // Clear after retrieval
+    return messages;
+  }
+
+  clearRoomMessages(roomId: string): void {
+    this.messages.delete(roomId);
+  }
+}
+
+// Real-time Analytics
+class SocketAnalytics {
+  private metrics = {
+    activeConnections: 0,
+    messagesPerSecond: 0,
+    averageLatency: 0,
+    errorRate: 0,
+    totalMessages: 0,
+    startTime: Date.now()
+  };
+
+  private messageTimestamps: number[] = [];
+  private latencyMeasurements: number[] = [];
+  private errorCount = 0;
+
+  trackConnection(): void {
+    this.metrics.activeConnections++;
+  }
+
+  trackDisconnection(): void {
+    this.metrics.activeConnections = Math.max(0, this.metrics.activeConnections - 1);
+  }
+
+  trackMessage(latency?: number): void {
+    this.metrics.totalMessages++;
+    this.messageTimestamps.push(Date.now());
+    
+    if (latency !== undefined) {
+      this.latencyMeasurements.push(latency);
+      this.metrics.averageLatency = 
+        this.latencyMeasurements.reduce((a, b) => a + b, 0) / this.latencyMeasurements.length;
+    }
+
+    // Keep only last 1000 timestamps for rate calculation
+    if (this.messageTimestamps.length > 1000) {
+      this.messageTimestamps = this.messageTimestamps.slice(-1000);
+    }
+  }
+
+  trackError(): void {
+    this.errorCount++;
+    this.metrics.errorRate = this.errorCount / this.metrics.totalMessages;
+  }
+
+  getMetrics() {
+    // Calculate messages per second over last minute
+    const oneMinuteAgo = Date.now() - 60000;
+    const recentMessages = this.messageTimestamps.filter(ts => ts > oneMinuteAgo);
+    this.metrics.messagesPerSecond = recentMessages.length;
+
+    return { ...this.metrics };
+  }
+}
+
 // Socket event handlers
 export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEvents, ServerToClientEvents>) => {
   const roomManager = new RoomManager();
-  const messageBatcher = new MessageBatcher();
+  const messageStore = new MessageStore();
+  const analytics = new SocketAnalytics();
   const rateLimiter = new RateLimiter();
+  
+  // Initialize message batcher with callback
+  const messageBatcher = new MessageBatcher((roomId: string, messages: any[], io: SocketIOServer) => {
+    // Broadcast batched messages efficiently
+    const locationRoom = `location:${roomId}`;
+    io.to(locationRoom).emit('batch-messages', { roomId, messages });
+    analytics.trackMessage();
+  });
+  
+  messageBatcher.setIO(io);
 
   // Apply authentication middleware
   io.use(authenticateSocket);
@@ -268,12 +397,22 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
 
   io.on('connection', (socket: AuthenticatedSocket) => {
     console.log(`✅ User ${socket.user?.email} connected with socket ID: ${socket.id}`);
+    
+    // Track connection in analytics
+    analytics.trackConnection();
 
     // Join user-specific room for notifications
     if (socket.user) {
       const userRoom = `user:${socket.user.userId}`;
       socket.join(userRoom);
       console.log(`📱 User ${socket.user.email} joined room: ${userRoom}`);
+      
+      // Send any offline messages
+      const offlineMessages = messageStore.getOfflineMessages(socket.user.userId);
+      if (offlineMessages.length > 0) {
+        socket.emit('offline-messages', { messages: offlineMessages });
+        console.log(`📬 Sent ${offlineMessages.length} offline messages to ${socket.user.email}`);
+      }
     }
 
     // Handle joining location-specific rooms
@@ -423,6 +562,9 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         room.addMessage(messageData);
       }
 
+      // Store message for persistence
+      messageStore.addMessage(locationId, messageData);
+
       // Batch message for efficient broadcasting
       messageBatcher.addMessage(locationId, messageData);
 
@@ -432,6 +574,9 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       // Broadcast to relevant users only
       const locationRoom = `location:${locationId}`;
       io.to(locationRoom).emit('new-message', messageData);
+      
+      // Track message in analytics
+      analytics.trackMessage();
       
       console.log(`💬 Message from ${socket.user.email} in location ${locationId}: ${message}`);
     });
@@ -555,6 +700,9 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
     socket.on('disconnect', async (reason) => {
       console.log(`❌ User ${socket.user?.email} disconnected: ${reason}`);
       
+      // Track disconnection in analytics
+      analytics.trackDisconnection();
+      
       if (socket.user) {
         // Remove user from all location rooms they were in
         const connectedUsers = roomManager['connectedUsers'];
@@ -567,14 +715,37 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
 
         // Reset rate limit for user
         rateLimiter.resetLimit(socket.user.userId);
+        
+        // Clear any pending batches for this user
+        messageBatcher.clearBatch(socket.user.userId);
       }
     });
 
     // Handle errors
     socket.on('error', (error) => {
       console.error(`Socket error for user ${socket.user?.email}:`, error);
+      analytics.trackError();
     });
   });
+
+  // Add admin endpoint for analytics
+  io.on('admin-analytics', (callback) => {
+    if (typeof callback === 'function') {
+      callback(analytics.getMetrics());
+    }
+  });
+
+  // Periodic analytics logging
+  setInterval(() => {
+    const metrics = analytics.getMetrics();
+    console.log('📊 Socket.IO Analytics:', {
+      activeConnections: metrics.activeConnections,
+      messagesPerSecond: metrics.messagesPerSecond,
+      totalMessages: metrics.totalMessages,
+      errorRate: `${(metrics.errorRate * 100).toFixed(2)}%`,
+      uptime: `${Math.round((Date.now() - metrics.startTime) / 1000)}s`
+    });
+  }, 60000); // Log every minute
 
   console.log('🔌 Optimized Socket.IO handlers configured successfully');
 };

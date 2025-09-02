@@ -8,16 +8,33 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { BarChart3, Building2, TrendingUp, Users, DollarSign, Plus } from "lucide-react"
 import Image from "next/image"
-import { getMyLocations, getMockEvents } from "./data"
-
 export function MoreTab() {
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
   const [newDoorPersonName, setNewDoorPersonName] = useState("")
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
 
-  const myLocations = getMyLocations()
-  const upcomingEvents = getMockEvents()
+  const myLocations = [
+    { id: "muggys", name: "Muggsy's" },
+    { id: "sarbez", name: "Sarbez" },
+    { id: "alfreds", name: "Alfred's" }
+  ]
+  const upcomingEvents = [
+    {
+      id: 1,
+      name: "Rock Night",
+      date: "2024-12-15",
+      location: "Muggsy's",
+      status: "confirmed"
+    },
+    {
+      id: 2,
+      name: "Jazz Evening",
+      date: "2024-12-20",
+      location: "Sarbez",
+      status: "pending"
+    }
+  ]
 
   const filteredLocations = useMemo(() => myLocations, [myLocations])
   const filteredUpcomingEvents = useMemo(() => upcomingEvents, [upcomingEvents])

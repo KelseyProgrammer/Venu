@@ -16,6 +16,7 @@ import { ArtistListing } from "./artist-listing"
 import { RealTimeFanNotifications } from "./real-time-fan-notifications"
 import { RealTimeEventCard } from "./real-time-event-card"
 import { RealTimeEventsGrid } from "./real-time-events-grid"
+import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 
 // Remove unused interface and component
@@ -641,8 +642,8 @@ export function FanDashboard() {
             />
           </div>
 
-          {/* Events Grid */}
-          <RealTimeEventsGrid
+          {/* Events Grid - Vertical Layout for Better Date Prominence */}
+          <VerticalEventsGrid
             events={filteredEvents}
             favoriteEvents={favoriteEvents}
             onToggleFavorite={toggleFavorite}

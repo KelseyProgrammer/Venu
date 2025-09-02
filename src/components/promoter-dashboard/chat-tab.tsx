@@ -3,7 +3,6 @@
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Building2 } from "lucide-react"
-import { getMyLocations } from "./data"
 import { RealTimeChat } from "@/components/real-time-chat"
 import { usePromoterRealTime } from "@/hooks/usePromoterRealTime"
 
@@ -12,7 +11,11 @@ interface ChatTabProps {
 }
 
 export function ChatTab({ selectedLocation }: ChatTabProps) {
-  const myLocations = getMyLocations()
+  const myLocations = [
+    { id: "muggys", name: "Muggsy's" },
+    { id: "sarbez", name: "Sarbez" },
+    { id: "alfreds", name: "Alfred's" }
+  ]
   const { isConnected, error } = usePromoterRealTime({ 
     promoterId: "promoter-123", 
     selectedLocation 

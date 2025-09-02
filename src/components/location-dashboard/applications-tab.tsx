@@ -6,10 +6,36 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Star } from "lucide-react"
 import Image from "next/image"
-import { getArtistApplications } from "./data"
-
 export function ApplicationsTab() {
-  const artistApplications = useMemo(() => getArtistApplications(), [])
+  const artistApplications = useMemo(() => [
+    {
+      id: 1,
+      artist: "The Midnight Keys",
+      genre: "Rock",
+      rating: 4.8,
+      followers: "2.3K",
+      bio: "High-energy rock band with a modern twist. Known for electrifying live performances and original compositions.",
+      image: "/images/BandFallBack.PNG"
+    },
+    {
+      id: 2,
+      artist: "Jazz Collective",
+      genre: "Jazz",
+      rating: 4.6,
+      followers: "1.8K",
+      bio: "Smooth jazz ensemble bringing classic standards and contemporary arrangements to intimate venues.",
+      image: "/images/BandFallBack.PNG"
+    },
+    {
+      id: 3,
+      artist: "Acoustic Dreams",
+      genre: "Folk",
+      rating: 4.7,
+      followers: "3.1K",
+      bio: "Intimate acoustic performances featuring original folk songs and beautiful harmonies.",
+      image: "/images/BandFallBack.PNG"
+    }
+  ], [])
 
   return (
     <div className="space-y-4">
