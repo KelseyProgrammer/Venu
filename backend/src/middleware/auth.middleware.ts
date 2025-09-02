@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../shared/types.js';
 import { verifyToken, JWTPayload, validateJWTConfig } from '../config/jwt.config.js';
+import mongoose from 'mongoose';
 
 declare global {
   namespace Express {
@@ -200,6 +201,15 @@ export const requireGigCreationPermission = async (req: Request, res: Response, 
       const response: ApiResponse<null> = {
         success: false,
         error: 'Location must be specified for gig creation',
+      };
+      return res.status(400).json(response);
+    }
+
+    // Validate that selectedLocation is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(selectedLocation)) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Invalid location ID format',
       };
       return res.status(400).json(response);
     }

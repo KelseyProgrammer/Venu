@@ -2,10 +2,14 @@ import { SplashScreen } from "@/components/splash-screen"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <SplashScreen />
+
+      
+
 
       {/* Quick navigation for demo purposes */}
       <div className="fixed bottom-4 right-4 space-y-2">

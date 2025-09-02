@@ -250,7 +250,25 @@ const authenticateSocket = (socket: AuthenticatedSocket, next: (err?: Error) => 
     const auth = socket.handshake.auth as SocketAuth;
     const token = auth.token || socket.handshake.headers.authorization?.split(' ')[1];
     
+    console.log('🔐 Socket authentication attempt:', {
+      hasAuth: !!auth,
+      hasToken: !!token,
+      tokenLength: token?.length,
+      headers: Object.keys(socket.handshake.headers)
+    });
+    
     if (!token) {
+      console.log('❌ No authentication token provided');
+      // For development, allow connection without token but mark as unauthenticated
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Development mode: allowing unauthenticated connection');
+        socket.user = {
+          userId: 'anonymous',
+          email: 'anonymous@example.com',
+          role: 'anonymous'
+        };
+        return next();
+      }
       return next(new Error('Authentication token required'));
     }
 
@@ -258,13 +276,25 @@ const authenticateSocket = (socket: AuthenticatedSocket, next: (err?: Error) => 
     
     // Validate JWT payload structure
     if (!decoded.userId || !decoded.email || !decoded.role) {
+      console.log('❌ Invalid token payload:', decoded);
       return next(new Error('Invalid token payload'));
     }
     
     socket.user = decoded;
+    console.log('✅ Socket authenticated successfully for:', socket.user.email);
     next();
   } catch (error) {
-    console.error('Socket authentication failed:', error);
+    console.error('❌ Socket authentication failed:', error);
+    // For development, allow connection with anonymous user
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⚠️ Development mode: allowing connection with anonymous user due to auth error');
+      socket.user = {
+        userId: 'anonymous',
+        email: 'anonymous@example.com',
+        role: 'anonymous'
+      };
+      return next();
+    }
     next(new Error('Invalid or expired token'));
   }
 };
@@ -381,7 +411,14 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
   // Apply rate limiting middleware
   io.use((socket: AuthenticatedSocket, next) => {
     if (!socket.user) {
+      console.log('❌ No user found in socket, rejecting connection');
       return next(new Error('Authentication required'));
+    }
+
+    // Allow anonymous users in development
+    if (socket.user.role === 'anonymous' && process.env.NODE_ENV === 'development') {
+      console.log('⚠️ Development mode: allowing anonymous user to connect');
+      return next();
     }
 
     // Rate limiting for message events

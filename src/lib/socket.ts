@@ -296,7 +296,10 @@ class OptimizedSocketManager {
     const connection = this.connections.get(roomId);
     if (connection?.connected) {
       // Emit batched messages to reduce network overhead
-      connection.emit('batch-messages', { roomId, messages });
+      // Note: 'batch-messages' is not a standard Socket.IO event, so we'll use a different approach
+      messages.forEach(message => {
+        connection.emit('new-message', message);
+      });
     }
   }
 
@@ -314,25 +317,54 @@ class OptimizedSocketManager {
 
   private async createConnection(token: string): Promise<Socket<ServerToClientEvents, ClientToServerEvents>> {
     return new Promise((resolve, reject) => {
-      const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      console.log('🔌 Attempting Socket.IO connection to:', backendUrl);
+      console.log('🔐 Token provided:', !!token);
+      
+      const socket = io(backendUrl, {
         auth: { token },
         transports: ['websocket', 'polling'],
         timeout: 20000,
-        forceNew: false // Allow connection reuse
+        forceNew: false, // Allow connection reuse
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
       });
 
+      // Set up connection timeout
+      const connectionTimeout = setTimeout(() => {
+        console.error('❌ Socket.IO connection timeout');
+        reject(new Error('Connection timeout'));
+      }, 25000);
+
       socket.on('connect', () => {
+        clearTimeout(connectionTimeout);
         console.log('✅ Optimized Socket.IO connected');
         resolve(socket);
       });
 
       socket.on('connect_error', (error) => {
+        clearTimeout(connectionTimeout);
         console.error('❌ Optimized Socket.IO connection error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
         reject(error);
       });
 
       socket.on('disconnect', (reason) => {
         console.log('❌ Optimized Socket.IO disconnected:', reason);
+        if (reason === 'io server disconnect') {
+          // Server disconnected us, try to reconnect
+          socket.connect();
+        }
+      });
+
+      socket.on('error', (error) => {
+        console.error('❌ Socket.IO error event:', error);
       });
     });
   }

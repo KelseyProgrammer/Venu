@@ -527,6 +527,20 @@ export function useCurrentUserLocation() {
     fetchCurrentUserLocation();
   }, [fetchCurrentUserLocation]);
 
+  // Listen for gig creation events to refresh data
+  useEffect(() => {
+    const handleGigCreated = () => {
+      console.log('Gig created event received, refreshing data...');
+      fetchCurrentUserLocation();
+    };
+
+    window.addEventListener('gig-created', handleGigCreated);
+    
+    return () => {
+      window.removeEventListener('gig-created', handleGigCreated);
+    };
+  }, [fetchCurrentUserLocation]);
+
   return {
     ...data,
     analytics,

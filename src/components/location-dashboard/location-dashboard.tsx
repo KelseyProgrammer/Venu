@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card"
 import { authUtils } from "@/lib/utils"
 import { AuthDebugPanel } from "@/components/auth-debug-panel"
 
+
 interface LocationDashboardProps {
   locationId?: string;
   currentUserId?: string;
@@ -151,7 +152,12 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
   }, []);
 
   if (showPostGig) {
-    return <PostGigFlow onClose={() => setShowPostGig(false)} />
+    return (
+      <PostGigFlow 
+        onClose={() => setShowPostGig(false)} 
+        locationId={location?._id || ""} 
+      />
+    )
   }
 
   if (showLocationCreation) {
@@ -344,6 +350,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       
       {/* Debug panel for development */}
       <AuthDebugPanel />
+
     </div>
   )
 }

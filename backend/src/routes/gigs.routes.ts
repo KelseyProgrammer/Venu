@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Gig from '../models/Gig.js';
 import { ApiResponse } from '../shared/types.js';
 import { 
@@ -15,12 +16,30 @@ const router = Router();
 // Create new gig - PROTECTED ROUTE (Location owners, authorized promoters, and Admins only)
 router.post('/', authenticateToken, requireGigCreationPermission, async (req: Request, res: Response) => {
   try {
+
+    console.log('User:', req.user);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Convert string IDs to ObjectIds for MongoDB references
     const gigData = {
       ...req.body,
-      createdBy: req.user!.userId // Ensure the creator is set from JWT
+      createdBy: req.user!.userId,
+      selectedLocation: req.body.selectedLocation ? new mongoose.Types.ObjectId(req.body.selectedLocation) : undefined,
+      selectedPromoter: req.body.selectedPromoter ? new mongoose.Types.ObjectId(req.body.selectedPromoter) : undefined,
+      // Only convert selectedDoorPerson to ObjectId if it's a valid MongoDB ObjectId (not "self" or empty)
+      selectedDoorPerson: req.body.selectedDoorPerson && 
+                         req.body.selectedDoorPerson !== "self" && 
+                         req.body.selectedDoorPerson !== "" && 
+                         mongoose.Types.ObjectId.isValid(req.body.selectedDoorPerson) ? 
+                         new mongoose.Types.ObjectId(req.body.selectedDoorPerson) : undefined,
     };
+    
+    console.log('Processed gig data:', JSON.stringify(gigData, null, 2));
+    
     const gig = new Gig(gigData);
+    console.log('Gig model created, attempting to save...');
     await gig.save();
+    console.log('Gig saved successfully!');
 
     const response: ApiResponse<any> = {
       success: true,
@@ -30,10 +49,30 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Create gig error:', error);
+    console.error('=== GIG CREATION ERROR ===');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error object:', error);
+    
+    // Provide more specific error messages based on error type
+    let errorMessage = 'Internal server error';
+    
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Validation error: ' + error.message;
+    } else if (error.name === 'CastError') {
+      errorMessage = 'Invalid data format: ' + error.message;
+    } else if (error.name === 'BSONError') {
+      errorMessage = 'Invalid ID format: ' + error.message;
+    } else if (error.name === 'MongoError' && error.code === 11000) {
+      errorMessage = 'Duplicate entry found';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     const response: ApiResponse<null> = {
       success: false,
-      error: 'Internal server error',
+      error: errorMessage,
     };
     res.status(500).json(response);
   }

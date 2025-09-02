@@ -16,9 +16,10 @@ import { authUtils } from "@/lib/utils"
 
 interface PostGigFlowProps {
   onClose: () => void;
+  locationId?: string; // Add locationId prop
 }
 
-export function PostGigFlow({ onClose }: PostGigFlowProps) {
+export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const socket = useSocket()
   
@@ -176,6 +177,63 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         return;
       }
 
+      // Validate required fields before sending
+      if (!locationId) {
+        alert('No location found. Please create a location profile first.');
+        return;
+      }
+      
+      // If "self" is selected as door person, use current user's email
+      let finalDoorPersonEmail = doorPersonEmail;
+      if (selectedDoorPerson === "self") {
+        // Get current user's email from token or localStorage
+        const token = authUtils.getAuthToken();
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            finalDoorPersonEmail = payload.email;
+          } catch (error) {
+            console.error('Failed to extract email from token:', error);
+            alert('Unable to get your email address. Please enter your email manually.');
+            return;
+          }
+        } else {
+          alert('Please enter your email address for door person duties.');
+          return;
+        }
+      }
+      
+      if (!finalDoorPersonEmail || !finalDoorPersonEmail.trim()) {
+        alert('Door person email is required.');
+        return;
+      }
+      
+      if (bands.length === 0) {
+        alert('At least one band is required.');
+        return;
+      }
+
+      // Validate band data
+      for (let i = 0; i < bands.length; i++) {
+        const band = bands[i];
+        if (!band.name || !band.name.trim()) {
+          alert(`Band ${i + 1} name is required.`);
+          return;
+        }
+        if (!band.email || !band.email.trim()) {
+          alert(`Band ${i + 1} email is required.`);
+          return;
+        }
+        if (!band.genre || !band.genre.trim()) {
+          alert(`Band ${i + 1} genre is required.`);
+          return;
+        }
+        if (!band.setTime || !band.setTime.trim()) {
+          alert(`Band ${i + 1} set time is required.`);
+          return;
+        }
+      }
+
       // Create gig data object for backend API
       const gigData = {
         eventName,
@@ -192,11 +250,12 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
           percentage: parseFloat(band.percentage) || 0,
           email: band.email
         })),
-        promoterPercentage: parseFloat(promoterPercentage) || 0,
-        selectedDoorPerson,
-        doorPersonEmail,
-        requirements: requirements.map(req => ({
-          text: req.text,
+        ...(promoterPercentage && { promoterPercentage: parseFloat(promoterPercentage) || 0 }), // Only include if defined
+        ...(selectedPromoter && { selectedPromoter }), // Only include if defined
+        ...(selectedDoorPerson && { selectedDoorPerson }), // Only include if defined
+        doorPersonEmail: finalDoorPersonEmail.trim(),
+        requirements: requirements.filter(req => req.text.trim()).map(req => ({
+          text: req.text.trim(),
           checked: req.checked
         })),
         numberOfBands: Math.max(bands.length, 1), // Ensure at least 1 band
@@ -205,17 +264,23 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         ticketsSold: 0,
         rating: 0,
         image: '/images/venu-logo.png', // Default image
-        selectedLocation: "68b71511c22812d0788af654", // Default location ID - this should be dynamic
+        selectedLocation: locationId, // Use dynamic location ID
         bonusTiers: {
-          tier1: { amount: 0, threshold: 0, color: '#8B5CF6' },
-          tier2: { amount: 0, threshold: 0, color: '#8B5CF6' },
-          tier3: { amount: 0, threshold: 0, color: '#8B5CF6' }
+          tier1: { amount: 10, threshold: 50, color: '#8B5CF6' },
+          tier2: { amount: 25, threshold: 100, color: '#8B5CF6' },
+          tier3: { amount: 50, threshold: 200, color: '#8B5CF6' }
         }
       }
 
       // Call the backend API to create the gig
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
       const token = authUtils.getAuthToken();
+      
+
+      console.log('Gig data being sent:', JSON.stringify(gigData, null, 2));
+      console.log('API URL:', API_BASE_URL);
+      console.log('Token exists:', !!token);
+      
       const response = await fetch(`${API_BASE_URL}/gigs`, {
         method: 'POST',
         headers: {
@@ -237,20 +302,32 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
           alert('Your session has expired. Please log in again.');
           window.location.href = '/';
           return;
+        } else if (response.status === 400) {
+          const errorMessage = errorData.error || errorData.message || 'Invalid request data';
+          alert(`Validation error: ${errorMessage}. Please check your input and try again.`);
+          return;
         } else {
-          throw new Error(`Failed to create gig: ${errorData.error || response.statusText}`);
+          const errorMessage = errorData.error || errorData.message || response.statusText;
+          console.error('Full error response:', errorData);
+          alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
+          return;
         }
       }
 
       const result = await response.json()
       const createdGig = result.data
+      
+      console.log('✅ Gig created successfully:', createdGig)
+      console.log('✅ Gig ID:', createdGig._id)
+      console.log('✅ Gig name:', createdGig.eventName)
+      console.log('✅ Gig date:', createdGig.eventDate)
 
       // Send real-time gig update via Socket.io
       if (socket.connected) {
         // Send schedule update to location dashboard
         if (socketManager.getSocket()) {
           socketManager.getSocket()!.emit('schedule-update', {
-            locationId: createdGig.selectedLocation || "68b71511c22812d0788af654",
+            locationId: createdGig.selectedLocation || locationId,
             gigId: createdGig._id,
             action: 'created',
             gigData: createdGig
@@ -258,7 +335,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         }
         
         // Send general gig update
-        socket.sendGigUpdate(createdGig._id, "68b71511c22812d0788af654", "created", createdGig)
+        socket.sendGigUpdate(createdGig._id, createdGig.selectedLocation || locationId, "created", createdGig)
         
         // Send notifications to relevant users
         bands.forEach(band => {
@@ -285,7 +362,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         }
 
         // Notify door person if selected
-        if (selectedDoorPerson && doorPersonEmail) {
+        if (selectedDoorPerson && finalDoorPersonEmail) {
           socket.sendNotification(
             "door-person-user-id", // This would be the actual door person's user ID
             "gig-invitation",
@@ -299,6 +376,14 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       // Reset and close
       resetForm()
       onClose()
+      
+      // Force refresh of gigs data to show the new gig in schedule
+      if (typeof window !== 'undefined') {
+        // Dispatch a custom event to trigger refresh
+        window.dispatchEvent(new CustomEvent('gig-created', { 
+          detail: { gigId: createdGig._id } 
+        }))
+      }
     } catch (error) {
       console.error('Error creating gig:', error)
       // Show more specific error message

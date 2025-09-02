@@ -12,10 +12,11 @@ const connectDB = async (): Promise<void> => {
     }
 
     // Fix the broken MONGODB_URI if it has line breaks
-    mongoURI = mongoURI.replace(/\s+/g, '');
+    mongoURI = mongoURI.replace(/\n/g, '').replace(/\r/g, '');
     
     console.log('🔌 Attempting to connect to MongoDB...');
     console.log('📡 URI:', mongoURI.substring(0, 50) + '...');
+
 
     const options = {
       // These options help with connection stability
