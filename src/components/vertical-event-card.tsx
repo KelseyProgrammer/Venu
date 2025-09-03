@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, Ticket, DollarSign, MapPin, Star, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { getLocationDisplayName } from '@/lib/location-data';
+import { timeUtils } from '@/lib/utils';
 import { useFanRealTime } from '@/hooks/useFanRealTime';
 
 interface Event {
@@ -143,7 +144,7 @@ export function VerticalEventCard({
           <div className="bg-purple-600 text-white rounded-lg p-4 min-w-[80px]">
             <div className="text-2xl font-bold">{dayOfWeek}</div>
             <div className="text-sm font-medium">{monthDay}</div>
-            <div className="text-xs mt-1 opacity-90">{event.time}</div>
+            <div className="text-xs mt-1 opacity-90">{timeUtils.formatTime12Hour(event.time)}</div>
           </div>
           {isLowStock && (
             <Badge variant="destructive" className="text-xs mt-2 w-full">

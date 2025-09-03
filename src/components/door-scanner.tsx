@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Camera, CheckCircle, XCircle, Users, TrendingUp } from "lucide-react"
+import { timeUtils } from '@/lib/utils'
 
 export function DoorScanner() {
   const [isScanning, setIsScanning] = useState(false)
@@ -46,7 +47,7 @@ export function DoorScanner() {
             {event.name} at {event.location}
           </p>
           <p>
-            {event.date} - {event.time}
+            {event.date} - {timeUtils.formatTime12Hour(event.time)}
           </p>
         </div>
       </div>

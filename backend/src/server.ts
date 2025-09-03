@@ -8,6 +8,7 @@ import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
 import artistsRoutes from "./routes/artists.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
 import connectDB from "./config/database.js";
 import { setupOptimizedSocketHandlers } from "./socket/socketHandlers.js";
 import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
@@ -59,6 +60,8 @@ app.use("/api/locations", locationsRoutes);
 console.log('✅ Location routes registered');
 app.use("/api/artists", artistsRoutes);
 console.log('✅ Artist routes registered');
+app.use("/api/upload", uploadRoutes);
+console.log('✅ Upload routes registered');
 console.log('🔧 All routes registered successfully');
 
 // Root endpoint
@@ -71,7 +74,8 @@ app.get("/", (_req: Request, res: Response) => {
       users: "/api/users",
       gigs: "/api/gigs",
       locations: "/api/locations",
-      artists: "/api/artists"
+      artists: "/api/artists",
+      upload: "/api/upload"
     }
   });
 });

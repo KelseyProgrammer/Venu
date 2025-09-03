@@ -316,6 +316,22 @@ export const artistApi = {
   },
 };
 
+// Upload API functions
+export const uploadApi = {
+  async uploadImage(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    return apiRequest<{ url: string; filename: string }>('/upload/image', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // Don't set Content-Type, let the browser set it with the boundary
+      },
+    });
+  },
+};
+
 // Location API functions
 export const locationApi = {
   async getAllLocations(params?: {

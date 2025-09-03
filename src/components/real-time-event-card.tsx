@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, Ticket, DollarSign, Calendar, Clock, MapPin, Star, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { getLocationDisplayName } from '@/lib/location-data';
+import { timeUtils } from '@/lib/utils';
 import { useFanRealTime } from '@/hooks/useFanRealTime';
 
 interface Event {
@@ -182,7 +183,7 @@ export function RealTimeEventCard({
             </div>
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>{event.time}</span>
+              <span>{timeUtils.formatTime12Hour(event.time)}</span>
             </div>
           </div>
           

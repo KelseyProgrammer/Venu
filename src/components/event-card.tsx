@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Star, Users, Heart, Ticket } from "lucide-react"
 import Image from "next/image"
 import { getLocationDisplayName } from "@/lib/location-data"
+import { timeUtils } from "@/lib/utils"
 
 interface Event {
   id: number
@@ -81,7 +82,7 @@ export function EventCard({
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            {event.time}
+            {timeUtils.formatTime12Hour(event.time)}
           </div>
         </div>
         

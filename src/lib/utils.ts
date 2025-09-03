@@ -5,6 +5,53 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Time formatting utilities
+export const timeUtils = {
+  /**
+   * Convert 24-hour time to 12-hour format
+   */
+  formatTime12Hour(time24: string): string {
+    try {
+      // Handle various time formats
+      let time = time24.trim()
+      
+      // If it's already in 12-hour format, return as is
+      if (time.includes('AM') || time.includes('PM')) {
+        return time
+      }
+      
+      // If it's in 24-hour format (HH:MM), convert it
+      if (time.includes(':')) {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours, 10)
+        const minute = parseInt(minutes, 10)
+        
+        if (isNaN(hour) || isNaN(minute)) {
+          return time24 // Return original if parsing fails
+        }
+        
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:${minutes.padStart(2, '0')} ${period}`
+      }
+      
+      // If it's just hours (e.g., "20"), convert it
+      const hour = parseInt(time, 10)
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:00 ${period}`
+      }
+      
+      return time24 // Return original if no conversion possible
+    } catch (error) {
+      return time24 // Return original if any error occurs
+    }
+  }
+}
+
 // Authentication utilities
 export const authUtils = {
   /**

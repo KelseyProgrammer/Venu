@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download } from "lucide-react"
 import Image from "next/image"
 import { getLocationDisplayName } from "@/lib/location-data"
+import { timeUtils } from "@/lib/utils"
 
 interface TicketPurchaseProps {
   eventId: string
@@ -174,7 +175,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
                     <Calendar className="w-4 h-4" />
                     {event.date}
                   </span>
-                  <span>{event.time}</span>
+                  <span>{timeUtils.formatTime12Hour(event.time)}</span>
                 </div>
               </div>
 
@@ -258,7 +259,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  {event.date} - {event.time}
+                  {event.date} - {timeUtils.formatTime12Hour(event.time)}
                 </span>
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">

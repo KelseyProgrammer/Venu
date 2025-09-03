@@ -104,14 +104,25 @@ export function AuthFlow() {
   const handleCreateAccount = async () => {
     if (!selectedRole) return;
     
+    // Client-side validation
+    if (!signupData.name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    
+    const nameParts = signupData.name.trim().split(' ').filter(part => part.length > 0);
+    if (nameParts.length < 2) {
+      setError('Please enter your full name (first and last name)');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
       // Split name into first and last name
-      const nameParts = signupData.name.trim().split(' ');
       const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      const lastName = nameParts.slice(1).join(' ') || 'User'; // Default to 'User' if no last name
       
       // Register the user
       const response = await authApi.register({
@@ -778,7 +789,7 @@ export function AuthFlow() {
                       id="signup-name" 
                       value={signupData.name}
                       onChange={(e) => setSignupData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Your name" 
+                      placeholder="First and last name" 
                       className="mt-2 bg-input border-border text-foreground"
                       autoComplete="name"
                       required

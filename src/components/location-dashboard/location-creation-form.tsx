@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, MapPin, Users } from "lucide-react"
 import { locationApi } from "@/lib/api"
+import { ImageUpload } from "@/components/ui/image-upload"
 
 interface LocationCreationFormProps {
   onClose: () => void;
@@ -30,11 +31,16 @@ export function LocationCreationForm({ onClose, onSuccess }: LocationCreationFor
     contactEmail: "",
     contactPhone: "",
     amenities: [] as string[],
-    tags: [] as string[]
+    tags: [] as string[],
+    profileImage: ""
   })
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleImageChange = (value: string) => {
+    setFormData(prev => ({ ...prev, profileImage: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +62,8 @@ export function LocationCreationForm({ onClose, onSuccess }: LocationCreationFor
         contactEmail: formData.contactEmail,
         contactPhone: formData.contactPhone,
         amenities: formData.amenities,
-        tags: formData.tags
+        tags: formData.tags,
+        images: formData.profileImage ? [formData.profileImage] : []
       })
 
       if (response.success) {
@@ -174,6 +181,16 @@ export function LocationCreationForm({ onClose, onSuccess }: LocationCreationFor
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Tell us about your venue..."
                   rows={3}
+                />
+              </div>
+
+              {/* Profile Image Upload */}
+              <div>
+                <ImageUpload
+                  label="Profile Picture (Optional)"
+                  value={formData.profileImage}
+                  onChange={handleImageChange}
+                  placeholder="Upload a profile picture for your venue"
                 />
               </div>
             </div>

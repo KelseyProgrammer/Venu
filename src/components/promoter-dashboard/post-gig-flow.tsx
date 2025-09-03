@@ -13,6 +13,7 @@ import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/cons
 import { Band, Requirement } from "../location-dashboard/types"
 import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
 import { authUtils } from "@/lib/utils"
+import { ImageUpload } from "@/components/ui/image-upload"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -49,6 +50,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
   
   const [guarantee, setGuarantee] = useState("")
   const [numberOfBands, setNumberOfBands] = useState("")
+  const [gigImage, setGigImage] = useState("")
 
   // Memoized calculations
   const bandsTotal = useMemo(() => 
@@ -158,6 +160,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
     setBands([])
     setGuarantee("")
     setBandEmail("")
+    setGigImage("")
   }, [])
 
   const handlePublish = useCallback(async () => {
@@ -184,7 +187,8 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       })),
       guarantee: parseFloat(guarantee),
       numberOfBands: parseInt(numberOfBands) || bands.length,
-      bonusTiers: generateDefaultBonusTiers(), // Add default bonus tiers
+      bonusTiers: generateDefaultBonusTiers(),
+      image: gigImage || "/images/venu-logo.png", // Add default bonus tiers
       status: "posted" as const
     };
 
@@ -484,6 +488,16 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
               <p className="text-xs text-muted-foreground mt-1">
                 Total number of bands expected for this gig
               </p>
+            </div>
+
+            {/* Gig Image Upload */}
+            <div>
+              <ImageUpload
+                label="Event Image (Optional)"
+                value={gigImage}
+                onChange={setGigImage}
+                placeholder="Upload an image for this event"
+              />
             </div>
           </div>
         </Card>
