@@ -24,7 +24,7 @@ interface Event {
   image: string
   tags: string[]
   numberOfBands?: number // Total expected bands
-  bands?: any[] // Array of confirmed bands
+  bands?: Array<{ id: string; name: string; genre: string }> // Array of confirmed bands
 }
 
 interface EventCardProps {

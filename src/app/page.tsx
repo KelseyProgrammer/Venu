@@ -13,6 +13,11 @@ export default function HomePage() {
 
       {/* Quick navigation for demo purposes */}
       <div className="fixed bottom-4 right-4 space-y-2">
+        <Link href="/demo">
+          <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+            Multi-Profile Demo
+          </Button>
+        </Link>
         <Link href="/artist">
           <Button variant="outline" size="sm">
             Artist Dashboard

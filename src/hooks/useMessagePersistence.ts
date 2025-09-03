@@ -20,7 +20,7 @@ interface UseMessagePersistenceReturn {
 
 export const useMessagePersistence = ({
   userId,
-  locationId,
+  // locationId, // Remove unused parameter
   enabled = true
 }: UseMessagePersistenceProps): UseMessagePersistenceReturn => {
   const [offlineMessages, setOfflineMessages] = useState<SocketMessage[]>([]);
@@ -94,14 +94,14 @@ export const useMessagePersistence = ({
     localStorage.removeItem(`room-messages-${roomId}`);
   }, [enabled]);
 
-  // Store message for a specific room
-  const storeRoomMessage = useCallback((roomId: string, message: SocketMessage) => {
-    if (!enabled || !roomId) return;
+  // Store message for a specific room - commented out since unused
+  // const storeRoomMessage = useCallback((roomId: string, message: SocketMessage) => {
+  //   if (!enabled || !roomId) return;
 
-    const existing = getStoredMessages(roomId);
-    const updated = [...existing, message].slice(-100); // Keep last 100 messages per room
-    localStorage.setItem(`room-messages-${roomId}`, JSON.stringify(updated));
-  }, [enabled, getStoredMessages]);
+  //   const existing = getStoredMessages(roomId);
+  //   const updated = [...existing, message].slice(-100); // Keep last 100 messages per room
+  //   localStorage.setItem(`room-messages-${roomId}`, JSON.stringify(updated));
+  // }, [enabled, getStoredMessages]);
 
   // Auto-clear offline messages when user comes online
   useEffect(() => {
@@ -117,6 +117,7 @@ export const useMessagePersistence = ({
         return () => clearTimeout(timer);
       }
     }
+    return undefined;
   }, [offlineMessages, clearOfflineMessages]);
 
   return {

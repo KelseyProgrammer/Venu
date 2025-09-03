@@ -16,7 +16,7 @@ interface ScheduleTabProps {
   onRefreshGigs: () => void;
 }
 
-export function ScheduleTab({ locationId, location, gigs, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
+export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
 

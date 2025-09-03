@@ -167,7 +167,7 @@ async function apiRequest<T>(
       return {
         success: false,
         error: data.error || data.message || `Request failed with status ${response.status}`,
-        data: undefined
+        data: undefined as T
       };
     }
 
@@ -180,7 +180,7 @@ async function apiRequest<T>(
       return {
         success: false,
         error: 'Network error - please check your connection',
-        data: undefined
+        data: undefined as T
       };
     }
     

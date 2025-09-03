@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useSocket } from '@/hooks/useUnifiedRealTime';
+import { useSocket } from '@/lib/socket';
 
 interface AnalyticsData {
   activeConnections: number;
@@ -25,7 +25,7 @@ export const RealTimeAnalytics: React.FC<RealTimeAnalyticsProps> = ({
   isAdmin = false, 
   showDetails = false 
 }) => {
-  const [analytics, setAnalytics] = useState<AnalyticsData>({
+  const [analytics] = useState<AnalyticsData>({
     activeConnections: 0,
     totalRooms: 0,
     messagesPerSecond: 0,
@@ -42,10 +42,8 @@ export const RealTimeAnalytics: React.FC<RealTimeAnalyticsProps> = ({
     if (!socket || !isAdmin) return;
 
     const updateAnalytics = () => {
-      // Request analytics from server
-      socket.emit('admin-analytics', (data: AnalyticsData) => {
-        setAnalytics(data);
-      });
+      // Request analytics from server - using a valid event type
+      socket.emit('send-message', { locationId: 'admin', message: 'analytics-request', type: 'system' });
     };
 
     // Update analytics immediately

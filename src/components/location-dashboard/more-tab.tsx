@@ -13,7 +13,7 @@ import { LocationAnalytics } from "@/hooks/useLocation"
 interface MoreTabProps {
   location?: LocationProfile | null;
   analytics?: LocationAnalytics | null;
-  authorizedPromoters?: any[];
+  authorizedPromoters?: Array<{ id: string; name: string; email: string }>;
 }
 
 export function MoreTab({ location, analytics, authorizedPromoters }: MoreTabProps) {
@@ -66,13 +66,13 @@ export function MoreTab({ location, analytics, authorizedPromoters }: MoreTabPro
       </div>
 
       {/* Analytics Subcategory */}
-      {moreSubcategory === "analytics" && <MoreAnalytics analytics={analytics} />}
+      {moreSubcategory === "analytics" && <MoreAnalytics analytics={analytics || null} />}
 
       {/* Settings Subcategory */}
-      {moreSubcategory === "settings" && <MoreSettings location={location} authorizedPromoters={authorizedPromoters} />}
+      {moreSubcategory === "settings" && <MoreSettings location={location || null} authorizedPromoters={authorizedPromoters || []} />}
 
       {/* Reports Subcategory */}
-      {moreSubcategory === "reports" && <MoreReports analytics={analytics} />}
+      {moreSubcategory === "reports" && <MoreReports />}
 
       {/* Support Subcategory */}
       {moreSubcategory === "support" && <MoreSupport />}

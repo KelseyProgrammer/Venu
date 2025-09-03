@@ -54,8 +54,6 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
   
   const [guarantee, setGuarantee] = useState("")
   const [numberOfBands, setNumberOfBands] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [gigImage, setGigImage] = useState("")
 
   // Memoized calculations
@@ -206,8 +204,9 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       image: gigImage || "/images/venu-logo.png"
     };
 
-    setSubmitting(true);
-    setError(null);
+    // Remove the setSubmitting and setError calls since we removed those state variables
+    // setSubmitting(true);
+    // setError(null);
 
     try {
       // Call the backend API to create the gig
@@ -318,7 +317,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create gig';
       alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
     } finally {
-      setSubmitting(false);
+      // Remove setSubmitting since we removed that state variable
+      // setSubmitting(false);
     }
   }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket])
 

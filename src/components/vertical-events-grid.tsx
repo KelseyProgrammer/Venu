@@ -38,9 +38,7 @@ export function VerticalEventsGrid({
   favoriteEvents, 
   onToggleFavorite, 
   onBuyTickets,
-  userId,
-  showDescription = true,
-  buttonVariant = "default"
+  userId
 }: VerticalEventsGridProps) {
   return (
     <div className="space-y-4">

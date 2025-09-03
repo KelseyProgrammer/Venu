@@ -65,7 +65,7 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     clearOfflineMessages,
     storeOfflineMessage,
     getStoredMessages
-  } = useMessagePersistence({ userId, locationId });
+  } = useMessagePersistence({ userId, locationId: locationId || "" });
   
   // Shared state across all dashboards
   const [notifications, setNotifications] = useState<SocketNotification[]>([]);

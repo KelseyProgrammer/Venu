@@ -202,9 +202,9 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
               >
                 Go to Login
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Don't have an account? <a href="/" className="text-purple-600 hover:underline">Sign up here</a>
-              </p>
+                              <p className="text-sm text-muted-foreground">
+                  Don&apos;t have an account? <a href="/" className="text-purple-600 hover:underline">Sign up here</a>
+                </p>
             </div>
           ) : isNoLocationError ? (
             <div className="space-y-4">

@@ -45,7 +45,7 @@ export function MoreAnalytics({ analytics }: MoreAnalyticsProps) {
           <Card className="p-4 bg-card border-border">
             <h4 className="font-semibold text-foreground mb-3">Top Genres</h4>
             <div className="space-y-2">
-              {analytics.topGenres.map((genre, index) => (
+              {analytics.topGenres.map((genre) => (
                 <div key={genre.genre} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Music className="w-4 h-4 text-muted-foreground" />

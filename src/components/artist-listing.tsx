@@ -115,7 +115,7 @@ export function ArtistListing({
   useEffect(() => {
     setPage(1)
     loadArtists(1, true)
-  }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder])
+  }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, loadArtists])
 
   // Load more artists
   const loadMore = () => {

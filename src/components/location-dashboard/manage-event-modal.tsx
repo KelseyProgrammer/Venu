@@ -42,7 +42,7 @@ export function ManageEventModal({ event, isOpen, onClose, onRefresh }: ManageEv
   const formatTime12Hour = (time24: string): string => {
     try {
       // Handle various time formats
-      let time = time24.trim()
+      const time = time24.trim()
       
       // If it's already in 12-hour format, return as is
       if (time.includes('AM') || time.includes('PM')) {
@@ -75,7 +75,7 @@ export function ManageEventModal({ event, isOpen, onClose, onRefresh }: ManageEv
       }
       
       return time24 // Return original if no conversion possible
-    } catch (error) {
+    } catch {
       return time24 // Return original if any error occurs
     }
   }
@@ -354,7 +354,7 @@ export function ManageEventModal({ event, isOpen, onClose, onRefresh }: ManageEv
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the event "{event.eventName}" and remove all associated data from our servers.
+              This action cannot be undone. This will permanently delete the event &quot;{event.eventName}&quot; and remove all associated data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

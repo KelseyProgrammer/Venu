@@ -135,7 +135,7 @@ class MessageBatcher {
   private onBatchReady?: (roomId: string, messages: any[]) => void;
 
   constructor(onBatchReady?: (roomId: string, messages: any[]) => void) {
-    this.onBatchReady = onBatchReady;
+    this.onBatchReady = onBatchReady || (() => {});
   }
 
   addMessage(roomId: string, message: any): void {
@@ -187,7 +187,8 @@ class MessageBatcher {
   }
 
   flushAllBatches(): void {
-    for (const roomId of this.messageQueue.keys()) {
+    const roomIds = Array.from(this.messageQueue.keys());
+    for (const roomId of roomIds) {
       this.sendBatch(roomId);
     }
   }
@@ -298,7 +299,7 @@ class OptimizedSocketManager {
       // Emit batched messages to reduce network overhead
       // Note: 'batch-messages' is not a standard Socket.IO event, so we'll use a different approach
       messages.forEach(message => {
-        connection.emit('new-message', message);
+        connection.emit('send-message', message);
       });
     }
   }
@@ -526,7 +527,8 @@ class OptimizedSocketManager {
   private calculateMemoryUsage(): number {
     // Calculate approximate memory usage
     let totalMessages = 0;
-    for (const [_, buffer] of this.messageStore['messages']) {
+    const messages = Array.from(this.messageStore['messages']);
+    for (const [_, buffer] of messages) {
       totalMessages += buffer.getSize();
     }
     return totalMessages * 0.001; // Rough estimate in MB

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { locationApi, gigApi, authApi, LocationProfile, GigProfile, ApiResponse, User, apiUtils } from '@/lib/api';
+import { locationApi, gigApi, authApi, LocationProfile, GigProfile, apiUtils } from '@/lib/api';
 
 export interface LocationData {
   location: LocationProfile | null;
@@ -342,7 +342,7 @@ export function useCurrentUserLocation() {
       }
 
       // Get the user's location
-      const locationResponse = await locationApi.getLocationByUserId(user._id || user.id);
+      const locationResponse = await locationApi.getLocationByUserId(user._id || user.id || "");
       if (!locationResponse.success) {
         // Check if it's a 404 error (location not found)
         if (locationResponse.error?.includes('Location not found') || locationResponse.error?.includes('404')) {

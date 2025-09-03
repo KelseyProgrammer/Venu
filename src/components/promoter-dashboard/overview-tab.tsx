@@ -15,9 +15,9 @@ interface OverviewTabProps {
 export function OverviewTab({ searchQuery, onSearchChange, selectedLocation }: OverviewTabProps) {
   // Memoize data fetching to prevent unnecessary re-renders
   const myLocations = useMemo(() => [
-    { id: "muggys", name: "Muggsy's" },
-    { id: "sarbez", name: "Sarbez" },
-    { id: "alfreds", name: "Alfred's" }
+    { id: "muggys", name: "Muggsy's", location: "St. Augustine, FL", type: "Bar", revenue: "$2,500", capacity: 100, image: "/images/MUGS.jpeg", instagram: "@muggys", eventsCount: 12 },
+    { id: "sarbez", name: "Sarbez", location: "St. Augustine, FL", type: "Restaurant", revenue: "$1,800", capacity: 80, image: "/images/SARBEZ.jpg", instagram: "@sarbez", eventsCount: 8 },
+    { id: "alfreds", name: "Alfred's", location: "St. Augustine, FL", type: "Venue", revenue: "$3,200", capacity: 150, image: "/images/Alfreds.jpg", instagram: "@alfreds", eventsCount: 15 }
   ], [])
   const allEvents = useMemo(() => [
     {
@@ -25,14 +25,18 @@ export function OverviewTab({ searchQuery, onSearchChange, selectedLocation }: O
       name: "Rock Night",
       date: "2024-12-15",
       location: "Muggsy's",
-      status: "confirmed"
+      status: "confirmed",
+      artist: "The Midnight Keys",
+      genre: "Rock"
     },
     {
       id: 2,
       name: "Jazz Evening",
       date: "2024-12-20",
       location: "Sarbez",
-      status: "pending"
+      status: "pending",
+      artist: "Jazz Collective",
+      genre: "Jazz"
     }
   ], [])
   const allArtistApplications = useMemo(() => [

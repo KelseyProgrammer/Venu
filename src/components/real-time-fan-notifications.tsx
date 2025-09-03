@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Ticket, DollarSign, Calendar, Music, X, Check } from 'lucide-react';
-import { useFanRealTime, FanTicketUpdate, FanPriceUpdate, FanEventStatusUpdate, FanArtistNotification } from '@/hooks/useFanRealTime';
+import { useFanRealTime } from '@/hooks/useFanRealTime';
 
 interface RealTimeFanNotificationsProps {
   userId: string;
@@ -39,16 +39,7 @@ export function RealTimeFanNotifications({
     favoriteEvents
   });
 
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'ticket' | 'price' | 'status' | 'artist';
-    title: string;
-    message: string;
-    timestamp: Date;
-    read: boolean;
-  }>>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tickets' | 'prices' | 'status' | 'artists'>('tickets');
 
   // Auto-hide notifications after 5 seconds
   useEffect(() => {
@@ -57,26 +48,12 @@ export function RealTimeFanNotifications({
       const timer = setTimeout(() => setShowNotifications(false), 5000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [lastTicketUpdate, lastPriceUpdate, lastEventStatusUpdate, unreadArtistNotifications]);
 
   if (!isConnected) {
     return null; // Don't show notifications if not connected
   }
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'ticket':
-        return <Ticket className="w-4 h-4" />;
-      case 'price':
-        return <DollarSign className="w-4 h-4" />;
-      case 'status':
-        return <Calendar className="w-4 h-4" />;
-      case 'artist':
-        return <Music className="w-4 h-4" />;
-      default:
-        return <Bell className="w-4 h-4" />;
-    }
-  };
 
   const getStatusColor = (statusType: string) => {
     switch (statusType) {

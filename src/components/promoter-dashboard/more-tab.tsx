@@ -14,30 +14,29 @@ export function MoreTab() {
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
 
-  const myLocations = [
-    { id: "muggys", name: "Muggsy's" },
-    { id: "sarbez", name: "Sarbez" },
-    { id: "alfreds", name: "Alfred's" }
-  ]
-  const upcomingEvents = [
+  const filteredLocations = useMemo(() => [
+    { id: "muggys", name: "Muggsy's", revenue: "$2,500", image: "/images/MUGS.jpeg", location: "St. Augustine, FL", eventsCount: 12 },
+    { id: "sarbez", name: "Sarbez", revenue: "$1,800", image: "/images/SARBEZ.jpg", location: "St. Augustine, FL", eventsCount: 8 },
+    { id: "alfreds", name: "Alfred's", revenue: "$3,200", image: "/images/Alfreds.jpg", location: "St. Augustine, FL", eventsCount: 15 }
+  ], [])
+  const filteredUpcomingEvents = useMemo(() => [
     {
       id: 1,
       name: "Rock Night",
       date: "2024-12-15",
       location: "Muggsy's",
-      status: "confirmed"
+      status: "confirmed",
+      ticketsSold: 45
     },
     {
       id: 2,
       name: "Jazz Evening",
       date: "2024-12-20",
       location: "Sarbez",
-      status: "pending"
+      status: "pending",
+      ticketsSold: 32
     }
-  ]
-
-  const filteredLocations = useMemo(() => myLocations, [myLocations])
-  const filteredUpcomingEvents = useMemo(() => upcomingEvents, [upcomingEvents])
+  ], [])
 
   const addDoorPerson = () => {
     if (newDoorPersonName.trim() && newDoorPersonEmail.trim()) {

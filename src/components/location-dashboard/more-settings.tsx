@@ -11,7 +11,7 @@ import { useLocation } from "@/hooks/useLocation"
 
 interface MoreSettingsProps {
   location?: LocationProfile | null;
-  authorizedPromoters?: any[];
+  authorizedPromoters?: Array<{ id: string; name: string; email: string; firstName?: string; lastName?: string; role?: string; _id?: string }>;
 }
 
 export function MoreSettings({ location, authorizedPromoters }: MoreSettingsProps) {
@@ -164,10 +164,10 @@ export function MoreSettings({ location, authorizedPromoters }: MoreSettingsProp
                   <div key={promoter._id || promoter.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div>
                       <div className="font-medium text-foreground">
-                        {promoter.firstName} {promoter.lastName}
+                        {promoter.firstName || promoter.name} {promoter.lastName || ""}
                       </div>
                       <div className="text-sm text-muted-foreground">{promoter.email}</div>
-                      <div className="text-sm text-blue-600 font-medium">Role: {promoter.role}</div>
+                      <div className="text-sm text-blue-600 font-medium">Role: {promoter.role || "Promoter"}</div>
                     </div>
                     <Button
                       variant="ghost"

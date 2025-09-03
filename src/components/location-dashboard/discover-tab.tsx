@@ -21,7 +21,8 @@ export function DiscoverTab() {
       bio: "High-energy rock band with a modern twist. Known for electrifying live performances and original compositions.",
       image: "/images/BandFallBack.PNG",
       instagram: "@midnightkeys",
-      spotify: "The Midnight Keys"
+      spotify: "The Midnight Keys",
+      appleMusic: "https://music.apple.com/artist/the-midnight-keys/123456789"
     },
     {
       id: 2,
@@ -35,7 +36,8 @@ export function DiscoverTab() {
       bio: "Smooth jazz ensemble bringing classic standards and contemporary arrangements to intimate venues.",
       image: "/images/BandFallBack.PNG",
       instagram: "@jazzcollective",
-      spotify: "Jazz Collective"
+      spotify: "Jazz Collective",
+      appleMusic: "https://music.apple.com/artist/jazz-collective/987654321"
     },
     {
       id: 3,
@@ -49,7 +51,8 @@ export function DiscoverTab() {
       bio: "Intimate acoustic performances featuring original folk songs and beautiful harmonies.",
       image: "/images/BandFallBack.PNG",
       instagram: "@acousticdreams",
-      spotify: "Acoustic Dreams"
+      spotify: "Acoustic Dreams",
+      appleMusic: "https://music.apple.com/artist/acoustic-dreams/456789123"
     }
   ], [])
 

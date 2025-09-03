@@ -76,14 +76,15 @@ interface UseFanRealTimeReturn {
 }
 
 export const useFanRealTime = (config: UseFanRealTimeProps): UseFanRealTimeReturn => {
-  const { userId, favoriteArtists = [], favoriteEvents = [] } = config;
+  const { favoriteArtists = [], favoriteEvents = [] } = config;
   
   const { 
     connected, 
     autoConnect,
     socket,
-    onNotification,
-    removeListener 
+    // Remove unused parameters
+    // onNotification,
+    // removeListener 
   } = useSocket();
   
   // State for real-time updates

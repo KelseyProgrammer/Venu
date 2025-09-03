@@ -23,7 +23,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
   const formatTime12Hour = (time24: string): string => {
     try {
       // Handle various time formats
-      let time = time24.trim()
+      const time = time24.trim()
       
       // If it's already in 12-hour format, return as is
       if (time.includes('AM') || time.includes('PM')) {
@@ -56,7 +56,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
       }
       
       return time24 // Return original if no conversion possible
-    } catch (error) {
+    } catch {
       return time24 // Return original if any error occurs
     }
   }

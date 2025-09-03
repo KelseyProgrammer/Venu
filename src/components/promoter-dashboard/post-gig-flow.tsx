@@ -250,7 +250,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create gig';
       alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
     }
-  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, selectedDoorPerson, requirements, doorPersonEmail, canProceedToNextStep])
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, selectedDoorPerson, requirements, doorPersonEmail, canProceedToNextStep, gigImage, numberOfBands])
 
   // Door person management functions - commented out for now
   // const addDoorPerson = useCallback(() => {
