@@ -74,6 +74,15 @@ export function RealTimeChat({ locationId, currentUserId, className = "" }: Real
 
   return (
     <Card className={`flex flex-col h-full ${className}`}>
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mx-4 mt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
@@ -129,7 +138,7 @@ export function RealTimeChat({ locationId, currentUserId, className = "" }: Real
                 )}
                 <p className="text-sm">{message.message}</p>
                 <p className="text-xs opacity-70 mt-1">
-                  {format(new Date(message.timestamp), 'HH:mm')}
+                  {format(new Date(message.timestamp), 'h:mm a')}
                 </p>
               </div>
             </div>

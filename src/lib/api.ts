@@ -45,10 +45,25 @@ export interface ArtistProfile {
   spotify?: string;
   appleMusic?: string;
   website?: string;
+  youtube?: string;
+  tiktok?: string;
   location: string;
   availability: string;
   priceRange: string;
+  setLength?: string;
+  equipmentNeeds?: string;
+  pricing?: string;
+  typicalSetlist?: string;
+  soundRequirements?: string;
+  pastPerformances?: string;
+  reviews?: string;
   rating: number;
+  portfolioImages?: string[];
+  portfolioVideos?: string[];
+  unavailableDates?: Date[];
+  preferredBookingDays?: string[];
+  bookingLeadTime?: string;
+  cancellationPolicy?: string;
   followers: string;
   totalGigs: number;
   totalEarnings: number;
@@ -234,20 +249,36 @@ export const authApi = {
 
 // Artist API functions
 export const artistApi = {
-  async createProfile(profileData: {
+  async createArtist(profileData: {
     name: string;
     bio: string;
     genre: string[];
     profileImage?: string;
-    email?: string;
+    email: string;
     phone?: string;
     instagram?: string;
     spotify?: string;
     appleMusic?: string;
     website?: string;
+    youtube?: string;
+    tiktok?: string;
     location: string;
     availability: string;
     priceRange: string;
+    setLength?: string;
+    equipmentNeeds?: string;
+    pricing?: string;
+    typicalSetlist?: string;
+    soundRequirements?: string;
+    pastPerformances?: string;
+    reviews?: string;
+    rating?: number;
+    portfolioImages?: string[];
+    portfolioVideos?: string[];
+    unavailableDates?: Date[];
+    preferredBookingDays?: string[];
+    bookingLeadTime?: string;
+    cancellationPolicy?: string;
   }): Promise<ApiResponse<ArtistProfile>> {
     return apiRequest<ArtistProfile>('/artists', {
       method: 'POST',
@@ -255,15 +286,15 @@ export const artistApi = {
     });
   },
 
-  async getProfile(artistId: string): Promise<ApiResponse<ArtistProfile>> {
+  async getArtist(artistId: string): Promise<ApiResponse<ArtistProfile>> {
     return apiRequest<ArtistProfile>(`/artists/${artistId}`);
   },
 
-  async getProfileByUserId(userId: string): Promise<ApiResponse<ArtistProfile>> {
+  async getArtistByUserId(userId: string): Promise<ApiResponse<ArtistProfile>> {
     return apiRequest<ArtistProfile>(`/artists/user/${userId}`);
   },
 
-  async updateProfile(
+  async updateArtist(
     artistId: string,
     profileData: Partial<ArtistProfile>
   ): Promise<ApiResponse<ArtistProfile>> {
@@ -273,7 +304,7 @@ export const artistApi = {
     });
   },
 
-  async deleteProfile(artistId: string): Promise<ApiResponse<null>> {
+  async deleteArtist(artistId: string): Promise<ApiResponse<null>> {
     return apiRequest<null>(`/artists/${artistId}`, {
       method: 'DELETE',
     });
@@ -313,6 +344,27 @@ export const artistApi = {
 
   async getArtistsByLocation(location: string, page = 1, limit = 10): Promise<ApiResponse<ArtistProfile[]>> {
     return apiRequest<ArtistProfile[]>(`/artists/by-location/${encodeURIComponent(location)}?page=${page}&limit=${limit}`);
+  },
+
+  // Legacy function names for backward compatibility
+  async createProfile(profileData: any): Promise<ApiResponse<ArtistProfile>> {
+    return this.createArtist(profileData);
+  },
+
+  async getProfile(artistId: string): Promise<ApiResponse<ArtistProfile>> {
+    return this.getArtist(artistId);
+  },
+
+  async getProfileByUserId(userId: string): Promise<ApiResponse<ArtistProfile>> {
+    return this.getArtistByUserId(userId);
+  },
+
+  async updateProfile(artistId: string, profileData: any): Promise<ApiResponse<ArtistProfile>> {
+    return this.updateArtist(artistId, profileData);
+  },
+
+  async deleteProfile(artistId: string): Promise<ApiResponse<null>> {
+    return this.deleteArtist(artistId);
   },
 };
 

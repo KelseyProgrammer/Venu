@@ -14,7 +14,7 @@ interface RealTimeNotificationsProps {
 }
 
 export function RealTimeNotifications({ className = "" }: RealTimeNotificationsProps) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected, error } = useNotifications();
   const { openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
   const isOpen = isWindowOpen('notifications');
 
@@ -54,6 +54,13 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
 
   return (
     <div ref={windowRef} className={`relative ${className}`}>
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-2 py-1 rounded-md text-xs mb-2">
+          <span className="font-medium">Connection Error</span>
+        </div>
+      )}
+      
       {/* Notification Bell */}
       <Button
         variant="outline"
@@ -149,7 +156,7 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
                         </p>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(notification.timestamp), 'MMM d, HH:mm')}
+                            {format(new Date(notification.timestamp), 'MMM d, h:mm a')}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             from {notification.from.email}

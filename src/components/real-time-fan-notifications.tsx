@@ -161,7 +161,7 @@ export function RealTimeFanNotifications({
                       {lastTicketUpdate.soldOut ? 'Sold Out!' : `${lastTicketUpdate.ticketsRemaining} tickets remaining`}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(lastTicketUpdate.timestamp).toLocaleTimeString()}
+                      {new Date(lastTicketUpdate.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export function RealTimeFanNotifications({
                       {lastPriceUpdate.changeType}
                     </Badge>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(lastPriceUpdate.timestamp).toLocaleTimeString()}
+                      {new Date(lastPriceUpdate.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export function RealTimeFanNotifications({
                       </div>
                     )}
                     <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(lastEventStatusUpdate.timestamp).toLocaleTimeString()}
+                      {new Date(lastEventStatusUpdate.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ export function RealTimeFanNotifications({
                       {notification.notificationType}
                     </Badge>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(notification.timestamp).toLocaleTimeString()}
+                      {new Date(notification.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
                   </div>
                   {!notification.read && (

@@ -168,7 +168,7 @@ export function AuthFlow() {
     setError(null);
     
     try {
-      // Create artist profile
+      // Create artist profile with enhanced data
       const response = await artistApi.createProfile({
         name: signupData.name,
         bio: profileData.bio,
@@ -179,6 +179,13 @@ export function AuthFlow() {
         location: profileData.location,
         availability: profileData.availability,
         priceRange: profileData.priceRange,
+        // Add new fields with default values
+        portfolioImages: [],
+        portfolioVideos: [],
+        unavailableDates: [],
+        preferredBookingDays: [],
+        bookingLeadTime: '1 week',
+        cancellationPolicy: '24 hours notice required',
       });
       
       if (response.success) {

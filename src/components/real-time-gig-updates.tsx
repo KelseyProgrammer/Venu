@@ -156,7 +156,7 @@ export function RealTimeGigUpdates({ locationId, className = "" }: RealTimeGigUp
                         </p>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(update.timestamp), 'MMM d, HH:mm')}
+                            {format(new Date(update.timestamp), 'MMM d, h:mm a')}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             by {update.updatedBy.email}

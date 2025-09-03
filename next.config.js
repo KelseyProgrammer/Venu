@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Configure images to allow localhost
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/api/**',
+      },
+    ],
+  },
   // Remove turbopack for more stable builds
   // turbopack: {
   //   root: path.join(__dirname, ".."),

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import Artist from '../models/Artist.js';
+import { Artist } from '../models/Artist.js';
 import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
 import { 
@@ -265,9 +265,26 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       spotify,
       appleMusic,
       website,
+      youtube,
+      tiktok,
+      followers,
       location,
       availability,
       priceRange,
+      setLength,
+      equipmentNeeds,
+      pricing,
+      typicalSetlist,
+      soundRequirements,
+      pastPerformances,
+      reviews,
+      rating,
+      portfolioImages,
+      portfolioVideos,
+      unavailableDates,
+      preferredBookingDays,
+      bookingLeadTime,
+      cancellationPolicy,
     } = req.body;
 
     // Check if artist profile already exists for this user
@@ -310,9 +327,26 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       spotify,
       appleMusic,
       website,
+      youtube,
+      tiktok,
+      followers: followers || '0',
       location,
       availability,
       priceRange,
+      setLength,
+      equipmentNeeds,
+      pricing,
+      typicalSetlist,
+      soundRequirements,
+      pastPerformances,
+      reviews,
+      rating: rating || 0,
+      portfolioImages: portfolioImages || [],
+      portfolioVideos: portfolioVideos || [],
+      unavailableDates: unavailableDates || [],
+      preferredBookingDays: preferredBookingDays || [],
+      bookingLeadTime,
+      cancellationPolicy,
       userId,
     });
 
@@ -324,12 +358,10 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     const response: ApiResponse<any> = {
       success: true,
       data: artist,
-      message: 'Artist profile created successfully',
     };
-
     res.status(201).json(response);
   } catch (error) {
-    console.error('Create artist error:', error);
+    console.error('Error creating artist profile:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',
@@ -355,9 +387,18 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       spotify,
       appleMusic,
       website,
+      youtube,
+      tiktok,
+      followers,
       location,
       availability,
       priceRange,
+      setLength,
+      equipmentNeeds,
+      pricing,
+      pastPerformances,
+      reviews,
+      rating,
       isActive,
       isVerified,
     } = req.body;
@@ -393,9 +434,18 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       spotify,
       appleMusic,
       website,
+      youtube,
+      tiktok,
+      followers,
       location,
       availability,
       priceRange,
+      setLength,
+      equipmentNeeds,
+      pricing,
+      pastPerformances,
+      reviews,
+      rating,
     };
 
     if (currentUserRole === 'admin') {

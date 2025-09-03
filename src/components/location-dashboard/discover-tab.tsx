@@ -162,8 +162,8 @@ export function DiscoverTab() {
       </div>
 
       <ArtistListing 
-        showSearch={true}
-        showFilters={true}
+        showSearch={false}
+        showFilters={false}
         limit={8}
         onArtistSelect={(artist) => {
           // Handle artist selection - could open booking modal

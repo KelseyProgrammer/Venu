@@ -121,8 +121,8 @@ VENU is built as a **full-stack application** with:
 - **Node.js 18+** (Recommended: Node.js 20+)
 - **npm** or **yarn** package manager
 - **Git** for version control
-- **MongoDB** (local installation recommended for development)
-- **Homebrew** (for macOS MongoDB installation)
+- **MongoDB** (MongoDB Atlas cloud database recommended, or local installation for development)
+- **Homebrew** (for macOS local MongoDB installation, optional)
 - **Socket.io** (automatically installed with dependencies)
 
 ### 🚀 Efficient Development Workflow
@@ -428,16 +428,19 @@ The backend provides RESTful API endpoints with comprehensive security and valid
 
 ## 🚀 Recent Improvements
 
-### Latest Performance & Code Quality Enhancements (Current)
+### Latest Performance & Code Quality Enhancements (December 2024)
 VENU has been significantly optimized for better performance and maintainability with major new features including comprehensive real-time functionality, enhanced API integration, and completed Socket.io Phase 2 optimizations. All test and debug files have been cleaned up for production readiness.
 
-#### Recent Modifications (Latest Commit Pending)
+#### Recent Modifications (Latest Commit: December 2024)
 - **Multiple Component Updates**: Enhanced various components including artist-listing, door-scanner, event-card, and location dashboard components
 - **Real-time Hook Improvements**: Updated useFanRealTime, useLocation, useMessagePersistence, and useUnifiedRealTime hooks
 - **API Integration Enhancements**: Improved api.ts and socket.ts libraries for better performance
 - **New Demo Feature**: Added demo directory for demonstration purposes
 - **Component Architecture**: Enhanced modular component structure across all dashboards
 - **Performance Optimizations**: Continued improvements to real-time features and component rendering
+- **Artist Dashboard Enhancement**: Added comprehensive real-time features and performance optimizations
+- **Button Styling Consistency**: All non-navigation buttons now use purple variant with white font
+- **Time Display Preference**: Updated to use 12-hour clock format for all time displays
 
 #### Recent Cleanup and Improvements (Latest)
 - **Removed Test Files**: Cleaned up socket-test.tsx, socket-debug-test.tsx, and test-socket.js
@@ -612,6 +615,24 @@ The responsive web design serves as a foundation for future mobile app developme
 - **Performance**: Optimized rendering with proper memoization and code splitting
 - **Accessibility**: WCAG compliant components with proper ARIA labels
 - **Theme Consistency**: Enforced purple button styling for all non-navigation actions
+- **Time Display**: 12-hour clock format for all time displays (e.g., "2:30 PM")
+- **User Preferences**: Consistent display standards across all components and dashboards
+
+## 👤 User Preferences and Display Standards
+
+### Time Display Format
+VENU follows consistent time display standards across all components:
+- **12-Hour Clock**: All time displays use 12-hour format (e.g., "2:30 PM" instead of "14:30")
+- **Date Format**: Clear, readable date format (e.g., "December 15, 2024")
+- **Time Zone Consistency**: Consistent time zone handling across all components
+- **Real-time Updates**: Maintain 12-hour format for all live updates and notifications
+
+### Button Styling Standards
+- **Purple Theme**: All non-navigation buttons use purple variant with white font
+- **Profile Tabs**: Purple background with white text for active states
+- **Form Actions**: Purple styling for submit, save, and confirm buttons
+- **Genre Filters**: Purple when active, outline when inactive
+- **Consistent Experience**: Unified purple theme across all user interfaces
 
 ## 🤝 Contributing
 

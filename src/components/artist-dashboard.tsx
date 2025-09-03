@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useCallback, memo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, User, DollarSign, Clock, Music } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -16,6 +16,7 @@ import { RealTimeGigUpdates } from "./real-time-gig-updates"
 import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
+import { Label } from "@/components/ui/label"
 
 // Types for better type safety
 interface Gig {
@@ -186,6 +187,7 @@ const GigCard = memo(function GigCard({
 export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
@@ -202,6 +204,7 @@ export function ArtistDashboard() {
   useEffect(() => {
     autoConnect().catch((err) => {
       console.error('Failed to auto-connect socket:', err)
+      setError('Failed to connect to real-time services')
     })
   }, [autoConnect])
   
@@ -509,6 +512,23 @@ export function ArtistDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mx-4 mt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{error}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800"
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
@@ -540,7 +560,7 @@ export function ArtistDashboard() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-5 bg-card border-b border-border rounded-none h-12">
+        <TabsList className="w-full grid grid-cols-6 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="discover"
             className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
@@ -568,6 +588,13 @@ export function ArtistDashboard() {
           >
             <MessageCircle className="h-4 w-4" />
             Chat
+          </TabsTrigger>
+          <TabsTrigger
+            value="profile"
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2"
+          >
+            <User className="h-4 w-4" />
+            Profile
           </TabsTrigger>
           <TabsTrigger
             value="more"
@@ -1149,6 +1176,216 @@ export function ArtistDashboard() {
             currentUserId="artist-123"
             className="h-96"
           />
+        </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="p-4 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-bold text-xl">Artist Profile</h2>
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <User className="w-4 h-4 mr-1" />
+              Edit Profile
+            </Button>
+          </div>
+
+          {/* Simplified Profile Display */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Profile Header */}
+            <div className="lg:col-span-3">
+              <Card className="bg-card border-border">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-6">
+                    <div className="relative">
+                      <Image
+                        src="/images/BandFallBack.PNG"
+                        alt="The Midnight Keys"
+                        width={120}
+                        height={120}
+                        className="rounded-lg object-cover w-30 h-30"
+                      />
+                      <div className="absolute -bottom-2 -right-2">
+                        <Badge variant="default" className="bg-green-600 text-white text-xs">
+                          Available
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <h3 className="text-2xl font-bold text-foreground">The Midnight Keys</h3>
+                        <p className="text-muted-foreground">Rock • Alternative</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">4.8 (127 reviews)</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-foreground leading-relaxed">
+                        A dynamic rock band known for high-energy performances and original compositions. 
+                        Available for bookings with flexible scheduling and professional sound requirements.
+                      </p>
+                      
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          St. Augustine, FL
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          $200-400
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          1 hour sets
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Contact Information */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Contact
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="text-foreground">keys@example.com</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                  <p className="text-foreground">(555) 123-4567</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Instagram</Label>
+                  <p className="text-foreground">@midnightkeys</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Performance Details */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Music className="w-5 h-5" />
+                  Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Set Length</Label>
+                  <p className="text-foreground">1 hour</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Equipment</Label>
+                  <p className="text-foreground">PA system, backline provided</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Sound Requirements</Label>
+                  <p className="text-foreground">2 vocal mics, DI box for acoustic</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Availability */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Availability
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge variant="default" className="bg-green-600 text-white">
+                    Available
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Preferred Days</Label>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline" className="text-xs">Friday</Badge>
+                    <Badge variant="outline" className="text-xs">Saturday</Badge>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Lead Time</Label>
+                  <p className="text-foreground">1 week</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">12</div>
+                <div className="text-sm text-muted-foreground">Gigs This Year</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">$3,200</div>
+                <div className="text-sm text-muted-foreground">Total Earnings</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">4.8</div>
+                <div className="text-sm text-muted-foreground">Average Rating</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-foreground">85%</div>
+                <div className="text-sm text-muted-foreground">Booking Rate</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Booking confirmed for Muggy's on Oct 12</p>
+                    <p className="text-xs text-muted-foreground">2 days ago</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Performance completed at Sarbez</p>
+                    <p className="text-xs text-muted-foreground">1 week ago</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Profile updated with new photos</p>
+                    <p className="text-xs text-muted-foreground">2 weeks ago</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* More Tab */}

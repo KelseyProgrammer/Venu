@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -386,39 +386,17 @@ function ArtistCard({ artist, onSelect }: ArtistCardProps) {
             <span>{artist.priceRange}</span>
           </div>
           
-          <div className="flex items-center gap-2 pt-2">
-            <Button variant="outline" size="sm" className="text-xs flex-1">
+          <div className="flex gap-2 pt-2">
+            <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+              View Details
+            </Button>
+            <Button variant="default" size="sm" className="w-20 bg-purple-600 hover:bg-purple-700 text-white">
+              Book
+            </Button>
+            <Button variant="outline" size="sm" className="w-28">
               <Heart className="w-3 h-3 mr-1" />
               Favorite
             </Button>
-            {artist.instagram && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-xs"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.open(`https://instagram.com/${artist.instagram?.replace('@', '')}`, '_blank')
-                }}
-              >
-                <span className="mr-1">📷</span>
-                Instagram
-              </Button>
-            )}
-            {artist.spotify && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-xs"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.open(artist.spotify, '_blank')
-                }}
-              >
-                <span className="mr-1">🎵</span>
-                Spotify
-              </Button>
-            )}
           </div>
         </div>
       </div>
