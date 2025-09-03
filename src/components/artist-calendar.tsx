@@ -3,17 +3,10 @@
 import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { 
   CalendarDays, 
   Clock, 
-  MapPin, 
-  Music, 
-  Star,
-  Plus,
-  X,
   CheckCircle,
   AlertCircle
 } from "lucide-react"
@@ -45,7 +38,6 @@ export function ArtistCalendar({
   className
 }: ArtistCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [calendarOpen, setCalendarOpen] = useState(false)
 
   // Get all dates in current month for availability display
   const monthDates = useMemo(() => {

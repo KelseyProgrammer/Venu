@@ -101,7 +101,11 @@ export function useLocation(locationId: string) {
         setData({
           location: locationResponse.data!,
           gigs: gigsResponse.data || [],
-          authorizedPromoters: promotersResponse.data || [],
+          authorizedPromoters: (promotersResponse.data || []).map(user => ({
+            id: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email
+          })),
           loading: false,
           error: null,
         });
@@ -151,7 +155,14 @@ export function useLocation(locationId: string) {
         // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ ...prev, authorizedPromoters: promotersResponse.data || [] }));
+          setData(prev => ({ 
+            ...prev, 
+            authorizedPromoters: (promotersResponse.data || []).map(user => ({
+              id: user._id,
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email
+            }))
+          }));
         }
         return { success: true, data: response.data };
       } else {
@@ -172,7 +183,14 @@ export function useLocation(locationId: string) {
         // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ ...prev, authorizedPromoters: promotersResponse.data || [] }));
+          setData(prev => ({ 
+            ...prev, 
+            authorizedPromoters: (promotersResponse.data || []).map(user => ({
+              id: user._id,
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email
+            }))
+          }));
         }
         return { success: true, data: response.data };
       } else {
@@ -436,7 +454,11 @@ export function useCurrentUserLocation() {
         setData({
           location,
           gigs: gigsResponse.data || [],
-          authorizedPromoters: promotersResponse.data || [],
+          authorizedPromoters: (promotersResponse.data || []).map(user => ({
+            id: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email
+          })),
           loading: false,
           error: null,
         });
@@ -486,7 +508,14 @@ export function useCurrentUserLocation() {
         // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ ...prev, authorizedPromoters: promotersResponse.data || [] }));
+          setData(prev => ({ 
+            ...prev, 
+            authorizedPromoters: (promotersResponse.data || []).map(user => ({
+              id: user._id,
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email
+            }))
+          }));
         }
         return { success: true, data: response.data };
       } else {
@@ -507,7 +536,14 @@ export function useCurrentUserLocation() {
         // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ ...prev, authorizedPromoters: promotersResponse.data || [] }));
+          setData(prev => ({ 
+            ...prev, 
+            authorizedPromoters: (promotersResponse.data || []).map((user: any) => ({
+              id: user._id,
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email
+            }))
+          }));
         }
         return { success: true, data: response.data };
       } else {

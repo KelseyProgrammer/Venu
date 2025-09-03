@@ -181,12 +181,12 @@ async function apiRequest<T>(
       // Return the error response instead of throwing for client errors
       return {
         success: false,
-        error: data.error || data.message || `Request failed with status ${response.status}`,
+        error: (data as any).error || (data as any).message || `Request failed with status ${response.status}`,
         data: undefined as T
       };
     }
 
-    return data;
+    return data as ApiResponse<T>;
   } catch (error) {
     console.error('API request failed:', error);
     

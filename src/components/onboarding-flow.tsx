@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, Shield, CheckCircle, Megaphone, User } from "lucide-react"
+import { ChevronLeft, ChevronRight, Shield, CheckCircle, Megaphone } from "lucide-react"
 import { ArtistProfileForm } from "./artist-profile-form"
 
 interface OnboardingFlowProps {
@@ -13,7 +13,6 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ onComplete, userRole }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0)
-  const [showArtistForm, setShowArtistForm] = useState(false)
 
   const onboardingSteps = [
     {
@@ -50,7 +49,6 @@ export function OnboardingFlow({ onComplete, userRole }: OnboardingFlowProps) {
           }}
           onCancel={() => {
             setCurrentStep(0)
-            setShowArtistForm(false)
           }}
           showProgress={true}
         />

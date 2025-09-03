@@ -1,12 +1,16 @@
 "use client"
 
-import { useState, useMemo, useCallback, memo, useEffect } from "react"
+import { useState, useMemo, useCallback, memo, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, User, DollarSign, Clock, Music } from "lucide-react"
+import { 
+  Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, 
+  MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, 
+  User, DollarSign, Clock, Music 
+} from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -72,18 +76,31 @@ const GigCard = memo(function GigCard({
   onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
 }) {
   const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
+  
+  // Memoize band tiers calculation to prevent unnecessary recalculations
+  const bandTiers = useMemo(() => {
+    if (!gig.bands || !gigBonusTiers[gig.id]) return []
+    
+    return gig.bands
+      .map((band) => {
+        const bandTiers = gigBonusTiers[gig.id]?.find(bt => bt.bandId === band.id)
+        return bandTiers ? { band, bandTiers } : null
+      })
+      .filter((item): item is { band: typeof gig.bands[0], bandTiers: NonNullable<typeof gigBonusTiers[number][0]> } => item !== null)
+  }, [gig.bands, gigBonusTiers, gig.id])
 
   return (
     <Card className="p-4 bg-card border-border">
       <div className="flex gap-4">
         <div className="relative">
-          <Image
-            src={gig.image || "/images/venu-logo.png"}
-            alt={gig.location}
-            width={80}
-            height={80}
-            className="rounded-lg object-cover w-20 h-20"
-          />
+                      <Image
+              src={gig.image || "/images/venu-logo.png"}
+              alt={gig.location}
+              width={80}
+              height={80}
+              className="rounded-lg object-cover w-20 h-20"
+              priority={false}
+            />
           <div className="absolute -top-1 -right-1">
             <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
               {gig.genre}
@@ -110,39 +127,33 @@ const GigCard = memo(function GigCard({
           <div className="space-y-3">
             <div className="text-sm font-medium text-foreground">Payout Tiers (${gig.ticketPrice}/ticket)</div>
             
-            {gig.bands && gig.bands.length > 0 ? (
-              gig.bands.map((band) => {
-                const bandTiers = gigBonusTiers[gig.id]?.find(bt => bt.bandId === band.id)
-                
-                if (!bandTiers) return null
-                
-                return (
-                  <div key={band.id} className="space-y-2 p-3 bg-muted/30 rounded-lg">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{band.name} ({band.percentage}%)</span>
-                      <span className="text-foreground font-medium">${bandTiers.currentEarnings}</span>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Progress value={progress} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Guarantee: ${band.guarantee}</span>
-                        <span>Current: ${Math.round(bandTiers.currentEarnings)}</span>
-                      </div>
-                    </div>
-
-                    {/* Dynamic Tier indicators */}
-                    <div className="flex flex-wrap gap-1">
-                      {bandTiers.tiers.slice(1).map((tier, index) => (
-                        <div key={index} className="flex items-center gap-1 text-xs">
-                          <div className={`w-2 h-2 rounded-full ${tier.color}`} />
-                          <span>{tier.threshold}+ tickets = ${tier.amount}</span>
-                        </div>
-                      ))}
+                        {bandTiers.length > 0 ? (
+              bandTiers.map(({ band, bandTiers: tiers }) => (
+                <div key={band.id} className="space-y-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{band.name} ({band.percentage}%)</span>
+                    <span className="text-foreground font-medium">${tiers.currentEarnings}</span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Progress value={progress} className="h-2" />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Guarantee: ${band.guarantee}</span>
+                      <span>Current: ${Math.round(tiers.currentEarnings)}</span>
                     </div>
                   </div>
-                )
-              })
+
+                  {/* Dynamic Tier indicators */}
+                  <div className="flex flex-wrap gap-1">
+                    {tiers.tiers.slice(1).map((tier, index) => (
+                      <div key={index} className="flex items-center gap-1 text-xs">
+                        <div className={`w-2 h-2 rounded-full ${tier.color}`} />
+                        <span>{tier.threshold}+ tickets = ${tier.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="text-sm text-muted-foreground">
                 No bands configured for this event
@@ -188,6 +199,7 @@ export function ArtistDashboard() {
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
   
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
@@ -414,7 +426,7 @@ export function ArtistDashboard() {
   //   return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
   // }, [gigBonusTiers])
 
-  // Calendar navigation functions
+  // Calendar navigation functions - optimized with useCallback
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prevDate => {
       const newDate = new Date(prevDate)
@@ -435,7 +447,7 @@ export function ArtistDashboard() {
     setCurrentDate(new Date())
   }, [])
 
-  // Toggle date availability
+  // Toggle date availability - optimized with useCallback
   const toggleDateAvailability = useCallback((dateString: string) => {
     setUnavailableDates(prevDates => {
       let newDates: string[]
@@ -456,34 +468,48 @@ export function ArtistDashboard() {
     })
   }, [])
 
-  // Filter bookings based on selected filter
+  // Optimized tab change handler with useTransition
+  const handleTabChange = useCallback((value: string) => {
+    startTransition(() => {
+      setActiveTab(value)
+    })
+  }, [startTransition])
+
+  // Optimized gig selection handler
+  const handleGigSelect = useCallback((gigId: string) => {
+    startTransition(() => {
+      setSelectedGig(gigId)
+    })
+  }, [startTransition])
+
+  // Optimized gig booking handler
+  const handleGigBook = useCallback((gigId: string, gigData: Record<string, unknown>) => {
+    sendGigUpdate(gigId, "status-changed", gigData)
+  }, [sendGigUpdate])
+
+  // Filter bookings based on selected filter - optimized memoization
   const filteredBookings = useMemo(() => {
-    let filtered = myBookings;
+    if (scheduleFilter === "all") return myBookings
     
-    // Apply booking status filter
-    if (scheduleFilter !== "all") {
-      filtered = filtered.filter(booking => {
-        switch (scheduleFilter) {
-          case "confirmed":
-            return booking.status === "confirmed";
-          case "completed":
-            return booking.status === "completed";
-          case "upcoming":
-            return booking.status === "confirmed" && new Date(booking.date) > new Date();
-          default:
-            return true;
-        }
-      });
-    }
-    
-    return filtered;
+    return myBookings.filter(booking => {
+      switch (scheduleFilter) {
+        case "confirmed":
+          return booking.status === "confirmed"
+        case "completed":
+          return booking.status === "completed"
+        case "upcoming":
+          return booking.status === "confirmed" && new Date(booking.date) > new Date()
+        default:
+          return true
+      }
+    })
   }, [myBookings, scheduleFilter])
 
   if (selectedGig) {
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
     if (gig) {
-      // Transform the data structure to match GigDetails interface
-      const transformedGig = {
+      // Transform the data structure to match GigDetails interface - memoized
+      const transformedGig = useMemo(() => ({
         id: gig.id,
         location: gig.location,
         date: gig.date,
@@ -505,7 +531,8 @@ export function ArtistDashboard() {
           completed: true,
           type: "location" as const
         }))
-      }
+      }), [gig])
+      
       return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
     }
   }
@@ -535,6 +562,12 @@ export function ArtistDashboard() {
           <div className="flex items-center gap-3">
             <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
             <span className="font-serif font-bold text-xl">Artist Dashboard</span>
+            {isPending && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>Loading...</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
@@ -559,7 +592,7 @@ export function ArtistDashboard() {
       </div>
 
       {/* Navigation Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full grid grid-cols-6 bg-card border-b border-border rounded-none h-12">
           <TabsTrigger
             value="discover"
@@ -629,10 +662,8 @@ export function ArtistDashboard() {
                 key={gig.id}
                 gig={gig}
                 gigBonusTiers={gigBonusTiers}
-                onSelectGig={setSelectedGig}
-                onBookGig={(gigId, gigData) => {
-                  sendGigUpdate(gigId, "status-changed", gigData)
-                }}
+                onSelectGig={handleGigSelect}
+                onBookGig={handleGigBook}
               />
             ))}
           </div>

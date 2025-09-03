@@ -17,24 +17,18 @@ import {
   User, 
   Music, 
   MapPin, 
-  Instagram, 
   Globe, 
-  Phone, 
-  DollarSign, 
   Calendar as CalendarIcon,
   Star,
   Users,
   AlertCircle,
   CheckCircle,
   Loader2,
-  Clock,
   Video,
   Image as ImageIcon,
-  Link,
   Plus,
   X,
-  CalendarDays,
-  Clock3
+  CalendarDays
 } from "lucide-react"
 import { artistApi } from "@/lib/api"
 import { format } from "date-fns"
@@ -1017,7 +1011,7 @@ export function ArtistProfileForm({
                   />
                 </PopoverContent>
               </Popover>
-              {formData.unavailableDates?.length > 0 && (
+              {formData.unavailableDates && formData.unavailableDates.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {formData.unavailableDates?.map((date) => (
                     <Badge key={date.toISOString()} variant="secondary" className="text-xs">
