@@ -246,32 +246,32 @@ export function ArtistDashboard() {
     return { totalEarnings, goalAmount, progressPercentage }
   }, [])
 
-  // Real gigs data - replace with API call
-  const [gigs, setGigs] = useState<Gig[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Remove unused state variables since we're using mock data
+  // const [gigs, setGigs] = useState<Gig[]>([])
+  // const [loading, setLoading] = useState(true)
+  // const [error, setError] = useState<string | null>(null)
 
-  // Fetch real gigs from API
-  useEffect(() => {
-    const fetchGigs = async () => {
-      try {
-        setLoading(true)
-        const response = await gigApi.getGigsByArtist('current-artist-id') // Replace with actual artist ID
-        if (response.success && response.data) {
-          setGigs(response.data)
-        } else {
-          setError(response.error || 'Failed to load gigs')
-        }
-      } catch (err) {
-        console.error('Error fetching gigs:', err)
-        setError('Failed to load gigs')
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Fetch real gigs from API - commented out since we're using mock data
+  // useEffect(() => {
+  //   const fetchGigs = async () => {
+  //     try {
+  //       setLoading(true)
+  //       const response = await gigApi.getGigsByArtist('current-artist-id') // Replace with actual artist ID
+  //       if (response.success && response.data) {
+  //         setGigs(response.data)
+  //       } else {
+  //         setError(response.error || 'Failed to load gigs')
+  //       }
+  //     } catch (err) {
+  //       console.error('Error fetching gigs:', err)
+  //       setError('Failed to load gigs')
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
 
-    fetchGigs()
-  }, [])
+  //   fetchGigs()
+  // }, [])
 
   const mockGigs = useMemo((): Gig[] => [
     {

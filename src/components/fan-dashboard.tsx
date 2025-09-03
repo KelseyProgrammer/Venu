@@ -11,10 +11,8 @@ import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { GenreFilters } from "./genre-filters"
-import { EventsGrid } from "./events-grid"
 import { ArtistListing } from "./artist-listing"
 import { RealTimeFanNotifications } from "./real-time-fan-notifications"
-import { RealTimeEventCard } from "./real-time-event-card"
 import { RealTimeEventsGrid } from "./real-time-events-grid"
 import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
@@ -223,11 +221,8 @@ export function FanDashboard() {
   // Initialize real-time functionality
   const {
     isConnected,
-    error: realTimeError,
     subscribeToEvent,
-    unsubscribeFromEvent,
-    subscribeToArtist,
-    unsubscribeFromArtist
+    unsubscribeFromEvent
   } = useFanRealTime({
     userId,
     favoriteArtists,
@@ -438,6 +433,8 @@ export function FanDashboard() {
         needsMoreBands, // Add flag for easy checking
         expectedBands: gig.numberOfBands,
         confirmedBands: gig.bands.length,
+        numberOfBands: gig.numberOfBands, // Add for event card
+        bands: gig.bands, // Add for event card
         createdAt: gig.createdAt
       }
     })

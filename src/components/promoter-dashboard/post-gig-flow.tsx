@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 import { Band, Requirement } from "../location-dashboard/types"
+import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
+import { authUtils } from "@/lib/utils"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -158,14 +160,93 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
     setBandEmail("")
   }, [])
 
-  const handlePublish = useCallback(() => {
-    // Here you would typically send the data to your backend
-    // Data would be sent to backend API here
-    
-    // Reset and close
-    resetForm()
-    onClose()
-  }, [resetForm, onClose])
+  const handlePublish = useCallback(async () => {
+    if (!canProceedToNextStep) return;
+
+    // Prepare gig data for API
+    const gigData = {
+      eventName,
+      eventDate,
+      eventTime,
+      eventGenre,
+      ticketCapacity: parseInt(ticketCapacity),
+      ticketPrice: parseFloat(ticketPrice),
+      selectedDoorPerson: selectedDoorPerson === "self" ? undefined : selectedDoorPerson,
+      doorPersonEmail: doorPersonEmail || "self@venu.com", // Default email if not provided
+      requirements: requirements.filter(req => req.text.trim() !== ""),
+      bands: bands.map(band => ({
+        name: band.name,
+        genre: band.genre,
+        setTime: band.setTime,
+        percentage: parseFloat(band.percentage),
+        email: band.email,
+        confirmed: true // Mark as confirmed when created
+      })),
+      guarantee: parseFloat(guarantee),
+      numberOfBands: parseInt(numberOfBands) || bands.length,
+      bonusTiers: generateDefaultBonusTiers(), // Add default bonus tiers
+      status: "posted" as const
+    };
+
+    try {
+      // Call the backend API to create the gig
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const token = authUtils.getAuthToken();
+      
+      const response = await fetch(`${API_BASE_URL}/gigs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(gigData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Gig creation failed:', response.status, errorData);
+        
+        if (response.status === 403) {
+          alert('You do not have permission to create gigs. Please contact an administrator.');
+          return;
+        } else if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          alert('Your session has expired. Please log in again.');
+          window.location.href = '/';
+          return;
+        } else if (response.status === 400) {
+          const errorMessage = errorData.error || errorData.message || 'Invalid request data';
+          alert(`Validation error: ${errorMessage}. Please check your input and try again.`);
+          return;
+        } else {
+          const errorMessage = errorData.error || errorData.message || response.statusText;
+          console.error('Full error response:', errorData);
+          alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
+          return;
+        }
+      }
+
+      const result = await response.json()
+      const createdGig = result.data
+
+      // Reset and close
+      resetForm()
+      onClose()
+      
+      // Force refresh of gigs data to show the new gig
+      if (typeof window !== 'undefined') {
+        // Dispatch a custom event to trigger refresh
+        window.dispatchEvent(new CustomEvent('gig-created', { 
+          detail: { gigId: createdGig._id } 
+        }))
+      }
+    } catch (error) {
+      console.error('Error creating gig:', error)
+      // Show more specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create gig';
+      alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
+    }
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, selectedDoorPerson, requirements, doorPersonEmail, canProceedToNextStep])
 
   // Door person management functions - commented out for now
   // const addDoorPerson = useCallback(() => {

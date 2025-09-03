@@ -22,6 +22,8 @@ interface Event {
   description: string
   image: string
   tags: string[]
+  numberOfBands?: number // Total expected bands
+  bands?: any[] // Array of confirmed bands
 }
 
 interface EventCardProps {
@@ -90,6 +92,22 @@ export function EventCard({
             {event.rating}
           </div>
         </div>
+        
+        {/* Band Lineup Status */}
+        {event.numberOfBands && event.bands && (
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {event.bands.length}/{event.numberOfBands} Bands
+            </span>
+            {event.bands.length < event.numberOfBands && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                {event.numberOfBands - event.bands.length} needed
+              </div>
+            )}
+          </div>
+        )}
         
         {showDescription && (
           <p className="text-sm text-muted-foreground line-clamp-2">

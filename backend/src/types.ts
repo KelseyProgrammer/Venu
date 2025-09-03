@@ -5,6 +5,7 @@ export interface Band {
   setTime: string
   percentage: number
   email: string
+  confirmed?: boolean // Whether the band has been confirmed
   gigId?: string // Foreign key to gig
 }
 

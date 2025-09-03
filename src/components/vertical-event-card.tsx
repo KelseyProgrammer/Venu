@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Ticket, DollarSign, Calendar, Clock, MapPin, Star, Share2 } from 'lucide-react';
+import { Heart, Ticket, DollarSign, MapPin, Star, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { getLocationDisplayName } from '@/lib/location-data';
 import { useFanRealTime } from '@/hooks/useFanRealTime';
 
 interface Event {
-  id: number;
+  id: string;
   artist: string;
   location: string;
   address: string;
@@ -33,7 +33,7 @@ interface Event {
 interface VerticalEventCardProps {
   event: Event;
   isFavorite: boolean;
-  onToggleFavorite: (eventId: number) => void;
+  onToggleFavorite: (eventId: string) => void;
   onBuyTickets: (eventId: string) => void;
   userId: string;
   className?: string;

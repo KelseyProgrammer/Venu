@@ -75,7 +75,7 @@ export const createGigSchema = z.object({
       threshold: z.number().min(0, 'Threshold cannot be negative'),
       color: z.string().min(1, 'Color is required')
     })
-  }).optional()
+  })
 });
 
 export const updateGigSchema = createGigSchema.partial().extend({

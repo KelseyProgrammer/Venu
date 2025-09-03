@@ -10,7 +10,7 @@ import { getLocationDisplayName } from '@/lib/location-data';
 import { useFanRealTime } from '@/hooks/useFanRealTime';
 
 interface Event {
-  id: number;
+  id: string;
   artist: string;
   location: string;
   address: string;
@@ -29,7 +29,7 @@ interface Event {
 interface RealTimeEventCardProps {
   event: Event;
   isFavorite: boolean;
-  onToggleFavorite: (eventId: number) => void;
+  onToggleFavorite: (eventId: string) => void;
   onBuyTickets: (eventId: string) => void;
   userId: string;
   className?: string;
@@ -51,15 +51,15 @@ export function RealTimeEventCard({
   // Subscribe to real-time updates for this event
   const { subscribeToEvent, unsubscribeFromEvent } = useFanRealTime({
     userId,
-    favoriteEvents: [event.id.toString()]
+    favoriteEvents: [event.id]
   });
 
   // Subscribe to event updates when component mounts
   useEffect(() => {
-    subscribeToEvent(event.id.toString());
+    subscribeToEvent(event.id);
 
     return () => {
-      unsubscribeFromEvent(event.id.toString());
+      unsubscribeFromEvent(event.id);
     };
   }, [event.id, subscribeToEvent, unsubscribeFromEvent]);
 
@@ -220,7 +220,7 @@ export function RealTimeEventCard({
                 variant="default"
                 size="sm" 
                 className="bg-purple-600 hover:bg-purple-700 text-white"
-                onClick={() => onBuyTickets(event.id.toString())}
+                onClick={() => onBuyTickets(event.id)}
                 disabled={isSoldOut}
               >
                 {isSoldOut ? 'Sold Out' : 'Buy Tickets'}

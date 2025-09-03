@@ -154,3 +154,31 @@ export function calculateEventBonusTiers(
     }
   })
 }
+
+/**
+ * Generate default bonus tiers for gig creation
+ * These are static tiers that will be used when creating a new gig
+ */
+export function generateDefaultBonusTiers(): {
+  tier1: { amount: number; threshold: number; color: string };
+  tier2: { amount: number; threshold: number; color: string };
+  tier3: { amount: number; threshold: number; color: string };
+} {
+  return {
+    tier1: {
+      amount: 0,
+      threshold: 25,
+      color: "bg-yellow-500"
+    },
+    tier2: {
+      amount: 0,
+      threshold: 50,
+      color: "bg-green-500"
+    },
+    tier3: {
+      amount: 0,
+      threshold: 75,
+      color: "bg-blue-500"
+    }
+  };
+}

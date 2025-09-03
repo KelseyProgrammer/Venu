@@ -130,6 +130,10 @@ const gigSchema = new Schema<IGig>({
       required: true,
       trim: true,
     },
+    confirmed: {
+      type: Boolean,
+      default: true, // Bands are confirmed by default when added
+    },
   }],
   guarantee: {
     type: Number,

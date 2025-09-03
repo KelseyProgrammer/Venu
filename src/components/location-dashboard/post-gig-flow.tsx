@@ -13,6 +13,7 @@ import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/cons
 import { Band, Requirement } from "./types"
 import { useSocket, socketManager } from "@/lib/socket"
 import { authUtils } from "@/lib/utils"
+import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -52,6 +53,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
   
   const [guarantee, setGuarantee] = useState("")
   const [numberOfBands, setNumberOfBands] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Memoized calculations
   const bandsTotal = useMemo(() => 
@@ -168,118 +171,44 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
     setBandEmail("")
   }, [])
 
-  const handlePublish = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
+    if (!canProceedToNextStep) return;
+
+    // Prepare gig data for API
+    const gigData = {
+      eventName,
+      eventDate,
+      eventTime,
+      eventGenre,
+      ticketCapacity: parseInt(ticketCapacity),
+      ticketPrice: parseFloat(ticketPrice),
+      selectedLocation: locationId,
+      promoterEmail,
+      promoterPercentage: parseFloat(promoterPercentage),
+      selectedDoorPerson: selectedDoorPerson === "self" ? undefined : selectedDoorPerson,
+      doorPersonEmail: doorPersonEmail || "self@venu.com", // Default email if not provided
+      requirements: requirements.filter(req => req.text.trim() !== ""),
+      bands: bands.map(band => ({
+        name: band.name,
+        genre: band.genre,
+        setTime: band.setTime,
+        percentage: parseFloat(band.percentage),
+        email: band.email,
+        confirmed: true // Mark as confirmed when created
+      })),
+      guarantee: parseFloat(guarantee),
+      numberOfBands: parseInt(numberOfBands) || bands.length,
+      bonusTiers: generateDefaultBonusTiers(), // Add default bonus tiers
+      status: "posted" as const
+    };
+
+    setSubmitting(true);
+    setError(null);
+
     try {
-      // Validate user permissions using utility function
-      const validation = await authUtils.validateGigCreationPermission();
-      if (!validation.success) {
-        authUtils.handleAuthError(validation.error || 'Authentication failed');
-        return;
-      }
-
-      // Validate required fields before sending
-      if (!locationId) {
-        alert('No location found. Please create a location profile first.');
-        return;
-      }
-      
-      // If "self" is selected as door person, use current user's email
-      let finalDoorPersonEmail = doorPersonEmail;
-      if (selectedDoorPerson === "self") {
-        // Get current user's email from token or localStorage
-        const token = authUtils.getAuthToken();
-        if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            finalDoorPersonEmail = payload.email;
-          } catch (error) {
-            console.error('Failed to extract email from token:', error);
-            alert('Unable to get your email address. Please enter your email manually.');
-            return;
-          }
-        } else {
-          alert('Please enter your email address for door person duties.');
-          return;
-        }
-      }
-      
-      if (!finalDoorPersonEmail || !finalDoorPersonEmail.trim()) {
-        alert('Door person email is required.');
-        return;
-      }
-      
-      if (bands.length === 0) {
-        alert('At least one band is required.');
-        return;
-      }
-
-      // Validate band data
-      for (let i = 0; i < bands.length; i++) {
-        const band = bands[i];
-        if (!band.name || !band.name.trim()) {
-          alert(`Band ${i + 1} name is required.`);
-          return;
-        }
-        if (!band.email || !band.email.trim()) {
-          alert(`Band ${i + 1} email is required.`);
-          return;
-        }
-        if (!band.genre || !band.genre.trim()) {
-          alert(`Band ${i + 1} genre is required.`);
-          return;
-        }
-        if (!band.setTime || !band.setTime.trim()) {
-          alert(`Band ${i + 1} set time is required.`);
-          return;
-        }
-      }
-
-      // Create gig data object for backend API
-      const gigData = {
-        eventName,
-        eventDate: new Date(eventDate).toISOString(),
-        eventTime,
-        eventGenre,
-        ticketCapacity: parseInt(ticketCapacity) || 0,
-        ticketPrice: parseFloat(ticketPrice) || 0,
-        guarantee: parseFloat(guarantee) || 0,
-        bands: bands.map(band => ({
-          name: band.name,
-          genre: band.genre,
-          setTime: band.setTime,
-          percentage: parseFloat(band.percentage) || 0,
-          email: band.email
-        })),
-        ...(promoterPercentage && { promoterPercentage: parseFloat(promoterPercentage) || 0 }), // Only include if defined
-        ...(selectedPromoter && { selectedPromoter }), // Only include if defined
-        ...(selectedDoorPerson && { selectedDoorPerson }), // Only include if defined
-        doorPersonEmail: finalDoorPersonEmail.trim(),
-        requirements: requirements.filter(req => req.text.trim()).map(req => ({
-          text: req.text.trim(),
-          checked: req.checked
-        })),
-        numberOfBands: Math.max(bands.length, 1), // Ensure at least 1 band
-        status: 'posted', // Set status to posted so it shows up in fan dashboard
-        tags: [eventGenre], // Add genre as tag for better searchability
-        ticketsSold: 0,
-        rating: 0,
-        image: '/images/venu-logo.png', // Default image
-        selectedLocation: locationId, // Use dynamic location ID
-        bonusTiers: {
-          tier1: { amount: 10, threshold: 50, color: '#8B5CF6' },
-          tier2: { amount: 25, threshold: 100, color: '#8B5CF6' },
-          tier3: { amount: 50, threshold: 200, color: '#8B5CF6' }
-        }
-      }
-
       // Call the backend API to create the gig
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
       const token = authUtils.getAuthToken();
-      
-
-      console.log('Gig data being sent:', JSON.stringify(gigData, null, 2));
-      console.log('API URL:', API_BASE_URL);
-      console.log('Token exists:', !!token);
       
       const response = await fetch(`${API_BASE_URL}/gigs`, {
         method: 'POST',
@@ -316,11 +245,6 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
 
       const result = await response.json()
       const createdGig = result.data
-      
-      console.log('✅ Gig created successfully:', createdGig)
-      console.log('✅ Gig ID:', createdGig._id)
-      console.log('✅ Gig name:', createdGig.eventName)
-      console.log('✅ Gig date:', createdGig.eventDate)
 
       // Send real-time gig update via Socket.io
       if (socket.connected) {
@@ -362,7 +286,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         }
 
         // Notify door person if selected
-        if (selectedDoorPerson && finalDoorPersonEmail) {
+        if (selectedDoorPerson && doorPersonEmail) {
           socket.sendNotification(
             "door-person-user-id", // This would be the actual door person's user ID
             "gig-invitation",
@@ -389,6 +313,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       // Show more specific error message
       const errorMessage = error instanceof Error ? error.message : 'Failed to create gig';
       alert(`Failed to create gig: ${errorMessage}. Please try again or contact support if the issue persists.`);
+    } finally {
+      setSubmitting(false);
     }
   }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket])
 
@@ -1105,7 +1031,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
             ) : (
               <Button
                 variant="default"
-                onClick={handlePublish}
+                onClick={handleSubmit}
                 disabled={!canProceedToNext()}
                 className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
               >

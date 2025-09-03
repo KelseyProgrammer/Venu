@@ -3,7 +3,7 @@
 import { RealTimeEventCard } from "./real-time-event-card"
 
 interface Event {
-  id: number
+  id: string
   artist: string
   location: string
   address: string
@@ -17,12 +17,16 @@ interface Event {
   description: string
   image: string
   tags: string[]
+  eventStatus?: string
+  needsMoreBands?: boolean
+  expectedBands?: number
+  confirmedBands?: number
 }
 
 interface RealTimeEventsGridProps {
   events: Event[]
-  favoriteEvents: Set<number>
-  onToggleFavorite: (eventId: number) => void
+  favoriteEvents: Set<string>
+  onToggleFavorite: (eventId: string) => void
   onBuyTickets: (eventId: string) => void
   userId: string
   showDescription?: boolean

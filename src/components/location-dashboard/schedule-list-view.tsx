@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,8 @@ import { Calendar } from "lucide-react"
 import Image from "next/image"
 import { useSocket, socketManager } from "@/lib/socket"
 import { GigProfile, gigApi } from "@/lib/api"
+import { EventDetailsModal } from "./event-details-modal"
+import { ManageEventModal } from "./manage-event-modal"
 
 interface ScheduleListViewProps {
   scheduleFilter: string;
@@ -18,6 +20,51 @@ interface ScheduleListViewProps {
 
 export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGigs }: ScheduleListViewProps) {
   const socket = useSocket()
+  const [selectedEvent, setSelectedEvent] = useState<GigProfile | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false)
+
+  // Helper function to convert 24-hour time to 12-hour format
+  const formatTime12Hour = (time24: string): string => {
+    try {
+      // Handle various time formats
+      let time = time24.trim()
+      
+      // If it's already in 12-hour format, return as is
+      if (time.includes('AM') || time.includes('PM')) {
+        return time
+      }
+      
+      // If it's in 24-hour format (HH:MM), convert it
+      if (time.includes(':')) {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours, 10)
+        const minute = parseInt(minutes, 10)
+        
+        if (isNaN(hour) || isNaN(minute)) {
+          return time24 // Return original if parsing fails
+        }
+        
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:${minutes.padStart(2, '0')} ${period}`
+      }
+      
+      // If it's just hours (e.g., "20"), convert it
+      const hour = parseInt(time, 10)
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:00 ${period}`
+      }
+      
+      return time24 // Return original if no conversion possible
+    } catch (error) {
+      return time24 // Return original if any error occurs
+    }
+  }
 
   // Listen for real-time schedule updates
   useEffect(() => {
@@ -79,6 +126,18 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
     } catch (error) {
       console.error('Error confirming band:', error)
     }
+  }
+
+  // Handle view details button click
+  const handleViewDetails = (event: GigProfile) => {
+    setSelectedEvent(event)
+    setIsDetailsModalOpen(true)
+  }
+
+  // Handle manage button click
+  const handleManage = (event: GigProfile) => {
+    setSelectedEvent(event)
+    setIsManageModalOpen(true)
   }
 
   // Transform gigs data to match the expected event format
@@ -224,7 +283,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                         weekday: 'short', 
                         month: 'short', 
                         day: 'numeric' 
-                      })} • {event.time}
+                      })} • {formatTime12Hour(event.time)}
                       <Badge variant="outline" className="text-xs">
                         {event.genre}
                       </Badge>
@@ -275,10 +334,26 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-28 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => {
+                      const gig = gigs.find(g => g._id === event.id)
+                      if (gig) handleViewDetails(gig)
+                    }}
+                  >
                     View Details
                   </Button>
-                  <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-24 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => {
+                      const gig = gigs.find(g => g._id === event.id)
+                      if (gig) handleManage(gig)
+                    }}
+                  >
                     Manage
                   </Button>
                   {event.expectedBands > event.confirmedBands && (
@@ -306,6 +381,27 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
           </Card>
         ))}
       </div>
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        event={selectedEvent}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false)
+          setSelectedEvent(null)
+        }}
+      />
+
+      {/* Manage Event Modal */}
+      <ManageEventModal
+        event={selectedEvent}
+        isOpen={isManageModalOpen}
+        onClose={() => {
+          setIsManageModalOpen(false)
+          setSelectedEvent(null)
+        }}
+        onRefresh={onRefreshGigs}
+      />
     </div>
   )
 }

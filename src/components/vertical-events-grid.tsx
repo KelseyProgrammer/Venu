@@ -3,7 +3,7 @@
 import { VerticalEventCard } from "./vertical-event-card"
 
 interface Event {
-  id: number
+  id: string
   artist: string
   location: string
   address: string
@@ -25,8 +25,8 @@ interface Event {
 
 interface VerticalEventsGridProps {
   events: Event[]
-  favoriteEvents: Set<number>
-  onToggleFavorite: (eventId: number) => void
+  favoriteEvents: Set<string>
+  onToggleFavorite: (eventId: string) => void
   onBuyTickets: (eventId: string) => void
   userId: string
   showDescription?: boolean

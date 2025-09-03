@@ -16,10 +16,13 @@ const router = Router();
 // Create new gig - PROTECTED ROUTE (Location owners, authorized promoters, and Admins only)
 router.post('/', authenticateToken, requireGigCreationPermission, async (req: Request, res: Response) => {
   try {
+    // Provide default values for required fields if not provided
+    const defaultBonusTiers = {
+      tier1: { amount: 0, threshold: 25, color: "bg-yellow-500" },
+      tier2: { amount: 0, threshold: 50, color: "bg-green-500" },
+      tier3: { amount: 0, threshold: 75, color: "bg-blue-500" }
+    };
 
-    console.log('User:', req.user);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
     // Convert string IDs to ObjectIds for MongoDB references
     const gigData = {
       ...req.body,
@@ -32,14 +35,13 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
                          req.body.selectedDoorPerson !== "" && 
                          mongoose.Types.ObjectId.isValid(req.body.selectedDoorPerson) ? 
                          new mongoose.Types.ObjectId(req.body.selectedDoorPerson) : undefined,
+      // Provide default values for required fields
+      doorPersonEmail: req.body.doorPersonEmail || "self@venu.com",
+      bonusTiers: req.body.bonusTiers || defaultBonusTiers,
     };
     
-    console.log('Processed gig data:', JSON.stringify(gigData, null, 2));
-    
     const gig = new Gig(gigData);
-    console.log('Gig model created, attempting to save...');
     await gig.save();
-    console.log('Gig saved successfully!');
 
     const response: ApiResponse<any> = {
       success: true,

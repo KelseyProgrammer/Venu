@@ -39,6 +39,14 @@ export function RealTimeFanNotifications({
     favoriteEvents
   });
 
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'ticket' | 'price' | 'status' | 'artist';
+    title: string;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+  }>>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState<'tickets' | 'prices' | 'status' | 'artists'>('tickets');
 

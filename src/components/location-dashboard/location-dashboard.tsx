@@ -18,7 +18,6 @@ import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { useCurrentUserLocation } from "@/hooks/useLocation"
 import { Card } from "@/components/ui/card"
 import { authUtils } from "@/lib/utils"
-import { AuthDebugPanel } from "@/components/auth-debug-panel"
 
 
 interface LocationDashboardProps {
@@ -349,7 +348,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       </div>
       
       {/* Debug panel for development */}
-      <AuthDebugPanel />
+      
 
     </div>
   )

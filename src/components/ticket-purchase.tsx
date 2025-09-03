@@ -12,7 +12,7 @@ interface TicketPurchaseProps {
   eventId: string
   onBack: () => void
   eventData?: {
-    id: number
+    id: string
     artist: string
     location: string
     address: string
@@ -32,7 +32,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
 
   // Use passed event data or fall back to default
   const event = eventData || {
-    id: 1,
+    id: "1",
     artist: "The Midnight Keys",
     location: "sarbez", // Use standardized location key
           address: "115 Anastasia Blvd, St. Augustine, FL 32080",
