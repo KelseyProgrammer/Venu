@@ -149,7 +149,7 @@ Message Throughput: ${metrics.messageThroughput.toFixed(2)} msg/s
 export const createPerformanceMiddleware = () => {
   const analytics = SocketAnalytics.getInstance();
 
-  return (socket: any, next: (err?: Error) => void) => {
+  return (socket: { user?: { userId: string }; emit: (event: string, ...args: unknown[]) => void }, next: (err?: Error) => void) => {
     const startTime = Date.now();
 
     // Track connection
@@ -157,14 +157,14 @@ export const createPerformanceMiddleware = () => {
 
     // Monitor message events
     const originalEmit = socket.emit;
-    socket.emit = function(event: string, ...args: any[]) {
+    socket.emit = function(event: string, ...args: unknown[]) {
       const latency = Date.now() - startTime;
       analytics.trackMessage(latency);
       return originalEmit.apply(this, [event, ...args]);
     };
 
     // Monitor errors
-    socket.on('error', (error: any) => {
+    socket.on('error', (error: { message?: string }) => {
       analytics.trackError(error.message || 'Unknown error');
     });
 

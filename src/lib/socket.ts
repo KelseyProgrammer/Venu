@@ -129,16 +129,16 @@ class RateLimiter {
 
 // Enhanced Message Batching System
 class MessageBatcher {
-  private messageQueue: Map<string, { messages: any[]; timeoutId: NodeJS.Timeout | null }> = new Map();
+  private messageQueue: Map<string, { messages: SocketMessage[]; timeoutId: NodeJS.Timeout | null }> = new Map();
   private batchTimeout = 100; // ms
   private maxBatchSize = 10; // Maximum messages per batch
-  private onBatchReady?: (roomId: string, messages: any[]) => void;
+  private onBatchReady?: (roomId: string, messages: SocketMessage[]) => void;
 
-  constructor(onBatchReady?: (roomId: string, messages: any[]) => void) {
+  constructor(onBatchReady?: (roomId: string, messages: SocketMessage[]) => void) {
     this.onBatchReady = onBatchReady || (() => {});
   }
 
-  addMessage(roomId: string, message: any): void {
+  addMessage(roomId: string, message: SocketMessage): void {
     const batch = this.messageQueue.get(roomId);
     
     if (batch) {
@@ -282,7 +282,7 @@ class OptimizedSocketManager {
 
   constructor() {
     // Initialize message batcher with callback
-    this.messageBatcher = new MessageBatcher((roomId: string, messages: any[]) => {
+    this.messageBatcher = new MessageBatcher((roomId: string, messages: SocketMessage[]) => {
       this.handleBatchedMessages(roomId, messages);
     });
     
@@ -292,7 +292,7 @@ class OptimizedSocketManager {
     }, 30000); // Clean up every 30 seconds
   }
 
-  private handleBatchedMessages(roomId: string, messages: any[]): void {
+  private handleBatchedMessages(roomId: string, messages: SocketMessage[]): void {
     // Process batched messages for efficient broadcasting
     const connection = this.connections.get(roomId);
     if (connection?.connected) {
@@ -528,7 +528,7 @@ class OptimizedSocketManager {
     // Calculate approximate memory usage
     let totalMessages = 0;
     const messages = Array.from(this.messageStore['messages']);
-    for (const [_, buffer] of messages) {
+    for (const [, buffer] of messages) {
       totalMessages += buffer.getSize();
     }
     return totalMessages * 0.001; // Rough estimate in MB

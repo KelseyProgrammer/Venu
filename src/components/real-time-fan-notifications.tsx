@@ -177,7 +177,7 @@ export function RealTimeFanNotifications({
                       ${lastPriceUpdate.oldPrice} → ${lastPriceUpdate.newPrice}
                     </div>
                     <Badge 
-                      variant={getPriceChangeColor(lastPriceUpdate.changeType) as any}
+                      variant={getPriceChangeColor(lastPriceUpdate.changeType) as "default" | "secondary" | "destructive" | "outline"}
                       className="text-xs mt-1"
                     >
                       {lastPriceUpdate.changeType}
@@ -199,7 +199,7 @@ export function RealTimeFanNotifications({
                       {lastEventStatusUpdate.oldStatus} → {lastEventStatusUpdate.newStatus}
                     </div>
                     <Badge 
-                      variant={getStatusColor(lastEventStatusUpdate.statusType) as any}
+                      variant={getStatusColor(lastEventStatusUpdate.statusType) as "default" | "secondary" | "destructive" | "outline"}
                       className="text-xs mt-1"
                     >
                       {lastEventStatusUpdate.statusType}

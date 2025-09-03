@@ -13,7 +13,7 @@ export const timeUtils = {
   formatTime12Hour(time24: string): string {
     try {
       // Handle various time formats
-      let time = time24.trim()
+      const time = time24.trim()
       
       // If it's already in 12-hour format, return as is
       if (time.includes('AM') || time.includes('PM')) {
@@ -46,7 +46,7 @@ export const timeUtils = {
       }
       
       return time24 // Return original if no conversion possible
-    } catch (error) {
+    } catch {
       return time24 // Return original if any error occurs
     }
   }
@@ -74,7 +74,7 @@ export const authUtils = {
   /**
    * Validate user permissions for gig creation
    */
-  async validateGigCreationPermission(): Promise<{ success: boolean; user?: any; error?: string }> {
+  async validateGigCreationPermission(): Promise<{ success: boolean; user?: { id: string; role: string; email: string }; error?: string }> {
     try {
       const token = this.getAuthToken();
       if (!token) {

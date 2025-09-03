@@ -320,7 +320,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       // Remove setSubmitting since we removed that state variable
       // setSubmitting(false);
     }
-  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket])
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket, canProceedToNextStep, gigImage, locationId, numberOfBands, promoterEmail])
 
   // Promoter management functions - can be implemented in future iterations
 
@@ -329,7 +329,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
     setSelectedPromoter(promoterId)
     // Reset promoter percentage when selection changes
     setPromoterPercentage("")
-  }, [])
+  }, [setSelectedPromoter, setPromoterPercentage])
 
   // Door person management functions - can be implemented in future iterations
 

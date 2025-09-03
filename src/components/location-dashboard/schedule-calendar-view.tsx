@@ -30,7 +30,7 @@ export function ScheduleCalendarView({
   // Listen for real-time schedule updates
   useEffect(() => {
     if (socket.connected && socketManager.getSocket()) {
-      const handleScheduleUpdate = (data: any) => {
+      const handleScheduleUpdate = (data: { locationId: string }) => {
         if (data.locationId === locationId) {
           // Refresh gigs data when schedule is updated
           onRefreshGigs()

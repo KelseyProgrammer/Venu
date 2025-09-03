@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star } from "lucide-react"
@@ -203,7 +204,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
                 Go to Login
               </Button>
                               <p className="text-sm text-muted-foreground">
-                  Don&apos;t have an account? <a href="/" className="text-purple-600 hover:underline">Sign up here</a>
+                  Don&apos;t have an account? <Link href="/" className="text-purple-600 hover:underline">Sign up here</Link>
                 </p>
             </div>
           ) : isNoLocationError ? (

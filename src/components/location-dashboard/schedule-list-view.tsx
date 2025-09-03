@@ -28,7 +28,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
   const formatTime12Hour = (time24: string): string => {
     try {
       // Handle various time formats
-      let time = time24.trim()
+      const time = time24.trim()
       
       // If it's already in 12-hour format, return as is
       if (time.includes('AM') || time.includes('PM')) {
@@ -61,7 +61,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
       }
       
       return time24 // Return original if no conversion possible
-    } catch (error) {
+    } catch {
       return time24 // Return original if any error occurs
     }
   }
@@ -69,7 +69,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
   // Listen for real-time schedule updates
   useEffect(() => {
     if (socket.connected && socketManager.getSocket()) {
-      const handleScheduleUpdate = (data: any) => {
+      const handleScheduleUpdate = (data: { locationId: string }) => {
         if (data.locationId === locationId) {
           // Refresh gigs data when schedule is updated
           onRefreshGigs()
@@ -99,7 +99,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
       )
 
       // Determine new status based on band count
-      const confirmedBandsCount = updatedBands.filter(band => (band as any).confirmed).length
+      const confirmedBandsCount = updatedBands.filter(band => (band as { confirmed: boolean }).confirmed).length
       const newStatus = confirmedBandsCount >= gig.numberOfBands ? 'completed' : 
                        confirmedBandsCount > 0 ? 'posted' : 'posted'
 
@@ -365,7 +365,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                         // Find the gig and confirm the first unconfirmed band
                         const gig = gigs.find(g => g._id === event.id)
                         if (gig) {
-                          const unconfirmedBandIndex = gig.bands.findIndex(band => !(band as any).confirmed)
+                          const unconfirmedBandIndex = gig.bands.findIndex(band => !(band as { confirmed: boolean }).confirmed)
                           if (unconfirmedBandIndex !== -1) {
                             handleBandConfirmation(event.id.toString(), unconfirmedBandIndex)
                           }

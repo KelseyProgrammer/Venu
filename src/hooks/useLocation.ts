@@ -4,7 +4,7 @@ import { locationApi, gigApi, authApi, LocationProfile, GigProfile, apiUtils } f
 export interface LocationData {
   location: LocationProfile | null;
   gigs: GigProfile[];
-  authorizedPromoters: any[];
+  authorizedPromoters: Array<{ id: string; name: string; email: string }>;
   loading: boolean;
   error: string | null;
 }
@@ -70,7 +70,7 @@ export function useLocation(locationId: string) {
         error: error instanceof Error ? error.message : 'Failed to fetch location data',
       }));
     }
-  }, [locationId]);
+  }, [locationId, calculateAnalytics]);
 
   const calculateAnalytics = useCallback((gigs: GigProfile[]) => {
     const now = new Date();
@@ -405,7 +405,7 @@ export function useCurrentUserLocation() {
         error: error instanceof Error ? error.message : 'Failed to fetch location data',
       }));
     }
-  }, []);
+  }, [calculateAnalytics]);
 
   const calculateAnalytics = useCallback((gigs: GigProfile[]) => {
     const now = new Date();

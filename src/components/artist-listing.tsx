@@ -49,7 +49,7 @@ export function ArtistListing({
   ]
 
   // Load artists based on current filters
-  const loadArtists = async (pageNum = 1, reset = false) => {
+  const loadArtists = useCallback(async (pageNum = 1, reset = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -109,7 +109,7 @@ export function ArtistListing({
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, limit])
 
   // Load artists on mount and when filters change
   useEffect(() => {

@@ -154,7 +154,7 @@ async function apiRequest<T>(
     const response = await fetch(url, config);
     
     // Handle non-JSON responses
-    let data: any;
+    let data: unknown;
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
