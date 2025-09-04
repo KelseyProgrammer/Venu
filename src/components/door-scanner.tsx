@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Camera, CheckCircle, XCircle, Users, TrendingUp } from "lucide-react"
-import { timeUtils } from '@/lib/utils'
+import { Camera, CheckCircle, XCircle, Users, TrendingUp, LogOut } from "lucide-react"
+import { timeUtils, authUtils } from '@/lib/utils'
 
 export function DoorScanner() {
   const [isScanning, setIsScanning] = useState(false)
@@ -41,7 +41,19 @@ export function DoorScanner() {
     <div className="min-h-screen bg-background p-4">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="font-serif font-bold text-xl text-foreground mb-2">Door Check-in</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="font-serif font-bold text-xl text-foreground">Door Check-in</h1>
+          {/* Logout button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => authUtils.logout()}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+          >
+            <LogOut className="w-4 h-4 mr-1" />
+            Logout
+          </Button>
+        </div>
         <div className="text-sm text-muted-foreground">
           <p>
             {event.name} at {event.location}

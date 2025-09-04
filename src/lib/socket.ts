@@ -561,9 +561,22 @@ class SocketManager {
       return Promise.resolve();
     }
 
+    // Additional validation for token format
+    if (!token || token.length < 10 || !token.includes('.')) {
+      console.log('🔐 Invalid token format, clearing and skipping connection');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      return Promise.resolve();
+    }
+
     const userId = this.getUserIdFromToken(token);
     if (!userId) {
-      throw new Error('Invalid token: no user ID found');
+      console.log('🔐 Invalid token: no user ID found, clearing and skipping connection');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      return Promise.resolve();
     }
 
     try {
@@ -573,6 +586,10 @@ class SocketManager {
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to connect:', error);
+      // Clear invalid token on connection failure
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       throw error;
     }
   }
@@ -593,11 +610,21 @@ class SocketManager {
     }
 
     const token = localStorage.getItem('authToken');
-    if (token && !this.isConnected) {
-      return this.connect(token);
-    } else if (!token) {
-      console.log('⚠️ No auth token found, socket connection skipped');
+    
+    // Check if token exists and is valid format
+    if (!token || token.length < 10 || !token.includes('.')) {
+      console.log('⚠️ No valid auth token found, socket connection skipped');
+      // Clear invalid token if it exists
+      if (token) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      }
       return Promise.resolve();
+    }
+    
+    if (!this.isConnected) {
+      return this.connect(token);
     }
     return Promise.resolve();
   }

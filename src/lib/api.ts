@@ -98,6 +98,70 @@ export interface LocationProfile {
   updatedAt: string;
 }
 
+export interface PromoterProfile {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  profileImage: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  companyName?: string;
+  businessDescription?: string;
+  yearsOfExperience?: number;
+  specialties: string[];
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  linkedin?: string;
+  portfolioImages: string[];
+  pastEvents?: string;
+  testimonials?: string;
+  businessHours?: string;
+  serviceAreas: string[];
+  pricingStructure?: string;
+  bookingPolicies?: string;
+  references?: string;
+  certifications: string[];
+  userId: string;
+  isActive: boolean;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FanProfile {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  profileImage: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  favoriteGenres: string[];
+  favoriteArtists: string[];
+  favoriteVenues: string[];
+  notificationPreferences: string[];
+  instagram?: string;
+  facebook?: string;
+  twitter?: string;
+  bio?: string;
+  age?: number;
+  interests: string[];
+  eventHistory?: string;
+  userId: string;
+  isActive: boolean;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface GigProfile {
   _id: string;
   eventName: string;
@@ -147,14 +211,25 @@ async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  const defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const defaultHeaders: Record<string, string> = {};
 
   // Add authorization header if token exists
   const token = localStorage.getItem('authToken');
   if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+    // Basic validation - if token looks invalid, clear it
+    if (token.length < 10 || !token.includes('.')) {
+      console.log('🔐 Invalid token format detected, clearing...');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+    } else {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  // Only set Content-Type for non-FormData requests
+  if (!(options.body instanceof FormData)) {
+    defaultHeaders['Content-Type'] = 'application/json';
   }
 
   const config: RequestInit = {
@@ -178,6 +253,22 @@ async function apiRequest<T>(
     }
 
     if (!response.ok) {
+      // Handle authentication errors by clearing invalid tokens
+      if (response.status === 401 || response.status === 403) {
+        const errorMessage = (data as any).error || (data as any).message || `Request failed with status ${response.status}`;
+        
+        // Clear invalid authentication data
+        if (errorMessage.includes('Access token') || 
+            errorMessage.includes('Unauthorized') || 
+            errorMessage.includes('Invalid token') ||
+            errorMessage.includes('User not found')) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+          console.log('🔐 Cleared invalid authentication data');
+        }
+      }
+      
       // Return the error response instead of throwing for client errors
       return {
         success: false,
@@ -377,9 +468,6 @@ export const uploadApi = {
     return apiRequest<{ url: string; filename: string }>('/upload/image', {
       method: 'POST',
       body: formData,
-      headers: {
-        // Don't set Content-Type, let the browser set it with the boundary
-      },
     });
   },
 };
@@ -598,6 +686,126 @@ export const gigApi = {
     return apiRequest<null>(`/gigs/${gigId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// Promoter API functions
+export const promoterApi = {
+  async getAllPromoters(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    location?: string;
+    specialty?: string;
+  }): Promise<ApiResponse<PromoterProfile[]>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.location) searchParams.append('location', params.location);
+    if (params?.specialty) searchParams.append('specialty', params.specialty);
+    
+    return apiRequest<PromoterProfile[]>(`/promoters?${searchParams.toString()}`);
+  },
+
+  async getPromoterById(promoterId: string): Promise<ApiResponse<PromoterProfile>> {
+    return apiRequest<PromoterProfile>(`/promoters/${promoterId}`);
+  },
+
+  async getPromoterByUserId(userId: string): Promise<ApiResponse<PromoterProfile>> {
+    return apiRequest<PromoterProfile>(`/promoters/user/${userId}`);
+  },
+
+  async createPromoter(promoterData: Partial<PromoterProfile>): Promise<ApiResponse<PromoterProfile>> {
+    return apiRequest<PromoterProfile>('/promoters', {
+      method: 'POST',
+      body: JSON.stringify(promoterData),
+    });
+  },
+
+  async updatePromoter(promoterId: string, promoterData: Partial<PromoterProfile>): Promise<ApiResponse<PromoterProfile>> {
+    return apiRequest<PromoterProfile>(`/promoters/${promoterId}`, {
+      method: 'PUT',
+      body: JSON.stringify(promoterData),
+    });
+  },
+
+  async deletePromoter(promoterId: string): Promise<ApiResponse<null>> {
+    return apiRequest<null>(`/promoters/${promoterId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async searchPromoters(query: string): Promise<ApiResponse<PromoterProfile[]>> {
+    return apiRequest<PromoterProfile[]>(`/promoters/search/${encodeURIComponent(query)}`);
+  },
+
+  async getPromotersBySpecialty(specialty: string): Promise<ApiResponse<PromoterProfile[]>> {
+    return apiRequest<PromoterProfile[]>(`/promoters/specialty/${encodeURIComponent(specialty)}`);
+  },
+
+  async getPromotersByLocation(location: string): Promise<ApiResponse<PromoterProfile[]>> {
+    return apiRequest<PromoterProfile[]>(`/promoters/location/${encodeURIComponent(location)}`);
+  },
+};
+
+// Fan API functions
+export const fanApi = {
+  async getAllFans(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    location?: string;
+    genre?: string;
+  }): Promise<ApiResponse<FanProfile[]>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.location) searchParams.append('location', params.location);
+    if (params?.genre) searchParams.append('genre', params.genre);
+    
+    return apiRequest<FanProfile[]>(`/fans?${searchParams.toString()}`);
+  },
+
+  async getFanById(fanId: string): Promise<ApiResponse<FanProfile>> {
+    return apiRequest<FanProfile>(`/fans/${fanId}`);
+  },
+
+  async getFanByUserId(userId: string): Promise<ApiResponse<FanProfile>> {
+    return apiRequest<FanProfile>(`/fans/user/${userId}`);
+  },
+
+  async createFan(fanData: Partial<FanProfile>): Promise<ApiResponse<FanProfile>> {
+    return apiRequest<FanProfile>('/fans', {
+      method: 'POST',
+      body: JSON.stringify(fanData),
+    });
+  },
+
+  async updateFan(fanId: string, fanData: Partial<FanProfile>): Promise<ApiResponse<FanProfile>> {
+    return apiRequest<FanProfile>(`/fans/${fanId}`, {
+      method: 'PUT',
+      body: JSON.stringify(fanData),
+    });
+  },
+
+  async deleteFan(fanId: string): Promise<ApiResponse<null>> {
+    return apiRequest<null>(`/fans/${fanId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async searchFans(query: string): Promise<ApiResponse<FanProfile[]>> {
+    return apiRequest<FanProfile[]>(`/fans/search/${encodeURIComponent(query)}`);
+  },
+
+  async getFansByGenre(genre: string): Promise<ApiResponse<FanProfile[]>> {
+    return apiRequest<FanProfile[]>(`/fans/genre/${encodeURIComponent(genre)}`);
+  },
+
+  async getFansByLocation(location: string): Promise<ApiResponse<FanProfile[]>> {
+    return apiRequest<FanProfile[]>(`/fans/location/${encodeURIComponent(location)}`);
   },
 };
 

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star, LogOut } from "lucide-react"
 import Image from "next/image"
 import { PostGigFlow } from "./post-gig-flow"
 import { LocationCreationForm } from "./location-creation-form"
@@ -32,6 +32,7 @@ interface LocationDisplayInfo {
   state: string;
   capacity: number;
   rating: number;
+  profileImage: string;
 }
 
 interface AnalyticsCard {
@@ -44,6 +45,14 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   const [showLocationCreation, setShowLocationCreation] = useState(false)
+  
+  // State to track if we're on the client side
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true after hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
   // Use the custom hook to fetch current user's location data
   const { 
@@ -109,7 +118,8 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       city: location.city,
       state: location.state,
       capacity: location.capacity,
-      rating: location.rating
+      rating: location.rating,
+      profileImage: location.images?.[0] || "/images/venu-logo.png"
     } as LocationDisplayInfo
   }, [location])
 
@@ -235,10 +245,18 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <Image src="/images/venu-logo.png" alt="venu" width={40} height={40} />
+            <div className="relative">
+              <Image 
+                src={locationDisplayInfo?.profileImage || "/images/venu-logo.png"} 
+                alt={locationDisplayInfo?.name || "Venue"} 
+                width={64} 
+                height={64} 
+                className="rounded-full object-cover w-16 h-16"
+              />
+            </div>
             <div>
               <h1 className="font-serif font-bold text-xl">
-                {locationDisplayInfo?.name || 'Location Dashboard'}
+                {isClient && locationDisplayInfo?.name ? `${locationDisplayInfo.name}'s Dashboard` : 'Location Dashboard'}
               </h1>
               {locationDisplayInfo && (
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -265,6 +283,16 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
               <RealTimeNotifications />
               <RealTimeGigUpdates locationId={location?._id || ""} />
             </WindowManagerProvider>
+            {/* Logout button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => authUtils.logout()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
+            </Button>
             <Button variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={handlePostGigClick}>
               <Plus className="w-4 h-4 mr-2" />
               Post a Gig

@@ -85,7 +85,20 @@ export function useGigs(): UseGigsReturn {
   }), [gigs, loading, error, fetchGigs, refreshGigs, pagination.hasMore, pagination.totalPages])
 
   useEffect(() => {
-    fetchGigs()
+    // Only fetch if we have a valid token
+    const token = localStorage.getItem('authToken');
+    if (token && token.length >= 10 && token.includes('.')) {
+      fetchGigs();
+    } else {
+      // Clear invalid token if it exists
+      if (token) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      }
+      setLoading(false);
+      setError('Please log in to view gigs');
+    }
   }, [fetchGigs])
 
   return returnValue

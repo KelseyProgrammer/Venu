@@ -137,6 +137,17 @@ export function AuthFlow() {
         // Store the auth token
         apiUtils.setAuthToken(response.data.token);
         
+        // Store user data in localStorage
+        const userData = {
+          id: response.data.user._id || response.data.user.id,
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          email: response.data.user.email,
+          role: response.data.user.role,
+          profileImage: response.data.user.profileImage
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        
         // If it's an artist, show profile setup
         if (selectedRole === 'artist') {
           setShowProfileSetup(true);
@@ -189,6 +200,16 @@ export function AuthFlow() {
       });
       
       if (response.success) {
+        // Update user data with profile image if available
+        const currentUserData = localStorage.getItem('user');
+        if (currentUserData) {
+          const userData = JSON.parse(currentUserData);
+          if (response.data?.profileImage) {
+            userData.profileImage = response.data.profileImage;
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
+        }
+        
         // Navigate to artist dashboard
         window.location.href = "/artist";
       } else {
@@ -215,6 +236,17 @@ export function AuthFlow() {
       if (response.success && response.data) {
         // Store the auth token
         apiUtils.setAuthToken(response.data.token);
+        
+        // Store user data in localStorage
+        const userData = {
+          id: response.data.user._id || response.data.user.id,
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          email: response.data.user.email,
+          role: response.data.user.role,
+          profileImage: response.data.user.profileImage
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
         
         // Navigate based on user role
         const role = response.data.user.role;

@@ -287,10 +287,20 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     if (typeof window === 'undefined') return '';
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return '';
+      if (!token || token.length < 10 || !token.includes('.')) {
+        console.log('🔐 Invalid token in getUserId, clearing...');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        return '';
+      }
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.userId || '';
     } catch {
+      console.log('🔐 Error parsing token in getUserId, clearing...');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       return '';
     }
   };
@@ -299,10 +309,20 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     if (typeof window === 'undefined') return '';
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return '';
+      if (!token || token.length < 10 || !token.includes('.')) {
+        console.log('🔐 Invalid token in getUserRole, clearing...');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        return '';
+      }
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.role || '';
     } catch {
+      console.log('🔐 Error parsing token in getUserRole, clearing...');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       return '';
     }
   };

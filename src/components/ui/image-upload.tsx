@@ -32,6 +32,13 @@ export function ImageUpload({
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Check if user is authenticated before attempting upload
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError('Please log in to upload images');
+      return;
+    }
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file')

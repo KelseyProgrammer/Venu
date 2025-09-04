@@ -389,8 +389,14 @@ export function useCurrentUserLocation() {
       const userResponse = await authApi.getProfile();
       if (!userResponse.success || !userResponse.data) {
         // If authentication fails, clear token and show error
-        if (userResponse.error?.includes('Access token') || userResponse.error?.includes('Unauthorized')) {
+        if (userResponse.error?.includes('Access token') || 
+            userResponse.error?.includes('Unauthorized') || 
+            userResponse.error?.includes('Invalid token') ||
+            userResponse.error?.includes('User not found')) {
           apiUtils.removeAuthToken();
+          // Also clear user data from localStorage
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
         }
         setData(prev => ({
           ...prev,
@@ -560,7 +566,20 @@ export function useCurrentUserLocation() {
   }, [fetchCurrentUserLocation]);
 
   useEffect(() => {
-    fetchCurrentUserLocation();
+    // Only fetch if we have a valid token
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      fetchCurrentUserLocation();
+    } else {
+      // Clear any existing data and set error
+      setData({
+        location: null,
+        gigs: [],
+        authorizedPromoters: [],
+        loading: false,
+        error: 'Please log in to access the location dashboard.',
+      });
+    }
   }, [fetchCurrentUserLocation]);
 
   // Listen for gig creation events to refresh data

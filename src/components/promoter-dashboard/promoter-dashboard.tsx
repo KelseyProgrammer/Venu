@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal } from "lucide-react"
+import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal, LogOut } from "lucide-react"
 import { OverviewTab } from "./overview-tab"
 import { DiscoverTab } from "./discover-tab"
 import { ScheduleTab } from "./schedule-tab"
@@ -17,6 +17,7 @@ import { PostGigFlow } from "./post-gig-flow"
 import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
+import { authUtils } from "@/lib/utils"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -51,6 +52,40 @@ export function PromoterDashboard() {
     { id: "alfreds", name: "Alfred's" }
   ]
 
+  // Promoter profile data - memoized for performance
+  const promoterProfileData = useMemo(() => {
+    // Only get user data on the client side to prevent hydration mismatch
+    if (typeof window === 'undefined') {
+      return {
+        name: "Promoter",
+        profileImage: "/images/venu-logo.png",
+        email: "promoter@venu.com",
+        phone: "+1 (555) 987-6543",
+        company: "VENU Promotions"
+      }
+    }
+    
+    const currentUser = authUtils.getCurrentUser();
+    
+    return {
+      name: currentUser ? authUtils.getUserFullName() : "Promoter",
+      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
+      email: currentUser?.email || "promoter@venu.com",
+      phone: "+1 (555) 987-6543",
+      company: "VENU Promotions"
+    }
+  }, [])
+
+  const { name: promoterName, profileImage: promoterProfileImage } = promoterProfileData
+
+  // State to track if we're on the client side
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true after hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
   // Toggle date availability
@@ -80,7 +115,18 @@ export function PromoterDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <h1 className="font-serif font-bold text-2xl text-foreground">Promoter Dashboard</h1>
+              <div className="relative">
+                <Image 
+                  src={promoterProfileImage || "/images/venu-logo.png"} 
+                  alt="Promoter Profile" 
+                  width={64} 
+                  height={64} 
+                  className="rounded-full object-cover w-16 h-16"
+                />
+              </div>
+              <h1 className="font-serif font-bold text-2xl text-foreground">
+                {isClient && promoterName ? `${promoterName}'s Dashboard` : 'Promoter Dashboard'}
+              </h1>
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-muted-foreground" />
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -103,6 +149,16 @@ export function PromoterDashboard() {
                 <RealTimeNotifications />
                 <RealTimeGigUpdates locationId={selectedLocation} />
               </WindowManagerProvider>
+              {/* Logout button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => authUtils.logout()}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </Button>
               <Button 
                 onClick={() => setShowPostGig(true)}
                 className="bg-purple-600 hover:bg-purple-700 text-white"

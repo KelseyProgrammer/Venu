@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
 import { 
   Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, 
   MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, 
-  User, DollarSign, Clock, Music 
+  User, DollarSign, Clock, Music, LogOut
 } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
@@ -20,7 +21,7 @@ import { RealTimeGigUpdates } from "./real-time-gig-updates"
 import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
-import { Label } from "@/components/ui/label"
+import { authUtils } from "@/lib/utils"
 
 // Types for better type safety
 interface Gig {
@@ -259,6 +260,52 @@ export function ArtistDashboard() {
     const goalAmount = 300
     const progressPercentage = (totalEarnings / goalAmount) * 100
     return { totalEarnings, goalAmount, progressPercentage }
+  }, [])
+
+  // Artist profile data - memoized for performance
+  const artistProfileData = useMemo(() => {
+    // Only get user data on the client side to prevent hydration mismatch
+    if (typeof window === 'undefined') {
+      return {
+        name: "Artist",
+        profileImage: "/images/SARBEZ.jpg",
+        email: "artist@example.com",
+        phone: "+1 (555) 123-4567",
+        instagram: "@artistmusic",
+        setLength: "45 minutes",
+        equipment: "PA system provided",
+        soundRequirements: "2 vocal mics, 1 guitar DI",
+        status: "Available for bookings",
+        preferredDays: ["Friday", "Saturday"],
+        leadTime: "2 weeks notice"
+      }
+    }
+    
+    const currentUser = authUtils.getCurrentUser();
+    
+    return {
+      name: currentUser ? authUtils.getUserFullName() : "Artist",
+      profileImage: currentUser?.profileImage || "/images/SARBEZ.jpg",
+      email: currentUser?.email || "artist@example.com",
+      phone: "+1 (555) 123-4567",
+      instagram: "@artistmusic",
+      setLength: "45 minutes",
+      equipment: "PA system provided",
+      soundRequirements: "2 vocal mics, 1 guitar DI",
+      status: "Available for bookings",
+      preferredDays: ["Friday", "Saturday"],
+      leadTime: "2 weeks notice"
+    }
+  }, [])
+
+  const { name: artistName, profileImage: artistProfileImage } = artistProfileData
+
+  // State to track if we're on the client side
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true after hydration
+  useEffect(() => {
+    setIsClient(true)
   }, [])
 
   // Remove unused state variables since we're using mock data
@@ -560,8 +607,18 @@ export function ArtistDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
-            <span className="font-serif font-bold text-xl">Artist Dashboard</span>
+            <div className="relative">
+              <Image 
+                src={artistProfileImage || "/images/venu-logo.png"} 
+                alt="Artist Profile" 
+                width={56} 
+                height={56} 
+                className="rounded-full object-cover w-14 h-14"
+              />
+            </div>
+            <span className="font-serif font-bold text-xl">
+              {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
+            </span>
             {isPending && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -580,6 +637,16 @@ export function ArtistDashboard() {
             <RealTimeGigUpdates locationId="artist-dashboard" />
             {/* Real-time notifications */}
             <RealTimeNotifications />
+            {/* Logout button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => authUtils.logout()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
+            </Button>
             {/* Connection status indicator */}
             <div className="flex items-center gap-1 text-xs">
               <div className={`w-2 h-2 rounded-full ${realTimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />

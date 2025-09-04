@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass } from "lucide-react"
+import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass, LogOut } from "lucide-react"
 import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -17,6 +17,7 @@ import { RealTimeEventsGrid } from "./real-time-events-grid"
 import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 import { useGigs } from "@/hooks/useGigs"
+import { authUtils } from "@/lib/utils"
 
 // Remove unused interface and component
 // interface ArtistCardProps {
@@ -217,6 +218,38 @@ export function FanDashboard() {
     Array.from(favoriteEvents), 
     [favoriteEvents]
   )
+
+  // Fan profile data - memoized for performance
+  const fanProfileData = useMemo(() => {
+    // Only get user data on the client side to prevent hydration mismatch
+    if (typeof window === 'undefined') {
+      return {
+        name: "Music Fan",
+        profileImage: "/images/venu-logo.png",
+        email: "fan@example.com",
+        location: "St. Augustine, FL"
+      }
+    }
+    
+    const currentUser = authUtils.getCurrentUser();
+    
+    return {
+      name: currentUser ? authUtils.getUserFullName() : "Music Fan",
+      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
+      email: currentUser?.email || "fan@example.com",
+      location: "St. Augustine, FL"
+    }
+  }, [])
+
+  const { name: fanName, profileImage: fanProfileImage } = fanProfileData
+
+  // State to track if we're on the client side
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true after hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Initialize real-time functionality
   const {
@@ -548,11 +581,34 @@ export function FanDashboard() {
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
-          <h1 className="font-serif font-bold text-2xl">Fan Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Image 
+                src={fanProfileImage || "/images/venu-logo.png"} 
+                alt="Fan Profile" 
+                width={64} 
+                height={64} 
+                className="rounded-full object-cover w-16 h-16"
+              />
+            </div>
+            <h1 className="font-serif font-bold text-2xl">
+              {isClient && fanName ? `${fanName}'s Dashboard` : 'Fan Dashboard'}
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
               <MapPin className="w-4 h-4 mr-2" />
               St. Augustine, FL
+            </Button>
+            {/* Logout button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => authUtils.logout()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
             </Button>
             {/* Connection Status Indicator */}
             <div className="flex items-center gap-2">

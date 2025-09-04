@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";
@@ -62,6 +63,10 @@ app.use("/api/artists", artistsRoutes);
 console.log('✅ Artist routes registered');
 app.use("/api/upload", uploadRoutes);
 console.log('✅ Upload routes registered');
+
+// Serve uploaded files at /uploads path for compatibility
+app.use("/uploads", express.static(path.join(process.cwd(), 'uploads')));
+console.log('✅ Upload file serving registered');
 console.log('🔧 All routes registered successfully');
 
 // Root endpoint
