@@ -105,7 +105,7 @@ export default function ProfilePictureTestPage() {
               className="border-2 border-purple-200"
             />
             <div>
-              <h3 className="font-serif font-bold text-xl">Venue's Dashboard</h3>
+              <h3 className="font-serif font-bold text-xl">Venue&apos;s Dashboard</h3>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>New York, NY</span>
                 <span>500 capacity</span>

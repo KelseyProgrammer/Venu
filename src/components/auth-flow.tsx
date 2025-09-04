@@ -159,6 +159,8 @@ export function AuthFlow() {
             window.location.href = "/location";
           } else if (selectedRole === "fan") {
             window.location.href = "/fan";
+          } else if (selectedRole === "promoter") {
+            window.location.href = "/promoter";
           } else {
             window.location.href = "/";
           }
@@ -258,6 +260,8 @@ export function AuthFlow() {
           window.location.href = "/location";
         } else if (role === "fan") {
           window.location.href = "/fan";
+        } else if (role === "promoter") {
+          window.location.href = "/promoter";
         } else {
           window.location.href = "/";
         }

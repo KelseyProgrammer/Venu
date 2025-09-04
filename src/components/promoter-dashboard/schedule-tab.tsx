@@ -13,7 +13,7 @@ interface ScheduleTabProps {
 
 export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
-  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable", "past"
 
   return (
     <div className="p-4 space-y-4">
@@ -27,7 +27,7 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
           variant={scheduleSubcategory === "list" ? "default" : "outline"} 
           size="sm"
           onClick={() => setScheduleSubcategory("list")}
-          className={`whitespace-nowrap ${scheduleSubcategory === "list" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+          className={`whitespace-nowrap ${scheduleSubcategory === "list" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
         >
           <BarChart3 className="w-4 h-4 mr-1" />
           List View
@@ -36,7 +36,7 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
           variant={scheduleSubcategory === "calendar" ? "default" : "outline"} 
           size="sm"
           onClick={() => setScheduleSubcategory("calendar")}
-          className={`whitespace-nowrap ${scheduleSubcategory === "calendar" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+          className={`whitespace-nowrap ${scheduleSubcategory === "calendar" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
         >
           <Calendar className="w-4 h-4 mr-1" />
           Calendar View
@@ -49,7 +49,7 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
           variant={scheduleFilter === "all" ? "default" : "outline"} 
           size="sm"
           onClick={() => setScheduleFilter("all")}
-          className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+          className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
         >
           All Events
         </Button>
@@ -70,6 +70,15 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
         >
           <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
           Needs Bands
+        </Button>
+        <Button 
+          variant={scheduleFilter === "past" ? "default" : "outline"} 
+          size="sm"
+          onClick={() => setScheduleFilter("past")}
+          className={`whitespace-nowrap ${scheduleFilter === "past" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
+        >
+          <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+          Past
         </Button>
       </div>
 

@@ -391,7 +391,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                         // Find the gig and confirm the first unconfirmed band
                         const gig = gigs.find(g => g._id === event.id)
                         if (gig) {
-                          const unconfirmedBandIndex = gig.bands.findIndex(band => !(band as any).confirmed)
+                          const unconfirmedBandIndex = gig.bands.findIndex(band => !(band as { confirmed?: boolean }).confirmed)
                           if (unconfirmedBandIndex !== -1) {
                             handleBandConfirmation(event.id.toString(), unconfirmedBandIndex)
                           }

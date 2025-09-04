@@ -18,6 +18,7 @@ import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 import { useGigs } from "@/hooks/useGigs"
 import { authUtils } from "@/lib/utils"
+import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 // Remove unused interface and component
 // interface ArtistCardProps {
@@ -199,6 +200,7 @@ export function FanDashboard() {
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<string>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
+  const [profileImage, setProfileImage] = useState<string>("")
 
   // Mock user ID - in a real app, this would come from authentication
   const userId = "fan-user-123"
@@ -582,18 +584,19 @@ export function FanDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Image 
-                src={fanProfileImage || "/images/venu-logo.png"} 
-                alt="Fan Profile" 
-                width={64} 
-                height={64} 
-                className="rounded-full object-cover"
+            <div className="flex-shrink-0">
+              <SimpleProfileUpload 
+                value={profileImage || fanProfileImage}
+                onChange={setProfileImage}
+                size="lg"
+                className=""
               />
             </div>
-            <h1 className="font-serif font-bold text-2xl">
-              {isClient && fanName ? `${fanName}'s Dashboard` : 'Fan Dashboard'}
-            </h1>
+            <div>
+              <h1 className="font-serif font-bold text-xl">
+                {isClient && fanName ? `${fanName}'s Dashboard` : 'Fan Dashboard'}
+              </h1>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">

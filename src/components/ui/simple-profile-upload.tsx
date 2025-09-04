@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, X, User, Camera } from "lucide-react"
+import { X, User, Camera } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 

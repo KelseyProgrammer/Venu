@@ -23,6 +23,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  profileImage?: string;
   isVerified: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -255,7 +256,7 @@ async function apiRequest<T>(
     if (!response.ok) {
       // Handle authentication errors by clearing invalid tokens
       if (response.status === 401 || response.status === 403) {
-        const errorMessage = (data as any).error || (data as any).message || `Request failed with status ${response.status}`;
+        const errorMessage = (data as { error?: string; message?: string }).error || (data as { error?: string; message?: string }).message || `Request failed with status ${response.status}`;
         
         // Clear invalid authentication data
         if (errorMessage.includes('Access token') || 
@@ -272,7 +273,7 @@ async function apiRequest<T>(
       // Return the error response instead of throwing for client errors
       return {
         success: false,
-        error: (data as any).error || (data as any).message || `Request failed with status ${response.status}`,
+        error: (data as { error?: string; message?: string }).error || (data as { error?: string; message?: string }).message || `Request failed with status ${response.status}`,
         data: undefined as T
       };
     }

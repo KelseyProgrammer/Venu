@@ -6,13 +6,16 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { BarChart3, Building2, TrendingUp, Users, DollarSign, Plus } from "lucide-react"
+import { BarChart3, Building2, TrendingUp, Users, DollarSign, Plus, User } from "lucide-react"
 import Image from "next/image"
+import { ProfileManagement } from "@/components/ui/profile-management"
+
 export function MoreTab() {
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
   const [newDoorPersonName, setNewDoorPersonName] = useState("")
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [profileImage, setProfileImage] = useState<string>("")
 
   const filteredLocations = useMemo(() => [
     { id: "muggys", name: "Muggsy's", revenue: "$2,500", image: "/images/MUGS.jpeg", location: "St. Augustine, FL", eventsCount: 12 },
@@ -97,7 +100,38 @@ export function MoreTab() {
           <Users className="w-4 h-4 mr-1" />
           Support
         </Button>
+        <Button 
+          variant={moreSubcategory === "profile" ? "default" : "outline"} 
+          size="sm"
+          onClick={() => setMoreSubcategory("profile")}
+          className={`whitespace-nowrap ${moreSubcategory === "profile" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
+        >
+          <User className="w-4 h-4 mr-1" />
+          Profile
+        </Button>
       </div>
+
+      {/* Profile Subcategory */}
+      {moreSubcategory === "profile" && (
+        <ProfileManagement
+          userType="promoter"
+          initialData={{
+            firstName: "John",
+            lastName: "Doe",
+            email: "promoter@venu.com",
+            phone: "+1 (555) 987-6543",
+            company: "VENU Promotions",
+            location: "St. Augustine, FL",
+            profileImage: profileImage || "",
+            bio: "Experienced promoter with a passion for live music and community events."
+          }}
+          onSave={(data) => {
+            console.log('Profile saved:', data)
+            setProfileImage(data.profileImage)
+            // In a real implementation, you would save this to the backend
+          }}
+        />
+      )}
 
       {/* Analytics Subcategory */}
       {moreSubcategory === "analytics" && (

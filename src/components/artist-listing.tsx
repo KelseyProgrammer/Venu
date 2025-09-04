@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, MapPin, Heart, Music, X, Users, DollarSign, Instagram } from "lucide-react"
+import { Search, Star, MapPin, Music, X, Users, DollarSign, Instagram } from "lucide-react"
 import Image from "next/image"
 import { artistApi, ArtistProfile } from "@/lib/api"
 
@@ -103,7 +103,7 @@ export function ArtistListing({
         setHasMore(response.pagination ? pageNum < response.pagination.totalPages : false)
         
         // Load favorite counts for the loaded artists
-        await loadFavoriteCounts(response.data)
+        await loadFavoriteCounts()
       } else {
         setError(response.error || 'Failed to load artists')
       }
@@ -116,7 +116,7 @@ export function ArtistListing({
   }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, limit])
 
   // Load favorite counts for artists
-  const loadFavoriteCounts = useCallback(async (artistList: ArtistProfile[]) => {
+  const loadFavoriteCounts = useCallback(async () => {
     try {
       const response = await artistApi.getFavoriteCounts()
       if (response.success && response.data) {

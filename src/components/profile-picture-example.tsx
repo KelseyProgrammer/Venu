@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { User, Camera, Settings } from "lucide-react"
 
 export function ProfilePictureExample() {
-  const [currentUserId, setCurrentUserId] = useState<string>("user-123")
+  const [currentUserId] = useState<string>("user-123")
   const [currentProfileImage, setCurrentProfileImage] = useState<string>("")
   
   // Using the profile picture hook
@@ -19,9 +19,7 @@ export function ProfilePictureExample() {
     isUploading,
     error,
     uploadProfilePicture,
-    removeProfilePicture,
-    getImageUrl,
-    setError
+    removeProfilePicture
   } = useProfilePicture({
     userId: currentUserId,
     currentProfileImage,

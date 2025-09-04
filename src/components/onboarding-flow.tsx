@@ -10,7 +10,7 @@ interface OnboardingFlowProps {
   userRole?: string
 }
 
-export function OnboardingFlow({ onComplete, userRole }: OnboardingFlowProps) {
+export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0)
 
   const onboardingSteps = [

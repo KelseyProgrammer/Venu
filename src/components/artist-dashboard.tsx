@@ -2,15 +2,15 @@
 
 import { useState, useMemo, useCallback, memo, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { 
   Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, 
   MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, 
-  User, DollarSign, Clock, Music, LogOut
+  User, LogOut, Clock, Music, CheckCircle
 } from "lucide-react"
 import Image from "next/image"
 import { GigDetails } from "./gig-details"
@@ -23,6 +23,8 @@ import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
 import { authUtils } from "@/lib/utils"
 import { gigApi } from "@/lib/api"
+import { ProfileManagement } from "@/components/ui/profile-management"
+import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 // Types for better type safety
 interface Gig {
@@ -72,6 +74,240 @@ interface Booking {
   isPast?: boolean
 }
 
+// Artist Event Details Modal Component
+interface ArtistEventDetailsModalProps {
+  booking: Booking | null
+  isOpen: boolean
+  onClose: () => void
+}
+
+function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetailsModalProps) {
+  if (!booking) return null
+
+  const progress = (booking.ticketsSold / booking.totalTickets) * 100
+
+  // Helper function to convert 24-hour time to 12-hour format
+  const formatTime12Hour = (time24: string): string => {
+    try {
+      const time = time24.trim()
+      
+      if (time.includes('AM') || time.includes('PM')) {
+        return time
+      }
+      
+      if (time.includes(':')) {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours, 10)
+        const minute = parseInt(minutes, 10)
+        
+        if (isNaN(hour) || isNaN(minute)) {
+          return time24
+        }
+        
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:${minutes.padStart(2, '0')} ${period}`
+      }
+      
+      const hour = parseInt(time, 10)
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:00 ${period}`
+      }
+      
+      return time24
+    } catch {
+      return time24
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-foreground">
+            {booking.eventName || getLocationDisplayName(booking.location)}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Event Header */}
+          <div className="flex items-start gap-4">
+            <Image
+              src={booking.image || "/images/BandFallBack.PNG"}
+              alt={booking.eventName || "Event"}
+              width={120}
+              height={120}
+              className="rounded-lg object-cover"
+            />
+            
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {new Date(booking.date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{formatTime12Hour(booking.time)}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {getLocationDisplayName(booking.location)}
+                </span>
+              </div>
+              
+              {booking.genre && (
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-muted-foreground" />
+                  <Badge variant="outline" className="text-xs">
+                    {booking.genre}
+                  </Badge>
+                </div>
+              )}
+              
+              <Badge 
+                variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}
+                className={`text-xs ${
+                  booking.status === "confirmed" 
+                    ? "bg-green-600" 
+                    : booking.status === "pending"
+                    ? "bg-yellow-600"
+                    : booking.isPast
+                    ? "bg-blue-600"
+                    : "bg-gray-600"
+                }`}
+              >
+                {booking.status === "confirmed" 
+                  ? "Confirmed" 
+                  : booking.status === "pending"
+                  ? "Needs Band"
+                  : booking.isPast
+                  ? "Past Show"
+                  : booking.status
+                }
+              </Badge>
+            </div>
+          </div>
+
+          {/* Event Stats */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Event Statistics</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">{booking.ticketsSold}</div>
+                <div className="text-sm text-muted-foreground">Tickets Sold</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">{booking.totalTickets}</div>
+                <div className="text-sm text-muted-foreground">Total Capacity</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">${booking.artistGuarantee || 0}</div>
+                <div className="text-sm text-muted-foreground">Your Guarantee</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">${booking.earnings}</div>
+                <div className="text-sm text-muted-foreground">Your Earnings</div>
+              </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                <span>Ticket Sales Progress</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Your Performance Details */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Your Performance Details</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">Your Set</div>
+                  <div className="text-sm text-muted-foreground">
+                    {booking.genre || "TBD"} • {booking.artistSetTime ? formatTime12Hour(booking.artistSetTime) : "TBD"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {booking.artistPercentage || 0}%
+                  </span>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Additional Details */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Additional Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Your Percentage:</span>
+                <div className="font-medium text-foreground">{booking.artistPercentage || 0}% of revenue</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Your Guarantee:</span>
+                <div className="font-medium text-foreground">${booking.artistGuarantee || 0}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Current Earnings:</span>
+                <div className="font-medium text-green-400">${booking.earnings}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Status:</span>
+                <div className="font-medium text-foreground">
+                  {booking.status === "confirmed" 
+                    ? "Confirmed" 
+                    : booking.status === "pending"
+                    ? "Needs Band"
+                    : booking.isPast
+                    ? "Past Show"
+                    : booking.status
+                  }
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="default" 
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // Memoized Gig Card Component for better performance
 const GigCard = memo(function GigCard({ 
   gig, 
@@ -84,7 +320,7 @@ const GigCard = memo(function GigCard({
   onSelectGig: (gigId: string) => void
   onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
 }) {
-  const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
+  const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets, gig])
   
   // Memoize band tiers calculation to prevent unnecessary recalculations
   const bandTiers = useMemo(() => {
@@ -209,6 +445,9 @@ export function ArtistDashboard() {
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [profileImage, setProfileImage] = useState<string>("")
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
+  const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
   
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
@@ -608,36 +847,39 @@ export function ArtistDashboard() {
     })
   }, [myBookings, scheduleFilter])
 
-  if (selectedGig) {
+  // Transform the data structure to match GigDetails interface - memoized
+  const transformedGig = useMemo(() => {
+    if (!selectedGig) return null
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
-    if (gig) {
-      // Transform the data structure to match GigDetails interface - memoized
-      const transformedGig = useMemo(() => ({
-        id: gig.id,
-        location: gig.location,
-        date: gig.date,
-        time: gig.time,
-        genre: gig.genre,
-        guarantee: gig.guarantee,
-        tiers: [
-          { threshold: gig.tier1.threshold, amount: gig.tier1.amount, label: `${gig.tier1.threshold} tickets = $${gig.tier1.amount}`, color: gig.tier1.color },
-          { threshold: gig.tier2.threshold, amount: gig.tier2.amount, label: `${gig.tier2.threshold} tickets = $${gig.tier2.amount}`, color: gig.tier2.color },
-          { threshold: gig.tier3.threshold, amount: gig.tier3.amount, label: `${gig.tier3.threshold} tickets = $${gig.tier3.amount}`, color: gig.tier3.color },
-        ],
-        ticketsSold: gig.ticketsSold,
-        totalTickets: gig.totalTickets,
-        rating: gig.rating,
-        reviews: 127, // Default value
-        checklist: gig.requirements.map((req, index) => ({
-          id: index + 1,
-          item: req,
-          completed: true,
-          type: "location" as const
-        }))
-      }), [gig])
-      
-      return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
+    if (!gig) return null
+    
+    return {
+      id: gig.id,
+      location: gig.location,
+      date: gig.date,
+      time: gig.time,
+      genre: gig.genre,
+      guarantee: gig.guarantee,
+      tiers: [
+        { threshold: gig.tier1.threshold, amount: gig.tier1.amount, label: `${gig.tier1.threshold} tickets = $${gig.tier1.amount}`, color: gig.tier1.color },
+        { threshold: gig.tier2.threshold, amount: gig.tier2.amount, label: `${gig.tier2.threshold} tickets = $${gig.tier2.amount}`, color: gig.tier2.color },
+        { threshold: gig.tier3.threshold, amount: gig.tier3.amount, label: `${gig.tier3.threshold} tickets = $${gig.tier3.amount}`, color: gig.tier3.color },
+      ],
+      ticketsSold: gig.ticketsSold,
+      totalTickets: gig.totalTickets,
+      rating: gig.rating,
+      reviews: 127, // Default value
+      checklist: gig.requirements.map((req, index) => ({
+        id: index + 1,
+        item: req,
+        completed: true,
+        type: "location" as const
+      }))
     }
+  }, [selectedGig, mockGigs])
+
+  if (selectedGig && transformedGig) {
+    return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
   }
 
   // Artist stats cards - memoized for performance (moved here to be available before return)
@@ -694,25 +936,26 @@ export function ArtistDashboard() {
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Image 
-                src={artistProfileImage || "/images/venu-logo.png"} 
-                alt="Artist Profile" 
-                width={56} 
-                height={56} 
-                className="rounded-full object-cover w-14 h-14"
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <SimpleProfileUpload 
+                value={profileImage || artistProfileImage}
+                onChange={setProfileImage}
+                size="lg"
+                className=""
               />
             </div>
-            <span className="font-serif font-bold text-xl">
-              {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
-            </span>
-            {isPending && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span>Loading...</span>
-              </div>
-            )}
+            <div>
+              <span className="font-serif font-bold text-xl">
+                {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
+              </span>
+              {isPending && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
@@ -907,7 +1150,7 @@ export function ArtistDashboard() {
               className={`whitespace-nowrap ${scheduleFilter === "past" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
             >
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-              Past Shows
+              Past
             </Button>
           </div>
 
@@ -958,7 +1201,7 @@ export function ArtistDashboard() {
                 </div>
               ) : filteredBookings.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-muted-foreground">No shows found. When locations post gigs with your email, they'll appear here.</div>
+                  <div className="text-muted-foreground">No shows found. When locations post gigs with your email, they&apos;ll appear here.</div>
                 </div>
               ) : (
                 <>
@@ -1097,11 +1340,16 @@ export function ArtistDashboard() {
                         </div>
 
                         <div className="flex gap-2 pt-2">
-                          <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="w-28 bg-purple-600 hover:bg-purple-700 text-white"
+                            onClick={() => {
+                              setSelectedBookingForModal(booking)
+                              setShowEventDetailsModal(true)
+                            }}
+                          >
                             View Details
-                          </Button>
-                          <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
-                            Manage
                           </Button>
                         </div>
                       </div>
@@ -1442,212 +1690,22 @@ export function ArtistDashboard() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="p-4 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-xl">Artist Profile</h2>
-            <Button
-              variant="default"
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <User className="w-4 h-4 mr-1" />
-              Edit Profile
-            </Button>
-          </div>
-
-          {/* Simplified Profile Display */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Profile Header */}
-            <div className="lg:col-span-3">
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-6">
-                    <div className="relative">
-                      <Image
-                        src="/images/BandFallBack.PNG"
-                        alt="The Midnight Keys"
-                        width={120}
-                        height={120}
-                        className="rounded-lg object-cover w-30 h-30"
-                      />
-                      <div className="absolute -bottom-2 -right-2">
-                        <Badge variant="default" className="bg-green-600 text-white text-xs">
-                          Available
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="text-2xl font-bold text-foreground">The Midnight Keys</h3>
-                        <p className="text-muted-foreground">Rock • Alternative</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">4.8 (127 reviews)</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-foreground leading-relaxed">
-                        A dynamic rock band known for high-energy performances and original compositions. 
-                        Available for bookings with flexible scheduling and professional sound requirements.
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          St. Augustine, FL
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          $200-400
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          1 hour sets
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Contact Information */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Contact
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="text-foreground">keys@example.com</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                  <p className="text-foreground">(555) 123-4567</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Instagram</Label>
-                  <p className="text-foreground">@midnightkeys</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Details */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Music className="w-5 h-5" />
-                  Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Set Length</Label>
-                  <p className="text-foreground">1 hour</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Equipment</Label>
-                  <p className="text-foreground">PA system, backline provided</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Sound Requirements</Label>
-                  <p className="text-foreground">2 vocal mics, DI box for acoustic</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Availability */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Availability
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Badge variant="default" className="bg-green-600 text-white">
-                    Available
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Preferred Days</Label>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline" className="text-xs">Friday</Badge>
-                    <Badge variant="outline" className="text-xs">Saturday</Badge>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Lead Time</Label>
-                  <p className="text-foreground">1 week</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">12</div>
-                <div className="text-sm text-muted-foreground">Gigs This Year</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">$3,200</div>
-                <div className="text-sm text-muted-foreground">Total Earnings</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">4.8</div>
-                <div className="text-sm text-muted-foreground">Average Rating</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">85%</div>
-                <div className="text-sm text-muted-foreground">Booking Rate</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Activity */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Booking confirmed for Muggy's on Oct 12</p>
-                    <p className="text-xs text-muted-foreground">2 days ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Performance completed at Sarbez</p>
-                    <p className="text-xs text-muted-foreground">1 week ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Profile updated with new photos</p>
-                    <p className="text-xs text-muted-foreground">2 weeks ago</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileManagement
+            userType="artist"
+            initialData={{
+              firstName: artistName?.split(' ')[0] || "",
+              lastName: artistName?.split(' ').slice(1).join(' ') || "",
+              email: artistProfileData.email,
+              phone: artistProfileData.phone,
+              location: "St. Augustine, FL",
+              profileImage: artistProfileImage,
+              bio: "A dynamic rock band known for high-energy performances and original compositions. Available for bookings with flexible scheduling and professional sound requirements."
+            }}
+            onSave={(data) => {
+              console.log('Profile saved:', data)
+              // In a real implementation, you would save this to the backend
+            }}
+          />
         </TabsContent>
 
         {/* More Tab */}
@@ -1712,6 +1770,13 @@ export function ArtistDashboard() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Artist Event Details Modal */}
+      <ArtistEventDetailsModal
+        booking={selectedBookingForModal}
+        isOpen={showEventDetailsModal}
+        onClose={() => setShowEventDetailsModal(false)}
+      />
     </div>
   )
 }

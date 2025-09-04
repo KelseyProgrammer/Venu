@@ -249,7 +249,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
               <SimpleProfileUpload 
-                value={profileImage || locationDisplayInfo?.profileImage}
+                value={profileImage || locationDisplayInfo?.profileImage || ""}
                 onChange={setProfileImage}
                 size="lg"
                 className=""

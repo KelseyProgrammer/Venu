@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -18,12 +18,14 @@ import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { authUtils } from "@/lib/utils"
+import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedLocation, setSelectedLocation] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
+  const [profileImage, setProfileImage] = useState<string>("")
   
   // Unavailable dates state (dates when venues are closed or unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
@@ -110,63 +112,62 @@ export function PromoterDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Image 
-                  src={promoterProfileImage || "/images/venu-logo.png"} 
-                  alt="Promoter Profile" 
-                  width={64} 
-                  height={64} 
-                  className="rounded-full object-cover"
-                />
-              </div>
-              <h1 className="font-serif font-bold text-2xl text-foreground">
+            {/* Header */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <SimpleProfileUpload 
+                value={profileImage || promoterProfileImage}
+                onChange={setProfileImage}
+                size="lg"
+                className=""
+              />
+            </div>
+            <div>
+              <span className="font-serif font-bold text-xl">
                 {isClient && promoterName ? `${promoterName}'s Dashboard` : 'Promoter Dashboard'}
-              </h1>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                  <SelectTrigger className="w-48 bg-background">
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
-                    {myLocations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <WindowManagerProvider>
-                <RealTimeNotifications />
-                <RealTimeGigUpdates locationId={selectedLocation} />
-              </WindowManagerProvider>
-              {/* Logout button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => authUtils.logout()}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                Logout
-              </Button>
-              <Button 
-                onClick={() => setShowPostGig(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Post Gig
-              </Button>
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm">
+              <Search className="w-5 h-5" />
+            </Button>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-48 bg-background">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {myLocations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <WindowManagerProvider>
+              <RealTimeNotifications />
+              <RealTimeGigUpdates locationId={selectedLocation} />
+            </WindowManagerProvider>
+            {/* Logout button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => authUtils.logout()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
+            </Button>
+            <Button 
+              onClick={() => setShowPostGig(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Post Gig
+            </Button>
           </div>
         </div>
       </div>
