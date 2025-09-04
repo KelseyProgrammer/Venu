@@ -10,8 +10,8 @@ export default function UploadTestPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
 
   const handleLogin = () => {
-    // Use the real JWT token from the test user registration
-    const realToken = 'JWT_TOKEN_REMOVED_FOR_SECURITY'
+    // Use a placeholder token for testing - replace with actual token in development
+    const realToken = 'PLACEHOLDER_JWT_TOKEN_REPLACE_IN_DEVELOPMENT'
     localStorage.setItem('authToken', realToken)
     setIsLoggedIn(true)
   }
