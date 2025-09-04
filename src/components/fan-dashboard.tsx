@@ -588,7 +588,7 @@ export function FanDashboard() {
                 alt="Fan Profile" 
                 width={64} 
                 height={64} 
-                className="rounded-full object-cover w-16 h-16"
+                className="rounded-full object-cover"
               />
             </div>
             <h1 className="font-serif font-bold text-2xl">
@@ -880,7 +880,7 @@ export function FanDashboard() {
                     alt={ticket.artist}
                     width={80}
                     height={80}
-                    className="w-20 h-20 object-cover rounded-lg"
+                    className="object-cover rounded-lg"
                   />
                   <div className="flex-1 space-y-2">
                     <div>

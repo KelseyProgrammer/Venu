@@ -457,6 +457,15 @@ export const artistApi = {
   async deleteProfile(artistId: string): Promise<ApiResponse<null>> {
     return this.deleteArtist(artistId);
   },
+
+  // Favorite count methods
+  async getFavoriteCounts(): Promise<ApiResponse<Array<{ artistId: string; artistName: string; fanCount: number }>>> {
+    return apiRequest<Array<{ artistId: string; artistName: string; fanCount: number }>>('/artists/favorites/count');
+  },
+
+  async getArtistFavoriteCount(artistId: string): Promise<ApiResponse<{ artistId: string; fanCount: number }>> {
+    return apiRequest<{ artistId: string; fanCount: number }>(`/artists/${artistId}/favorites/count`);
+  },
 };
 
 // Upload API functions
@@ -636,6 +645,10 @@ export const gigApi = {
 
   async getGigsByLocation(locationId: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
     return apiRequest<GigProfile[]>(`/gigs?location=${encodeURIComponent(locationId)}&page=${page}&limit=${limit}`);
+  },
+
+  async getGigsByArtist(email: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
+    return apiRequest<GigProfile[]>(`/gigs/by-artist/${encodeURIComponent(email)}?page=${page}&limit=${limit}`);
   },
 
   async createGig(gigData: {

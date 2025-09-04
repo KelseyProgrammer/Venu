@@ -121,7 +121,7 @@ export function PromoterDashboard() {
                   alt="Promoter Profile" 
                   width={64} 
                   height={64} 
-                  className="rounded-full object-cover w-16 h-16"
+                  className="rounded-full object-cover"
                 />
               </div>
               <h1 className="font-serif font-bold text-2xl text-foreground">

@@ -22,6 +22,7 @@ import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
 import { authUtils } from "@/lib/utils"
+import { gigApi } from "@/lib/api"
 
 // Types for better type safety
 interface Gig {
@@ -57,11 +58,18 @@ interface Booking {
   location: string
   date: string
   time: string
-  status: "confirmed" | "completed"
+  status: "confirmed" | "pending" | "completed"
   ticketsSold: number
   totalTickets: number
   earnings: number
   image: string
+  gigId?: string
+  eventName?: string
+  genre?: string
+  artistSetTime?: string
+  artistPercentage?: number
+  artistGuarantee?: number
+  isPast?: boolean
 }
 
 // Memoized Gig Card Component for better performance
@@ -228,7 +236,7 @@ export function ArtistDashboard() {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   
   // Filter state for schedule views
-  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "confirmed", "completed", "upcoming"
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "confirmed", "needs-band", "past"
   
   // Availability filter state (separate from booking status filters)
   const [availabilityFilter, setAvailabilityFilter] = useState("all") // "all", "unavailable", "available"
@@ -302,11 +310,42 @@ export function ArtistDashboard() {
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [artistGigs, setArtistGigs] = useState<any[]>([])
 
   // Set isClient to true after hydration
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Fetch artist gigs from API
+  useEffect(() => {
+    const fetchArtistGigs = async () => {
+      try {
+        setLoading(true)
+        const currentUser = authUtils.getCurrentUser()
+        if (!currentUser?.email) {
+          console.error('No user email found')
+          return
+        }
+
+        const response = await gigApi.getGigsByArtist(currentUser.email, 1, 100)
+        if (response.success && response.data) {
+          setArtistGigs(response.data)
+        } else {
+          console.error('Failed to fetch artist gigs:', response.error)
+        }
+      } catch (err) {
+        console.error('Error fetching artist gigs:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (isClient) {
+      fetchArtistGigs()
+    }
+  }, [isClient])
 
   // Remove unused state variables since we're using mock data
   // const [gigs, setGigs] = useState<Gig[]>([])
@@ -404,35 +443,52 @@ export function ArtistDashboard() {
   ], [])
 
   const myBookings = useMemo((): Booking[] => {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-    
-    return [
-      {
-        id: 1,
-        location: "muggys", // Use standardized location key
-        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
-        time: "8 PM doors",
-        status: "confirmed",
-        ticketsSold: 50,
-        totalTickets: 75,
-        earnings: 400,
-        image: "/images/MUGS.jpeg",
-      },
-      {
-        id: 2,
-        location: "sarbez", // Use standardized location key
-        date: `${currentYear}-${String(currentMonth - 1).padStart(2, '0')}-28`,
-        time: "7 PM",
-        status: "completed",
-        ticketsSold: 45,
-        totalTickets: 60,
-        earnings: 350,
-        image: "/images/SARBEZ.jpg",
-      },
-    ];
-  }, [])
+    if (!artistGigs.length) return []
+
+    return artistGigs.map((gig, index) => {
+      const artistBand = gig.artistBand
+      const location = gig.selectedLocation
+      
+      // Check if the event is in the past
+      const eventDate = new Date(gig.eventDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const isPast = eventDate < today
+      
+      // Determine status based on gig status, artist confirmation, and date
+      let status: "confirmed" | "pending" | "completed" = "pending"
+      if (isPast) {
+        status = "completed" // Past shows are always considered completed
+      } else if (gig.status === "completed") {
+        status = "completed"
+      } else if (artistBand?.confirmed) {
+        status = "confirmed"
+      }
+
+      // Calculate earnings based on artist percentage
+      const totalRevenue = (gig.ticketsSold || 0) * (gig.ticketPrice || 0)
+      const artistEarnings = totalRevenue * ((artistBand?.percentage || 0) / 100)
+
+      return {
+        id: index + 1,
+        location: location?.name?.toLowerCase().replace(/\s+/g, '') || "unknown",
+        date: gig.eventDate,
+        time: gig.eventTime,
+        status,
+        ticketsSold: gig.ticketsSold || 0,
+        totalTickets: gig.ticketCapacity || 0,
+        earnings: Math.round(artistEarnings),
+        image: gig.image || "/images/BandFallBack.PNG",
+        gigId: gig._id || gig.id,
+        eventName: gig.eventName,
+        genre: gig.eventGenre,
+        artistSetTime: artistBand?.setTime,
+        artistPercentage: artistBand?.percentage,
+        artistGuarantee: artistBand?.guarantee || 0,
+        isPast
+      }
+    })
+  }, [artistGigs])
 
   // const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
@@ -542,10 +598,10 @@ export function ArtistDashboard() {
       switch (scheduleFilter) {
         case "confirmed":
           return booking.status === "confirmed"
-        case "completed":
-          return booking.status === "completed"
-        case "upcoming":
-          return booking.status === "confirmed" && new Date(booking.date) > new Date()
+        case "needs-band":
+          return booking.status === "pending"
+        case "past":
+          return booking.isPast === true
         default:
           return true
       }
@@ -583,6 +639,38 @@ export function ArtistDashboard() {
       return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
     }
   }
+
+  // Artist stats cards - memoized for performance (moved here to be available before return)
+  const artistStatsCards = useMemo(() => {
+    // Calculate metrics from myBookings data
+    const totalGigs = myBookings.length
+    const upcomingGigs = myBookings.filter(booking => booking.status === "confirmed" && !booking.isPast).length
+    const totalEarnings = myBookings.reduce((sum, booking) => sum + booking.earnings, 0)
+    const bookingRate = totalGigs > 0 ? Math.round((upcomingGigs / totalGigs) * 100) : 0
+
+    return [
+      {
+        title: "Total Gigs",
+        value: totalGigs,
+        color: "text-purple-600"
+      },
+      {
+        title: "Upcoming Gigs",
+        value: upcomingGigs,
+        color: "text-green-600"
+      },
+      {
+        title: "Total Earnings",
+        value: `$${totalEarnings.toLocaleString()}`,
+        color: "text-orange-600"
+      },
+      {
+        title: "Booking Rate",
+        value: `${bookingRate}%`,
+        color: "text-blue-600"
+      }
+    ]
+  }, [myBookings])
 
   return (
     <div className="min-h-screen bg-background">
@@ -657,6 +745,20 @@ export function ArtistDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Artist Stats Cards */}
+      {artistStatsCards && (
+        <div className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {artistStatsCards.map((card, index) => (
+              <Card key={index} className="p-4 text-center">
+                <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
+                <div className="text-sm text-muted-foreground">{card.title}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -778,7 +880,7 @@ export function ArtistDashboard() {
               onClick={() => setScheduleFilter("all")}
               className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
             >
-              All Bookings
+              All Shows
             </Button>
             <Button 
               variant={scheduleFilter === "confirmed" ? "default" : "outline"} 
@@ -787,25 +889,25 @@ export function ArtistDashboard() {
               className={`whitespace-nowrap ${scheduleFilter === "confirmed" ? "bg-green-600 hover:bg-green-700 text-white" : "border-green-200 text-green-700 hover:bg-green-50"}`}
             >
               <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-              Confirmed
+              Confirmed Shows
             </Button>
             <Button 
-              variant={scheduleFilter === "completed" ? "default" : "outline"} 
+              variant={scheduleFilter === "needs-band" ? "default" : "outline"} 
               size="sm"
-              onClick={() => setScheduleFilter("completed")}
-              className={`whitespace-nowrap ${scheduleFilter === "completed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
+              onClick={() => setScheduleFilter("needs-band")}
+              className={`whitespace-nowrap ${scheduleFilter === "needs-band" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "border-yellow-200 text-yellow-700 hover:bg-yellow-50"}`}
+            >
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+              Needs Band
+            </Button>
+            <Button 
+              variant={scheduleFilter === "past" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("past")}
+              className={`whitespace-nowrap ${scheduleFilter === "past" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
             >
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-              Completed
-            </Button>
-            <Button 
-              variant={scheduleFilter === "upcoming" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setScheduleFilter("upcoming")}
-              className={`whitespace-nowrap ${scheduleFilter === "upcoming" ? "bg-orange-600 hover:bg-orange-700 text-white" : "border-orange-200 text-orange-700 hover:bg-orange-50"}`}
-            >
-              <div className="w-2 h-2 bg-orange-500 rounded-full mr-1"></div>
-              Upcoming
+              Past Shows
             </Button>
           </div>
 
@@ -844,27 +946,43 @@ export function ArtistDashboard() {
           {scheduleSubcategory === "list" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg text-foreground">My Bookings</h3>
+                <h3 className="font-semibold text-lg text-foreground">My Shows</h3>
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredBookings.length} of {myBookings.length} bookings
+                  {loading ? "Loading..." : `Showing ${filteredBookings.length} of ${myBookings.length} shows`}
                 </div>
               </div>
 
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">Loading your shows...</div>
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground">No shows found. When locations post gigs with your email, they'll appear here.</div>
+                </div>
+              ) : (
+                <>
               {/* Color Key Legend for List View */}
               <Card className="p-4 bg-card border-border">
-                <h4 className="font-medium text-foreground mb-3">Booking Status Legend</h4>
+                    <h4 className="font-medium text-foreground mb-3">Show Status Legend</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
-                    <span className="text-muted-foreground">Confirmed</span>
+                        <span className="text-muted-foreground">Confirmed Shows</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        </div>
+                        <span className="text-muted-foreground">Needs Band</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     </div>
-                    <span className="text-muted-foreground">Completed</span>
+                        <span className="text-muted-foreground">Past Shows</span>
                   </div>
                 </div>
               </Card>
@@ -874,12 +992,16 @@ export function ArtistDashboard() {
                   <Card key={booking.id} className={`p-4 bg-card ${
                     booking.status === "confirmed" 
                       ? 'border-green-200 border-2' 
-                      : 'border-blue-200 border-2'
+                           : booking.status === "pending"
+                           ? 'border-yellow-200 border-2'
+                           : booking.isPast
+                           ? 'border-blue-200 border-2'
+                           : 'border-gray-200 border-2'
                   }`}>
                     <div className="flex items-start gap-4">
                       <Image
                         src={booking.image || "/images/venu-logo.png"}
-                        alt={booking.location}
+                            alt={booking.eventName || "Show"}
                         width={80}
                         height={80}
                         className="rounded-lg object-cover"
@@ -888,7 +1010,7 @@ export function ArtistDashboard() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-semibold text-foreground">{getLocationDisplayName(booking.location)}</h3>
+                                <h3 className="font-semibold text-foreground">{booking.eventName || getLocationDisplayName(booking.location)}</h3>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="w-4 h-4" />
                               {new Date(booking.date).toLocaleDateString('en-US', { 
@@ -896,13 +1018,38 @@ export function ArtistDashboard() {
                                 month: 'short', 
                                 day: 'numeric' 
                               })} • {booking.time}
+                                  {booking.artistSetTime && (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                      Set: {booking.artistSetTime}
+                                    </span>
+                                  )}
                             </div>
+                                {booking.genre && (
+                                  <div className="text-sm text-muted-foreground">
+                                    Genre: {booking.genre}
+                                  </div>
+                                )}
                           </div>
                           <Badge 
                             variant={booking.status === "confirmed" ? "default" : "secondary"}
-                            className={booking.status === "confirmed" ? "bg-green-600" : "bg-blue-600"}
-                          >
-                            {booking.status}
+                                 className={
+                                   booking.status === "confirmed" 
+                                     ? "bg-green-600" 
+                                     : booking.status === "pending"
+                                     ? "bg-yellow-600"
+                                     : booking.isPast
+                                     ? "bg-blue-600"
+                                     : "bg-gray-600"
+                                 }
+                               >
+                                 {booking.status === "confirmed" 
+                                   ? "Confirmed" 
+                                   : booking.status === "pending"
+                                   ? "Needs Band"
+                                   : booking.isPast
+                                   ? "Past Show"
+                                   : booking.status
+                                 }
                           </Badge>
                         </div>
 
@@ -911,12 +1058,22 @@ export function ArtistDashboard() {
                           {booking.status === "confirmed" ? (
                             <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              Upcoming Performance
+                                   Confirmed Show
                             </div>
-                          ) : (
+                               ) : booking.status === "pending" ? (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                   Needs Band
+                                 </div>
+                               ) : booking.isPast ? (
                             <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              Performance Completed
+                                   Past Show
+                                 </div>
+                               ) : (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                   {booking.status}
                             </div>
                           )}
                         </div>
@@ -929,8 +1086,13 @@ export function ArtistDashboard() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Earnings:</span>
+                                <span className="text-muted-foreground">Your Earnings:</span>
                             <div className="font-medium text-green-400">${booking.earnings}</div>
+                                {booking.artistPercentage && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {booking.artistPercentage}% of revenue
+                                  </div>
+                                )}
                           </div>
                         </div>
 
@@ -947,6 +1109,8 @@ export function ArtistDashboard() {
                   </Card>
                 ))}
               </div>
+                </>
+              )}
             </div>
           )}
 

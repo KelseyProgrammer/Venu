@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, MapPin, Heart, Music, X } from "lucide-react"
+import { Search, Star, MapPin, Heart, Music, X, Users, DollarSign, Instagram } from "lucide-react"
 import Image from "next/image"
 import { artistApi, ArtistProfile } from "@/lib/api"
 
@@ -39,6 +39,7 @@ export function ArtistListing({
   const [sortOrder, setSortOrder] = useState("desc")
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
+  const [favoriteCounts, setFavoriteCounts] = useState<Record<string, number>>({})
 
   const genreOptions = [
     "jazz", "rock", "electronic", "folk", "blues", "pop", "country", "hip-hop", "classical", "reggae"
@@ -100,6 +101,9 @@ export function ArtistListing({
         }
         
         setHasMore(response.pagination ? pageNum < response.pagination.totalPages : false)
+        
+        // Load favorite counts for the loaded artists
+        await loadFavoriteCounts(response.data)
       } else {
         setError(response.error || 'Failed to load artists')
       }
@@ -110,6 +114,23 @@ export function ArtistListing({
       setLoading(false)
     }
   }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, limit])
+
+  // Load favorite counts for artists
+  const loadFavoriteCounts = useCallback(async (artistList: ArtistProfile[]) => {
+    try {
+      const response = await artistApi.getFavoriteCounts()
+      if (response.success && response.data) {
+        const counts: Record<string, number> = {}
+        response.data.forEach((item) => {
+          counts[item.artistId] = item.fanCount
+        })
+        setFavoriteCounts(prev => ({ ...prev, ...counts }))
+      }
+    } catch (err) {
+      console.error('Error loading favorite counts:', err)
+      // Don't set error state for favorite counts as it's not critical
+    }
+  }, [])
 
   // Load artists on mount and when filters change
   useEffect(() => {
@@ -277,6 +298,7 @@ export function ArtistListing({
               key={artist._id}
               artist={artist}
               onSelect={onArtistSelect || (() => {})}
+              favoriteCount={favoriteCounts[artist._id]}
             />
           ))}
         </div>
@@ -324,9 +346,10 @@ export function ArtistListing({
 interface ArtistCardProps {
   artist: ArtistProfile
   onSelect?: (artist: ArtistProfile) => void
+  favoriteCount?: number
 }
 
-function ArtistCard({ artist, onSelect }: ArtistCardProps) {
+function ArtistCard({ artist, onSelect, favoriteCount }: ArtistCardProps) {
   const handleSelect = () => {
     if (onSelect) {
       onSelect(artist)
@@ -352,50 +375,80 @@ function ArtistCard({ artist, onSelect }: ArtistCardProps) {
             <div>
               <h3 className="font-semibold text-foreground">{artist.name}</h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="flex gap-1">
-                  {artist.genre.slice(0, 2).map((g) => (
-                    <Badge key={g} variant="outline" className="text-xs">
-                      {g.charAt(0).toUpperCase() + g.slice(1)}
-                    </Badge>
-                  ))}
-                  {artist.genre.length > 2 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{artist.genre.length - 2}
-                    </Badge>
-                  )}
-                </div>
+                <Badge variant="outline" className="text-xs">
+                  {artist.genre[0]?.charAt(0).toUpperCase() + artist.genre[0]?.slice(1) || 'Unknown'}
+                </Badge>
                 <span className="flex items-center gap-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  {artist.rating.toFixed(1)}
+                  <span className="text-sm text-foreground">{artist.rating.toFixed(1)}</span>
                 </span>
-                <span>{artist.followers} followers</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm text-foreground">{artist.location}</span>
+                </span>
               </div>
             </div>
           </div>
-          
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {artist.bio}
-          </p>
-          
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {artist.location}
+              <Users className="w-4 h-4" />
+              {favoriteCount ? `${favoriteCount} fans` : '0 fans'}
             </span>
-            <span>{artist.totalGigs} gigs</span>
-            <span>{artist.priceRange}</span>
+            <span className="flex items-center gap-1">
+              <DollarSign className="w-4 h-4" />
+              {artist.priceRange}
+            </span>
+            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+              Available
+            </Badge>
           </div>
-          
+
+          <p className="text-sm text-muted-foreground line-clamp-2">{artist.bio}</p>
+
+          {/* Social Media Links */}
+          <div className="flex items-center gap-4 pt-2 pb-2">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Instagram className="w-4 h-4" />
+              <a 
+                href={`https://instagram.com/${artist.instagram?.replace('@', '') || 'artist'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:text-purple-700 hover:underline"
+              >
+                {artist.instagram || '@artist'}
+              </a>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Music className="w-4 h-4" />
+              <div className="flex gap-2">
+                <a 
+                  href={artist.spotify || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-600 hover:text-green-700 hover:underline"
+                >
+                  Spotify
+                </a>
+                <span className="text-muted-foreground">•</span>
+                <a 
+                  href={artist.appleMusic || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white hover:text-gray-200 hover:underline"
+                >
+                  Apple Music
+                </a>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-2 pt-2">
             <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
               View Details
             </Button>
             <Button variant="default" size="sm" className="w-20 bg-purple-600 hover:bg-purple-700 text-white">
               Book
-            </Button>
-            <Button variant="outline" size="sm" className="w-28">
-              <Heart className="w-3 h-3 mr-1" />
-              Favorite
             </Button>
           </div>
         </div>

@@ -305,4 +305,65 @@ router.delete('/:id', authenticateToken, requireGigModificationPermission, async
   }
 });
 
+// Get gigs by artist email - PUBLIC ROUTE
+router.get('/by-artist/:email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    // Find gigs where the artist's email is in the bands array
+    const gigs = await Gig.find({
+      'bands.email': { $regex: email, $options: 'i' }
+    })
+      .populate('selectedLocation', 'name city state address')
+      .populate('selectedPromoter', 'firstName lastName email')
+      .populate('selectedDoorPerson', 'firstName lastName email')
+      .populate('createdBy', 'firstName lastName email')
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ eventDate: 1 });
+
+    const total = await Gig.countDocuments({
+      'bands.email': { $regex: email, $options: 'i' }
+    });
+
+    // Transform the data to include artist-specific information
+    const transformedGigs = gigs.map(gig => {
+      const artistBand = gig.bands.find(band => 
+        band.email.toLowerCase() === email.toLowerCase()
+      );
+      
+      return {
+        ...gig.toObject(),
+        artistBand,
+        artistStatus: artistBand?.confirmed ? 'confirmed' : 'pending',
+        artistSetTime: artistBand?.setTime,
+        artistPercentage: artistBand?.percentage,
+        artistGuarantee: artistBand?.guarantee || 0
+      };
+    });
+
+    const response: ApiResponse<any[]> = {
+      success: true,
+      data: transformedGigs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get gigs by artist email error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
 export default router;

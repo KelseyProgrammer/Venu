@@ -279,7 +279,7 @@ export function AuthFlow() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
+            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
             <span className="font-serif font-bold text-xl">venu</span>
           </div>
         </div>
@@ -700,7 +700,7 @@ export function AuthFlow() {
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-3">
-          <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
+          <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
           <span className="font-serif font-bold text-xl">venu</span>
         </div>
       </div>
