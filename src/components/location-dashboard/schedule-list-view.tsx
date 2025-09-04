@@ -210,11 +210,18 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
     if (scheduleFilter === "all") return eventsToUse;
     
     return eventsToUse.filter(event => {
+      const eventDate = new Date(event.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPast = eventDate < today;
+      
       switch (scheduleFilter) {
         case "complete":
           return event.expectedBands <= event.confirmedBands;
         case "needs-bands":
           return event.expectedBands > event.confirmedBands;
+        case "past":
+          return isPast;
         case "unavailable":
           // For unavailable filter, we don't filter events - we show all events
           // The calendar will handle showing unavailable dates separately
@@ -254,16 +261,30 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
             </div>
             <span className="text-muted-foreground">Bands Still Needed</span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            </div>
+            <span className="text-muted-foreground">Past Shows</span>
+          </div>
         </div>
       </Card>
 
       <div className="grid gap-4">
-        {filteredEvents.map((event) => (
-          <Card key={event.id} className={`p-4 bg-card ${
-            event.expectedBands > event.confirmedBands 
-              ? 'border-yellow-200 border-2' 
-              : 'border-green-200 border-2'
-          }`}>
+        {filteredEvents.map((event) => {
+          const eventDate = new Date(event.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const isPast = eventDate < today;
+          
+          return (
+            <Card key={event.id} className={`p-4 bg-card ${
+              isPast
+                ? 'border-blue-200 border-2'
+                : event.expectedBands > event.confirmedBands 
+                ? 'border-yellow-200 border-2' 
+                : 'border-green-200 border-2'
+            }`}>
             <div className="flex items-start gap-4">
               <Image
                 src={event.image || "/images/BandFallBack.PNG"}
@@ -299,7 +320,12 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
 
                 {/* Status Indicator */}
                 <div className="flex items-center gap-2 mb-3">
-                  {event.expectedBands > event.confirmedBands ? (
+                  {isPast ? (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Past Show ({event.confirmedBands}/{event.expectedBands})
+                    </div>
+                  ) : event.expectedBands > event.confirmedBands ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                       Bands Still Needed ({event.confirmedBands}/{event.expectedBands})
@@ -379,7 +405,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
               </div>
             </div>
           </Card>
-        ))}
+        )})}
       </div>
 
       {/* Event Details Modal */}

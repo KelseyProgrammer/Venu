@@ -84,6 +84,7 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
           scheduleFilter={scheduleFilter}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
+          onFilterChange={setScheduleFilter}
         />
       )}
     </div>

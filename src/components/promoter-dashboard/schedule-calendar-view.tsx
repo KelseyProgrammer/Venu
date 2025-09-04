@@ -8,12 +8,14 @@ interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
+  onFilterChange: (filter: string) => void;
 }
 
 export function ScheduleCalendarView({ 
   scheduleFilter, 
   unavailableDates, 
-  onToggleDateAvailability 
+  onToggleDateAvailability,
+  onFilterChange
 }: ScheduleCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const myEvents = useMemo(() => [
@@ -60,11 +62,18 @@ export function ScheduleCalendarView({
     if (scheduleFilter === "all") return myEvents;
     
     return myEvents.filter(event => {
+      const eventDate = new Date(event.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPast = eventDate < today;
+      
       switch (scheduleFilter) {
         case "complete":
           return event.expectedBands <= event.confirmedBands;
         case "needs-bands":
           return event.expectedBands > event.confirmedBands;
+        case "past":
+          return isPast;
         case "unavailable":
           // For unavailable filter, we don't filter events - we show all events
           // The calendar will handle showing unavailable dates separately
@@ -112,6 +121,12 @@ export function ScheduleCalendarView({
       // Determine if event needs more bands
       const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
       
+      // Check if event is in the past
+      const eventDate = new Date(eventOnDate?.date || '');
+      const todayForEvent = new Date();
+      todayForEvent.setHours(0, 0, 0, 0);
+      const isEventPast = eventOnDate ? eventDate < todayForEvent : false;
+      
       return {
         day,
         eventOnDate,
@@ -120,6 +135,7 @@ export function ScheduleCalendarView({
         isToday,
         isCurrentMonth,
         needsMoreBands,
+        isEventPast,
         dateString
       };
     });
@@ -168,6 +184,7 @@ export function ScheduleCalendarView({
           variant={scheduleFilter === "all" ? "default" : "outline"} 
           size="sm"
           className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : "border-purple-200 text-purple-700 hover:bg-purple-50"}`}
+          onClick={() => onFilterChange("all")}
         >
           <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
           All Dates
@@ -176,6 +193,7 @@ export function ScheduleCalendarView({
           variant={scheduleFilter === "unavailable" ? "default" : "outline"} 
           size="sm"
           className={`whitespace-nowrap ${scheduleFilter === "unavailable" ? "bg-red-600 hover:bg-red-700 text-white" : "border-red-200 text-red-700 hover:bg-red-50"}`}
+          onClick={() => onFilterChange("unavailable")}
         >
           <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
           Unavailable
@@ -184,6 +202,7 @@ export function ScheduleCalendarView({
           variant={scheduleFilter === "available" ? "default" : "outline"} 
           size="sm"
           className={`whitespace-nowrap ${scheduleFilter === "available" ? "bg-gray-600 hover:bg-gray-700 text-white" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+          onClick={() => onFilterChange("available")}
         >
           <div className="w-2 h-2 bg-gray-500 rounded-full mr-1"></div>
           Available
@@ -242,7 +261,7 @@ export function ScheduleCalendarView({
         <div className="grid grid-cols-7 gap-1">
           {/* Generate calendar days for current month */}
           {calendarDays.map((dayData, i) => {
-            const { day, eventOnDate, isUnavailable, isPast, isToday, isCurrentMonth, needsMoreBands, dateString } = dayData;
+            const { day, eventOnDate, isUnavailable, isPast, isToday, isCurrentMonth, needsMoreBands, isEventPast, dateString } = dayData;
             
             // For unavailable filter, only show unavailable days
             if (scheduleFilter === "unavailable" && !isUnavailable) {
@@ -251,6 +270,11 @@ export function ScheduleCalendarView({
             
             // For available filter, only show available days (no events, not unavailable, not past)
             if (scheduleFilter === "available" && (eventOnDate || isUnavailable || isPast)) {
+              return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
+            }
+            
+            // For past filter, only show days with past events
+            if (scheduleFilter === "past" && !isEventPast) {
               return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
             }
             
@@ -278,6 +302,8 @@ export function ScheduleCalendarView({
                     ? scheduleFilter === "unavailable"
                       ? 'bg-red-50 border-red-300 shadow-md' 
                       : 'bg-white border-red-200'
+                    : eventOnDate && isEventPast
+                    ? 'bg-white border-blue-200'
                     : eventOnDate && needsMoreBands
                     ? 'bg-white border-yellow-200'
                     : eventOnDate
@@ -294,6 +320,8 @@ export function ScheduleCalendarView({
                     ? scheduleFilter === "unavailable"
                       ? 'text-red-700 font-bold'
                       : 'text-red-600'
+                    : eventOnDate && isEventPast
+                    ? 'text-blue-600'
                     : eventOnDate && needsMoreBands
                     ? 'text-yellow-600'
                     : eventOnDate 
@@ -319,7 +347,9 @@ export function ScheduleCalendarView({
                         <div 
                           key={event.id} 
                           className={`text-xs p-1 rounded truncate ${
-                            needsMoreBands
+                            isEventPast
+                              ? 'bg-blue-200 text-blue-800'
+                              : needsMoreBands
                               ? 'bg-yellow-200 text-yellow-800' 
                               : 'bg-green-200 text-green-800'
                           }`}
@@ -397,6 +427,10 @@ export function ScheduleCalendarView({
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-yellow-200 rounded"></div>
             <span className="text-yellow-600 font-medium">Bands Still Needed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-200 rounded"></div>
+            <span className="text-blue-600 font-medium">Past Shows</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-200 rounded"></div>
