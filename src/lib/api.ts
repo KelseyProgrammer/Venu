@@ -336,6 +336,13 @@ export const authApi = {
       body: JSON.stringify(profileData),
     });
   },
+
+  async updateProfileImage(profileImage: string): Promise<ApiResponse<User>> {
+    return apiRequest<User>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ profileImage }),
+    });
+  },
 };
 
 // Artist API functions

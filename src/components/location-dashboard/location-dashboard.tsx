@@ -19,6 +19,7 @@ import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { useCurrentUserLocation } from "@/hooks/useLocation"
 import { Card } from "@/components/ui/card"
 import { authUtils } from "@/lib/utils"
+import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 
 interface LocationDashboardProps {
@@ -45,6 +46,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   const [showLocationCreation, setShowLocationCreation] = useState(false)
+  const [profileImage, setProfileImage] = useState<string>("")
   
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -119,9 +121,9 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       state: location.state,
       capacity: location.capacity,
       rating: location.rating,
-      profileImage: location.images?.[0] || "/images/venu-logo.png"
+      profileImage: profileImage || location.images?.[0] || "/images/venu-logo.png"
     } as LocationDisplayInfo
-  }, [location])
+  }, [location, profileImage])
 
   // Memoized analytics cards to prevent unnecessary re-renders
   const analyticsCards = useMemo(() => {
@@ -245,13 +247,12 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Image 
-                src={locationDisplayInfo?.profileImage || "/images/venu-logo.png"} 
-                alt={locationDisplayInfo?.name || "Venue"} 
-                width={64} 
-                height={64} 
-                className="rounded-full object-cover w-16 h-16"
+            <div className="flex-shrink-0">
+              <SimpleProfileUpload 
+                value={profileImage || locationDisplayInfo?.profileImage}
+                onChange={setProfileImage}
+                size="lg"
+                className=""
               />
             </div>
             <div>

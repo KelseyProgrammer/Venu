@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ProfilePictureUpload } from "@/components/ui/profile-picture-upload"
 import { ChevronLeft, Music, MapPin, Users, Upload, X, Heart } from "lucide-react"
 import Image from "next/image"
 import { authApi, artistApi, apiUtils } from "@/lib/api"
@@ -32,6 +33,7 @@ export function AuthFlow() {
     password: "" 
   })
   const [profileData, setProfileData] = useState({
+    profileImage: "",
     bio: "",
     spotify: "",
     instagram: "",
@@ -301,6 +303,17 @@ export function AuthFlow() {
             
             {selectedRole === "artist" && (
               <div className="space-y-6">
+                {/* Profile Picture Upload */}
+                <div>
+                  <ProfilePictureUpload
+                    value={profileData.profileImage || ""}
+                    onChange={(value) => setProfileData(prev => ({ ...prev, profileImage: value }))}
+                    label="Profile Picture"
+                    size="lg"
+                    required
+                  />
+                </div>
+
                 <div>
                   <Label htmlFor="bio" className="text-foreground">
                     Bio

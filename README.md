@@ -34,6 +34,7 @@ start-dev.bat   # Windows
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001
 - **API Health Check**: http://localhost:3001/health
+- **Profile Picture Test**: http://localhost:3000/profile-picture-test
 
 ## ✨ Key Features
 
@@ -110,6 +111,7 @@ The application includes enterprise-grade real-time communication features:
 - **Forms**: React Hook Form 7.60.0 with Zod 3.25.67 validation
 - **Mobile Strategy**: Responsive web design preparing for Expo mobile port
 - **Image Upload**: Multer middleware with 5MB file size limit and image-only filter
+- **Profile Pictures**: ProfilePictureDisplay component with multiple sizes and fallback support
 
 ## 📋 Development Workflow
 
@@ -210,6 +212,8 @@ For detailed information about this issue and the complete action plan, see [DOC
 ## 🆕 Recent Updates (December 2024)
 
 ### New Features Added
+- **Profile Picture Test Route**: Added `/profile-picture-test` route for testing image upload functionality
+- **ProfilePictureDisplay Component**: New reusable UI component for displaying profile pictures with multiple size options
 - **Promoter Profile Form**: Comprehensive promoter-profile-form.tsx component with advanced form management
 - **Image Upload System**: Fully functional image upload for all dashboard profile forms
 - **Backend Cleanup Tools**: Added utilities for data cleanup and management
@@ -226,6 +230,7 @@ For detailed information about this issue and the complete action plan, see [DOC
 - **Comprehensive dev-setup.sh**: Streamlined development workflow script
 - **Enhanced npm scripts**: Better development commands and validation
 - **Documentation Updates**: Comprehensive updates to CURSOR_RULES.md and README.md
+- **Profile Picture Test Route**: `/profile-picture-test` for testing image upload functionality
 
 ## 🤝 Contributing
 
