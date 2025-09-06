@@ -480,6 +480,23 @@ export function ArtistDashboard() {
   // Availability filter state (separate from booking status filters)
   const [availabilityFilter, setAvailabilityFilter] = useState("all") // "all", "unavailable", "available"
   
+  // Available dates state (dates when artist is explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('artist-available-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          // Failed to parse saved available dates, using defaults
+        }
+      }
+    }
+    // Start with empty array - days are blank by default
+    return []
+  })
+
   // Unavailable dates state (dates when artist is unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
     // Load from localStorage or use default values
@@ -493,12 +510,8 @@ export function ArtistDashboard() {
         }
       }
     }
-    // Default unavailable dates for current month
-    return [
-      "2024-12-01",
-      "2024-12-08", 
-      "2024-12-25"
-    ]
+    // Start with empty array - days are blank by default
+    return []
   })
   
   // Earnings data - memoized for performance
@@ -789,26 +802,47 @@ export function ArtistDashboard() {
     setCurrentDate(new Date())
   }, [])
 
-  // Toggle date availability - optimized with useCallback
+  // Handle single click toggle - cycles through: blank → available → unavailable → blank
   const toggleDateAvailability = useCallback((dateString: string) => {
-    setUnavailableDates(prevDates => {
-      let newDates: string[]
-      if (prevDates.includes(dateString)) {
-        // Remove from unavailable dates (make available)
-        newDates = prevDates.filter(date => date !== dateString)
-      } else {
-        // Add to unavailable dates (make unavailable)
-        newDates = [...prevDates, dateString]
-      }
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
-      }
-      
-      return newDates
-    })
-  }, [])
+    const isAvailable = availableDates.includes(dateString)
+    const isUnavailable = unavailableDates.includes(dateString)
+    
+    if (!isAvailable && !isUnavailable) {
+      // Currently blank → make available
+      setAvailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('artist-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (isAvailable && !isUnavailable) {
+      // Currently available → make unavailable
+      setAvailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('artist-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+      setUnavailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (!isAvailable && isUnavailable) {
+      // Currently unavailable → make blank
+      setUnavailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    }
+  }, [availableDates, unavailableDates])
 
   // Optimized tab change handler with useTransition
   const handleTabChange = useCallback((value: string) => {
@@ -1371,9 +1405,9 @@ export function ArtistDashboard() {
                   {availabilityFilter === "unavailable" 
                     ? `Showing ${unavailableDates.length} unavailable dates`
                     : availabilityFilter === "available"
-                    ? `Showing available dates`
+                    ? `Showing ${availableDates.length} available dates`
                     : availabilityFilter === "all"
-                    ? `Showing all dates (available and unavailable)`
+                    ? `Showing all dates (${availableDates.length} available, ${unavailableDates.length} unavailable)`
                     : `Showing ${filteredBookings.length} of ${myBookings.length} bookings`
                   }
                 </div>
@@ -1416,7 +1450,7 @@ export function ArtistDashboard() {
                     {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Click on available dates to mark them as unavailable
+                    Click on blank dates to cycle through: blank → available → unavailable → blank
                   </p>
                 </div>
                 
@@ -1444,8 +1478,9 @@ export function ArtistDashboard() {
                              bookingDate.getFullYear() === currentYear;
                     });
                     
-                    // Check if date is unavailable
+                    // Check if date is available or unavailable
                     const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isAvailable = availableDates.includes(dateString);
                     const isUnavailable = unavailableDates.includes(dateString);
                     
                     // Check if date is in the past
@@ -1462,8 +1497,8 @@ export function ArtistDashboard() {
                       return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
                     }
                     
-                    // For available filter, only show available days (no bookings, not unavailable, not past)
-                    if (availabilityFilter === "available" && (bookingOnDate || isUnavailable || isPast)) {
+                    // For available filter, only show explicitly available days
+                    if (availabilityFilter === "available" && !isAvailable) {
                       return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
                     }
                     
@@ -1477,6 +1512,7 @@ export function ArtistDashboard() {
                         onClick={() => {
                           // Only allow toggling availability for future dates that don't have bookings
                           if (!isPast && !bookingOnDate) {
+                            // Single click - cycle through: blank → available → unavailable → blank
                             toggleDateAvailability(dateString)
                           }
                         }}
@@ -1491,6 +1527,10 @@ export function ArtistDashboard() {
                             ? availabilityFilter === "unavailable"
                               ? 'bg-red-50 border-red-300 shadow-md' 
                               : 'bg-white border-red-200'
+                            : isAvailable
+                            ? availabilityFilter === "available"
+                              ? 'bg-green-50 border-green-300 shadow-md'
+                              : 'bg-white border-green-200'
                             : bookingOnDate && bookingOnDate.status === "confirmed"
                             ? 'bg-white border-green-200' 
                             : bookingOnDate && bookingOnDate.status === "completed"
@@ -1507,6 +1547,10 @@ export function ArtistDashboard() {
                             ? availabilityFilter === "unavailable"
                               ? 'text-red-700 font-bold'
                               : 'text-red-600'
+                            : isAvailable
+                            ? availabilityFilter === "available"
+                              ? 'text-green-700 font-bold'
+                              : 'text-green-600'
                             : bookingOnDate && bookingOnDate.status === "confirmed"
                             ? 'text-green-600' 
                             : bookingOnDate && bookingOnDate.status === "completed"
@@ -1537,9 +1581,9 @@ export function ArtistDashboard() {
                           </div>
                         )}
                         
-                        {!bookingOnDate && !isPast && !isUnavailable && (
+                        {!bookingOnDate && !isPast && isAvailable && (
                           <div className={`text-xs mt-1 font-medium ${
-                            isToday ? 'text-white' : 'text-gray-600'
+                            isToday ? 'text-white' : 'text-green-600'
                           }`}>
                             Available
                           </div>
@@ -1567,7 +1611,7 @@ export function ArtistDashboard() {
                 <div className="mb-3">
                   <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
                   <p className="text-xs text-muted-foreground">
-                    Click on available dates (white with gray border) to toggle availability
+                    Click on blank dates to cycle through: blank → available → unavailable → blank
                   </p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -1584,16 +1628,16 @@ export function ArtistDashboard() {
                     <span className="text-blue-600 font-medium">Completed</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-200 rounded"></div>
-                    <span className="text-red-600 font-medium">Date Unavailable</span>
+                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                    <span className="text-green-600 font-medium">Available</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                    <span className="text-muted-foreground">Past</span>
+                    <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                    <span className="text-red-600 font-medium">Unavailable</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    <span className="text-black font-medium">Available (Clickable)</span>
+                    <span className="text-gray-600 font-medium">Blank (Clickable)</span>
                   </div>
                 </div>
               </Card>

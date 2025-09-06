@@ -7,11 +7,12 @@ import { ScheduleListView } from "./schedule-list-view"
 import { ScheduleCalendarView } from "./schedule-calendar-view"
 
 interface ScheduleTabProps {
+  availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
 }
 
-export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
+export function ScheduleTab({ availableDates, unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable", "past"
 
@@ -91,6 +92,7 @@ export function ScheduleTab({ unavailableDates, onToggleDateAvailability }: Sche
       {scheduleSubcategory === "calendar" && (
         <ScheduleCalendarView 
           scheduleFilter={scheduleFilter}
+          availableDates={availableDates}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
           onFilterChange={setScheduleFilter}

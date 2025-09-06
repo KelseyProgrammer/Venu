@@ -67,6 +67,27 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
     refreshData 
   } = useCurrentUserLocation()
   
+  // Available dates state (dates explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('venue-available-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          // Failed to parse saved available dates, using defaults
+        }
+      }
+    }
+    // Default available dates for current month
+    return [
+      "2024-12-10",
+      "2024-12-17", 
+      "2024-12-24"
+    ]
+  })
+
   // Unavailable dates state (dates when venue is closed or unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
     // Load from localStorage or use default values
@@ -90,26 +111,63 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
-  // Toggle date availability with optimized localStorage handling
+  // Toggle date availability with cycling logic: blank → available → unavailable → blank
   const toggleDateAvailability = useCallback((dateString: string) => {
-    setUnavailableDates(prevDates => {
-      const isCurrentlyUnavailable = prevDates.includes(dateString)
-      const newDates = isCurrentlyUnavailable
-        ? prevDates.filter(date => date !== dateString)
-        : [...prevDates, dateString]
-      
-      // Save to localStorage with error handling
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
-        } catch (error) {
-          console.warn('Failed to save unavailable dates to localStorage:', error)
+    const isCurrentlyAvailable = availableDates.includes(dateString)
+    const isCurrentlyUnavailable = unavailableDates.includes(dateString)
+    
+    if (!isCurrentlyAvailable && !isCurrentlyUnavailable) {
+      // Currently blank → mark as available
+      setAvailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('venue-available-dates', JSON.stringify(newDates))
+          } catch (error) {
+            console.warn('Failed to save available dates to localStorage:', error)
+          }
         }
-      }
-      
-      return newDates
-    })
-  }, [])
+        return newDates
+      })
+    } else if (isCurrentlyAvailable && !isCurrentlyUnavailable) {
+      // Currently available → mark as unavailable
+      setAvailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('venue-available-dates', JSON.stringify(newDates))
+          } catch (error) {
+            console.warn('Failed to save available dates to localStorage:', error)
+          }
+        }
+        return newDates
+      })
+      setUnavailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
+          } catch (error) {
+            console.warn('Failed to save unavailable dates to localStorage:', error)
+          }
+        }
+        return newDates
+      })
+    } else if (!isCurrentlyAvailable && isCurrentlyUnavailable) {
+      // Currently unavailable → mark as blank (remove from both)
+      setUnavailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('venue-unavailable-dates', JSON.stringify(newDates))
+          } catch (error) {
+            console.warn('Failed to save unavailable dates to localStorage:', error)
+          }
+        }
+        return newDates
+      })
+    }
+  }, [availableDates, unavailableDates])
 
   // Memoized location display info to prevent unnecessary re-renders
   const locationDisplayInfo = useMemo(() => {
@@ -354,6 +412,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
               locationId={location?._id || ""}
               location={location}
               gigs={gigs}
+              availableDates={availableDates}
               unavailableDates={unavailableDates}
               onToggleDateAvailability={toggleDateAvailability}
               onRefreshGigs={refreshData}

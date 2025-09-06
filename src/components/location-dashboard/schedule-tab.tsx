@@ -11,12 +11,13 @@ interface ScheduleTabProps {
   locationId: string;
   location?: LocationProfile | null;
   gigs: GigProfile[];
+  availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
   onRefreshGigs: () => void;
 }
 
-export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
+export function ScheduleTab({ locationId, gigs, availableDates, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable", "past"
 
@@ -104,6 +105,7 @@ export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAv
           gigs={gigs}
           locationId={locationId}
           onRefreshGigs={onRefreshGigs}
+          availableDates={availableDates}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
           onFilterChange={setScheduleFilter}

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
+  availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
   onFilterChange: (filter: string) => void;
@@ -13,6 +14,7 @@ interface ScheduleCalendarViewProps {
 
 export function ScheduleCalendarView({ 
   scheduleFilter, 
+  availableDates,
   unavailableDates, 
   onToggleDateAvailability,
   onFilterChange
@@ -105,8 +107,9 @@ export function ScheduleCalendarView({
                eventDate.getFullYear() === currentYear;
       });
       
-      // Check if date is unavailable
+      // Check if date is available or unavailable
       const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isAvailable = availableDates.includes(dateString);
       const isUnavailable = unavailableDates.includes(dateString);
       
       // Check if date is in the past
@@ -130,6 +133,7 @@ export function ScheduleCalendarView({
       return {
         day,
         eventOnDate,
+        isAvailable,
         isUnavailable,
         isPast,
         isToday,
@@ -139,7 +143,7 @@ export function ScheduleCalendarView({
         dateString
       };
     });
-  }, [currentDate, filteredEvents, unavailableDates])
+  }, [currentDate, filteredEvents, availableDates, unavailableDates])
 
   // Calendar navigation functions
   const goToPreviousMonth = useCallback(() => {
@@ -170,9 +174,9 @@ export function ScheduleCalendarView({
           {scheduleFilter === "unavailable" 
             ? `Showing ${unavailableDates.length} unavailable dates`
             : scheduleFilter === "available"
-            ? `Showing available dates`
+            ? `Showing ${availableDates.length} available dates`
             : scheduleFilter === "all"
-            ? `Showing all dates (available and unavailable)`
+            ? `Showing all dates (${availableDates.length} available, ${unavailableDates.length} unavailable)`
             : `Showing ${filteredEvents.length} of ${myEvents.length} events`
           }
         </div>
@@ -246,7 +250,7 @@ export function ScheduleCalendarView({
             {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Click on available dates to mark them as unavailable
+            Click on blank dates to cycle through: blank → available → unavailable → blank
           </p>
         </div>
         
@@ -261,15 +265,15 @@ export function ScheduleCalendarView({
         <div className="grid grid-cols-7 gap-1">
           {/* Generate calendar days for current month */}
           {calendarDays.map((dayData, i) => {
-            const { day, eventOnDate, isUnavailable, isPast, isToday, isCurrentMonth, needsMoreBands, isEventPast, dateString } = dayData;
+            const { day, eventOnDate, isAvailable, isUnavailable, isPast, isToday, isCurrentMonth, needsMoreBands, isEventPast, dateString } = dayData;
             
             // For unavailable filter, only show unavailable days
             if (scheduleFilter === "unavailable" && !isUnavailable) {
               return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
             }
             
-            // For available filter, only show available days (no events, not unavailable, not past)
-            if (scheduleFilter === "available" && (eventOnDate || isUnavailable || isPast)) {
+            // For available filter, only show explicitly available days
+            if (scheduleFilter === "available" && !isAvailable) {
               return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
             }
             
@@ -302,6 +306,10 @@ export function ScheduleCalendarView({
                     ? scheduleFilter === "unavailable"
                       ? 'bg-red-50 border-red-300 shadow-md' 
                       : 'bg-white border-red-200'
+                    : isAvailable
+                    ? scheduleFilter === "available"
+                      ? 'bg-green-50 border-green-300 shadow-md'
+                      : 'bg-white border-green-200'
                     : eventOnDate && isEventPast
                     ? 'bg-white border-blue-200'
                     : eventOnDate && needsMoreBands
@@ -320,6 +328,10 @@ export function ScheduleCalendarView({
                     ? scheduleFilter === "unavailable"
                       ? 'text-red-700 font-bold'
                       : 'text-red-600'
+                    : isAvailable
+                    ? scheduleFilter === "available"
+                      ? 'text-green-700 font-bold'
+                      : 'text-green-600'
                     : eventOnDate && isEventPast
                     ? 'text-blue-600'
                     : eventOnDate && needsMoreBands
@@ -382,9 +394,9 @@ export function ScheduleCalendarView({
                   </div>
                 )}
                 
-                {!eventOnDate && !isPast && !isUnavailable && (
+                {!eventOnDate && !isPast && isAvailable && (
                   <div className={`text-xs mt-1 font-medium ${
-                    isToday ? 'text-white' : 'text-gray-600'
+                    isToday ? 'text-white' : 'text-green-600'
                   }`}>
                     Available
                   </div>
@@ -412,7 +424,7 @@ export function ScheduleCalendarView({
         <div className="mb-3">
           <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
           <p className="text-xs text-muted-foreground">
-            Click on available dates (white with gray border) to toggle availability
+            Click on blank dates to cycle through: blank → available → unavailable → blank
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -433,16 +445,16 @@ export function ScheduleCalendarView({
             <span className="text-blue-600 font-medium">Past Shows</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-200 rounded"></div>
-            <span className="text-red-600 font-medium">Date Unavailable</span>
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+            <span className="text-green-600 font-medium">Available</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-300 rounded"></div>
-            <span className="text-muted-foreground">Past</span>
+            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+            <span className="text-red-600 font-medium">Unavailable</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gray-200 rounded"></div>
-            <span className="text-black font-medium">Available (Clickable)</span>
+            <span className="text-gray-600 font-medium">Blank (Clickable)</span>
           </div>
         </div>
       </Card>

@@ -27,6 +27,23 @@ export function PromoterDashboard() {
   const [showPostGig, setShowPostGig] = useState(false)
   const [profileImage, setProfileImage] = useState<string>("")
   
+  // Available dates state (dates when venues are explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('promoter-available-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          // Failed to parse saved available dates, using defaults
+        }
+      }
+    }
+    // Start with empty array - days are blank by default
+    return []
+  })
+
   // Unavailable dates state (dates when venues are closed or unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
     // Load from localStorage or use default values
@@ -40,12 +57,8 @@ export function PromoterDashboard() {
         }
       }
     }
-    // Default unavailable dates for current month
-    return [
-      "2024-12-05",
-      "2024-12-12", 
-      "2024-12-19"
-    ]
+    // Start with empty array - days are blank by default
+    return []
   })
 
   const myLocations = [
@@ -90,21 +103,47 @@ export function PromoterDashboard() {
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
-  // Toggle date availability
+  // Toggle date availability - cycles through: blank → available → unavailable → blank
   const toggleDateAvailability = useCallback((dateString: string) => {
-    setUnavailableDates(prevDates => {
-      const newDates = prevDates.includes(dateString)
-        ? prevDates.filter(date => date !== dateString)
-        : [...prevDates, dateString]
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
-      }
-      
-      return newDates
-    })
-  }, [])
+    const isAvailable = availableDates.includes(dateString)
+    const isUnavailable = unavailableDates.includes(dateString)
+    
+    if (!isAvailable && !isUnavailable) {
+      // Currently blank → make available
+      setAvailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (isAvailable && !isUnavailable) {
+      // Currently available → make unavailable
+      setAvailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+      setUnavailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (!isAvailable && isUnavailable) {
+      // Currently unavailable → make blank
+      setUnavailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    }
+  }, [availableDates, unavailableDates])
 
   if (showPostGig) {
     return <PostGigFlow onClose={() => setShowPostGig(false)} />
@@ -242,6 +281,7 @@ export function PromoterDashboard() {
           <TabsContent value="schedule" className="mt-6">
             <ErrorBoundary>
               <ScheduleTab 
+                availableDates={availableDates}
                 unavailableDates={unavailableDates}
                 onToggleDateAvailability={toggleDateAvailability}
               />
