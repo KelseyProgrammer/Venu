@@ -263,40 +263,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         // Send general gig update
         socket.sendGigUpdate(createdGig._id, createdGig.selectedLocation || locationId, "created", createdGig)
         
-        // Send notifications to relevant users
-        bands.forEach(band => {
-          if (band.email) {
-            socket.sendNotification(
-              "band-user-id", // This would be the actual band's user ID
-              "gig-invitation",
-              "New Gig Invitation",
-              `You've been invited to perform at ${eventName} on ${eventDate}`,
-              { gigId: createdGig._id, gigData: createdGig }
-            )
-          }
-        })
-
-        // Notify promoter if selected
-        if (selectedPromoter && promoterEmail) {
-          socket.sendNotification(
-            "promoter-user-id", // This would be the actual promoter's user ID
-            "gig-invitation", 
-            "New Gig Assignment",
-            `You've been assigned to promote ${eventName} on ${eventDate}`,
-            { gigId: createdGig._id, gigData: createdGig }
-          )
-        }
-
-        // Notify door person if selected
-        if (selectedDoorPerson && doorPersonEmail) {
-          socket.sendNotification(
-            "door-person-user-id", // This would be the actual door person's user ID
-            "gig-invitation",
-            "New Gig Assignment", 
-            `You've been assigned as door person for ${eventName} on ${eventDate}`,
-            { gigId: createdGig._id, gigData: createdGig }
-          )
-        }
+        // Backend will handle sending notifications to artists automatically
+        console.log('📧 Backend will send notifications to artists with emails:', bands.map(band => band.email))
       }
       
       // Reset and close

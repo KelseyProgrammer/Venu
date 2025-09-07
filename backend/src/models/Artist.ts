@@ -40,6 +40,7 @@ export interface IArtist extends Document {
   
   // Calendar Integration
   unavailableDates?: Date[]; // Array of unavailable dates
+  availableDates?: Date[]; // Array of explicitly available dates
   preferredBookingDays?: string[]; // Preferred days for bookings
   bookingLeadTime?: string; // e.g., "1 week", "2 weeks"
   cancellationPolicy?: string; // Cancellation policy description
@@ -192,6 +193,9 @@ const artistSchema = new Schema<IArtist>({
   
   // Calendar Integration
   unavailableDates: [{
+    type: Date,
+  }],
+  availableDates: [{
     type: Date,
   }],
   preferredBookingDays: [{

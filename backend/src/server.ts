@@ -12,6 +12,7 @@ import artistsRoutes from "./routes/artists.routes.js";
 import connectDB from "./config/database.js";
 import { setupOptimizedSocketHandlers } from "./socket/socketHandlers.js";
 import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
+import { socketService } from "./services/socketService.js";
 
 dotenv.config();
 
@@ -102,6 +103,10 @@ const startServer = async () => {
     // Setup optimized Socket.IO handlers
     setupOptimizedSocketHandlers(io);
     console.log('✅ Optimized Socket.IO handlers configured');
+    
+    // Initialize socket service with the io instance
+    socketService.setIO(io);
+    console.log('✅ Socket service initialized');
     
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {

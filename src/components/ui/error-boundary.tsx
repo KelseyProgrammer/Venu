@@ -104,7 +104,7 @@ export function PerformanceErrorBoundary({ children, componentName }: {
   children: ReactNode
   componentName: string 
 }) {
-  const handleError = (error: Error, errorInfo: ErrorInfo) => {
+  const handleError = (error: Error, errorInfo: ErrorInfo): void => {
     // Enhanced error logging with performance context
     const errorTime = performance.now()
     console.error(`Performance Error in ${componentName}:`, {

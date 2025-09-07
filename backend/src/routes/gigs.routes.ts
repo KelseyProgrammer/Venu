@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Gig from '../models/Gig.js';
+import User from '../models/User.js';
 import { ApiResponse } from '../shared/types.js';
+import { socketService } from '../services/socketService.js';
 import { 
   authenticateToken, 
   requireRole, 
@@ -42,6 +44,61 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
     
     const gig = new Gig(gigData);
     await gig.save();
+
+    // Send notifications to artists if their emails are included in bands
+    if (gig.bands && gig.bands.length > 0) {
+      try {
+        // Get unique email addresses from bands
+        const bandEmails = [...new Set(gig.bands.map(band => band.email.toLowerCase()))];
+        
+        // Find users by email addresses
+        const users = await User.find({ 
+          email: { $in: bandEmails },
+          role: 'artist' 
+        }).select('_id email firstName lastName');
+        
+        // Send notifications to found artists
+        for (const user of users) {
+          // Send notification to the artist
+          socketService.sendNotificationToUser(user._id.toString(), {
+            type: 'gig-invitation',
+            title: 'New Gig Invitation',
+            message: `You've been invited to perform at ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,
+            data: { gigId: gig._id, gigData: gig }
+          });
+          
+          // Also send artist-specific notification
+          socketService.sendArtistGigNotification(user._id.toString(), gig);
+          
+          console.log(`🎵 Sent gig notification to artist ${user.email} (${user._id}) for gig ${gig._id}`);
+        }
+        
+        console.log(`📧 Found ${users.length} artists to notify for gig ${gig._id}`);
+      } catch (notificationError) {
+        console.error('Error sending artist notifications:', notificationError);
+        // Don't fail the gig creation if notifications fail
+      }
+    }
+
+    // Send gig update to location room for real-time updates
+    if (gig.selectedLocation) {
+      try {
+        socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+          gigId: gig._id.toString(),
+          updateType: 'created',
+          gigData: gig,
+          updatedBy: {
+            userId: req.user!.userId,
+            email: req.user!.email,
+            role: req.user!.role
+          }
+        });
+        console.log(`📅 Sent gig update to location ${gig.selectedLocation} for gig ${gig._id}`);
+      } catch (updateError) {
+        console.error('Error sending gig update to location:', updateError);
+        // Don't fail the gig creation if update fails
+      }
+    }
 
     const response: ApiResponse<any> = {
       success: true,

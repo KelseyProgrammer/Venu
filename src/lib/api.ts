@@ -60,6 +60,7 @@ export interface ArtistProfile {
   portfolioImages?: string[];
   portfolioVideos?: string[];
   unavailableDates?: Date[];
+  availableDates?: Date[];
   preferredBookingDays?: string[];
   bookingLeadTime?: string;
   cancellationPolicy?: string;
@@ -183,6 +184,8 @@ export interface GigProfile {
     setTime: string;
     percentage: number;
     email: string;
+    confirmed?: boolean;
+    guarantee?: number;
   }>;
   guarantee: number;
   numberOfBands: number;
@@ -387,6 +390,19 @@ export const artistApi = {
     return apiRequest<ArtistProfile>(`/artists/${artistId}`, {
       method: 'PUT',
       body: JSON.stringify(profileData),
+    });
+  },
+
+  async updateAvailability(
+    artistId: string,
+    availabilityData: {
+      unavailableDates?: Date[];
+      availableDates?: Date[];
+    }
+  ): Promise<ApiResponse<ArtistProfile>> {
+    return apiRequest<ArtistProfile>(`/artists/${artistId}/availability`, {
+      method: 'PUT',
+      body: JSON.stringify(availabilityData),
     });
   },
 

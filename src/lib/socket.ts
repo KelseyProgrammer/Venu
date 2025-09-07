@@ -563,19 +563,13 @@ class SocketManager {
 
     // Additional validation for token format
     if (!token || token.length < 10 || !token.includes('.')) {
-      console.log('🔐 Invalid token format, clearing and skipping connection');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Invalid token format, skipping socket connection');
       return Promise.resolve();
     }
 
     const userId = this.getUserIdFromToken(token);
     if (!userId) {
-      console.log('🔐 Invalid token: no user ID found, clearing and skipping connection');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Invalid token: no user ID found, skipping socket connection');
       return Promise.resolve();
     }
 
@@ -586,11 +580,9 @@ class SocketManager {
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to connect:', error);
-      // Clear invalid token on connection failure
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
-      throw error;
+      // Don't clear auth data on connection failure - just skip socket connection
+      console.log('Socket connection failed, continuing without real-time features');
+      return Promise.resolve();
     }
   }
 
@@ -614,12 +606,6 @@ class SocketManager {
     // Check if token exists and is valid format
     if (!token || token.length < 10 || !token.includes('.')) {
       console.log('⚠️ No valid auth token found, socket connection skipped');
-      // Clear invalid token if it exists
-      if (token) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-      }
       return Promise.resolve();
     }
     

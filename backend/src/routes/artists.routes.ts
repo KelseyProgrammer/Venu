@@ -282,6 +282,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       portfolioImages,
       portfolioVideos,
       unavailableDates,
+      availableDates,
       preferredBookingDays,
       bookingLeadTime,
       cancellationPolicy,
@@ -343,6 +344,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       portfolioImages: portfolioImages || [],
       portfolioVideos: portfolioVideos || [],
       unavailableDates: unavailableDates || [],
+      availableDates: availableDates || [],
       preferredBookingDays: preferredBookingDays || [],
       bookingLeadTime,
       cancellationPolicy,
@@ -399,6 +401,11 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       rating,
       isActive,
       isVerified,
+      unavailableDates,
+      availableDates,
+      preferredBookingDays,
+      bookingLeadTime,
+      cancellationPolicy,
     } = req.body;
 
     // Find the artist
@@ -443,6 +450,11 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       pastPerformances,
       reviews,
       rating,
+      unavailableDates,
+      availableDates,
+      preferredBookingDays,
+      bookingLeadTime,
+      cancellationPolicy,
     };
 
     if (currentUserRole === 'admin') {
@@ -465,6 +477,60 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     res.json(response);
   } catch (error) {
     console.error('Update artist error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Update artist availability dates - PROTECTED ROUTE (Owner or Admin only)
+router.put('/:id/availability', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+    const { unavailableDates, availableDates } = req.body;
+
+    // Find the artist
+    const artist = await Artist.findById(id);
+    if (!artist) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Artist not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Check if user is admin or updating their own profile
+    if (currentUserRole !== 'admin' && artist.userId.toString() !== currentUserId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Access denied - you can only update your own artist profile',
+      };
+      return res.status(403).json(response);
+    }
+
+    // Update availability dates
+    const updatedArtist = await Artist.findByIdAndUpdate(
+      id,
+      { 
+        unavailableDates: unavailableDates || [],
+        availableDates: availableDates || []
+      },
+      { new: true, runValidators: true }
+    ).populate('userId', 'firstName lastName email isVerified');
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: updatedArtist,
+      message: 'Artist availability dates updated successfully',
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Update artist availability error:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',
