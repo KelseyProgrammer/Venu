@@ -25,7 +25,6 @@ export const updateProfileSchema = z.object({
   phone: z.string().optional().refine((val) => !val || /^\+?[\d\s\-\(\)]+$/.test(val), {
     message: 'Invalid phone number format'
   }),
-  profileImage: z.string().url('Invalid image URL').optional()
 });
 
 // Gig validation schemas

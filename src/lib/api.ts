@@ -23,7 +23,6 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
-  profileImage?: string;
   isVerified: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -39,7 +38,6 @@ export interface ArtistProfile {
   name: string;
   bio: string;
   genre: string[];
-  profileImage: string;
   email: string;
   phone?: string;
   instagram?: string;
@@ -103,7 +101,6 @@ export interface PromoterProfile {
   _id: string;
   firstName: string;
   lastName: string;
-  profileImage: string;
   email: string;
   phone?: string;
   address?: string;
@@ -138,7 +135,6 @@ export interface FanProfile {
   _id: string;
   firstName: string;
   lastName: string;
-  profileImage: string;
   email: string;
   phone?: string;
   address?: string;
@@ -330,18 +326,10 @@ export const authApi = {
     firstName?: string;
     lastName?: string;
     phone?: string;
-    profileImage?: string;
   }): Promise<ApiResponse<User>> {
     return apiRequest<User>('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
-    });
-  },
-
-  async updateProfileImage(profileImage: string): Promise<ApiResponse<User>> {
-    return apiRequest<User>('/auth/profile', {
-      method: 'PUT',
-      body: JSON.stringify({ profileImage }),
     });
   },
 };
@@ -352,7 +340,6 @@ export const artistApi = {
     name: string;
     bio: string;
     genre: string[];
-    profileImage?: string;
     email: string;
     phone?: string;
     instagram?: string;
@@ -450,7 +437,6 @@ export const artistApi = {
     name: string;
     bio: string;
     genre: string[];
-    profileImage?: string;
     email: string;
     phone?: string;
     instagram?: string;
@@ -501,18 +487,6 @@ export const artistApi = {
   },
 };
 
-// Upload API functions
-export const uploadApi = {
-  async uploadImage(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    return apiRequest<{ url: string; filename: string }>('/upload/image', {
-      method: 'POST',
-      body: formData,
-    });
-  },
-};
 
 // Location API functions
 export const locationApi = {

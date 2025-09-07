@@ -144,7 +144,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     const { id } = req.params;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
-    const { firstName, lastName, phone, profileImage, isVerified } = req.body;
+    const { firstName, lastName, phone, isVerified } = req.body;
 
     // Check if user is admin or updating their own profile
     if (currentUserRole !== 'admin' && currentUserId !== id) {
@@ -156,7 +156,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     }
 
     // Only admins can update verification status
-    const updateData: any = { firstName, lastName, phone, profileImage };
+    const updateData: any = { firstName, lastName, phone };
     if (currentUserRole === 'admin' && isVerified !== undefined) {
       updateData.isVerified = isVerified;
     }

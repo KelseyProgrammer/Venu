@@ -5,7 +5,6 @@ export interface IArtist extends Document {
   name: string;
   bio: string;
   genre: string[];
-  profileImage: string;
   
   // Contact & Social Media
   email: string;
@@ -75,10 +74,6 @@ const artistSchema = new Schema<IArtist>({
     required: true,
     enum: ['Jazz', 'Rock', 'Electronic', 'Folk', 'Blues', 'Pop', 'Country', 'Hip Hop', 'Classical', 'Reggae', 'Punk', 'Alternative', 'Indie', 'Metal', 'R&B', 'Soul', 'Funk', 'World', 'Experimental'],
   }],
-  profileImage: {
-    type: String,
-    default: '/images/BandFallBack.PNG',
-  },
   
   // Contact & Social Media
   email: {

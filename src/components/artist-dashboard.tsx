@@ -16,23 +16,30 @@ import Image from "next/image"
 // import { GigDetails } from "./gig-details" // Now using dynamic import
 import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
+import { authUtils } from "@/lib/utils"
 import { RealTimeNotifications } from "./real-time-notifications"
 import { RealTimeGigUpdates } from "./real-time-gig-updates"
 import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
-import { authUtils } from "@/lib/utils"
-import { gigApi, GigProfile } from "@/lib/api"
 import { ProfileManagement } from "@/components/ui/profile-management"
-import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
+import { GigProfile, gigApi } from "@/lib/api"
+import { PerformanceErrorBoundary } from "@/components/ui/error-boundary"
+
+// Types for dynamic imports
+interface GigDetailsProps {
+  gigId: string
+  onBack: () => void
+  gigData: GigProfile
+}
 
 // Dynamic imports for better code splitting
-const GigDetailsLazy = memo(function GigDetailsLazy({ gigId, onBack, gigData }: { gigId: string; onBack: () => void; gigData: any }) {
-  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null)
+const GigDetailsLazy = memo(function GigDetailsLazy({ gigId, onBack, gigData }: GigDetailsProps) {
+  const [Component, setComponent] = useState<React.ComponentType<GigDetailsProps> | null>(null)
   
   useEffect(() => {
     import("./gig-details").then((module) => {
-      setComponent(() => module.GigDetails)
+      setComponent(() => module.GigDetails as unknown as React.ComponentType<GigDetailsProps>)
     })
   }, [])
   
@@ -115,10 +122,6 @@ interface ArtistEventDetailsModalProps {
 }
 
 const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetailsModalProps) {
-  if (!booking) return null
-
-  const progress = useMemo(() => (booking.ticketsSold / booking.totalTickets) * 100, [booking.ticketsSold, booking.totalTickets])
-
   // Memoized helper function to convert 24-hour time to 12-hour format
   const formatTime12Hour = useCallback((time24: string): string => {
     try {
@@ -156,6 +159,14 @@ const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking,
       return time24
     }
   }, [])
+
+  // Memoized progress calculation - safe to call even if booking is null
+  const progress = useMemo(() => {
+    if (!booking) return 0
+    return (booking.ticketsSold / booking.totalTickets) * 100
+  }, [booking])
+
+  if (!booking) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -372,21 +383,11 @@ const CalendarDay = memo(function CalendarDay({
   const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear())
   const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
   const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate()
-
-  // Early return for non-current month days
-  if (!isCurrentMonth) {
-    return <div className="h-20 bg-muted/20 rounded-lg"></div>
-  }
-
-  // For unavailable filter, only show unavailable days
-  if (availabilityFilter === "unavailable" && !isUnavailable) {
-    return <div className="h-20 bg-muted/20 rounded-lg"></div>
-  }
   
-  // For available filter, only show explicitly available days
-  if (availabilityFilter === "available" && !isAvailable) {
-    return <div className="h-20 bg-muted/20 rounded-lg"></div>
-  }
+  // Handle conflicts - if both available and unavailable, prioritize unavailable
+  const hasConflict = isAvailable && isUnavailable
+  const effectiveIsAvailable = hasConflict ? false : isAvailable
+  const effectiveIsUnavailable = hasConflict ? true : isUnavailable
 
   const handleClick = useCallback(() => {
     // Only allow toggling availability for future dates that don't have bookings
@@ -394,6 +395,21 @@ const CalendarDay = memo(function CalendarDay({
       onToggleAvailability(dateString)
     }
   }, [isPast, bookingOnDate, dateString, onToggleAvailability])
+
+  // Early return for non-current month days
+  if (!isCurrentMonth) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  // For unavailable filter, only show unavailable days
+  if (availabilityFilter === "unavailable" && !effectiveIsUnavailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+  
+  // For available filter, only show explicitly available days
+  if (availabilityFilter === "available" && !effectiveIsAvailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
 
   return (
     <div 
@@ -405,11 +421,11 @@ const CalendarDay = memo(function CalendarDay({
       } ${
         isToday 
           ? 'bg-purple-600 border-purple-600 shadow-md' 
-          : isUnavailable
+          : effectiveIsUnavailable
           ? availabilityFilter === "unavailable"
             ? 'bg-red-50 border-red-300 shadow-md' 
             : 'bg-white border-red-200'
-          : isAvailable
+          : effectiveIsAvailable
           ? availabilityFilter === "available"
             ? 'bg-green-50 border-green-300 shadow-md'
             : 'bg-white border-green-200'
@@ -425,11 +441,11 @@ const CalendarDay = memo(function CalendarDay({
       <div className={`text-sm font-medium mb-1 relative z-10 ${
         isToday 
           ? 'text-white' 
-          : isUnavailable
+          : effectiveIsUnavailable
           ? availabilityFilter === "unavailable"
             ? 'text-red-700 font-bold'
             : 'text-red-600'
-          : isAvailable
+          : effectiveIsAvailable
           ? availabilityFilter === "available"
             ? 'text-green-700 font-bold'
             : 'text-green-600'
@@ -463,7 +479,7 @@ const CalendarDay = memo(function CalendarDay({
         </div>
       )}
       
-      {!bookingOnDate && !isPast && isAvailable && (
+      {!bookingOnDate && !isPast && effectiveIsAvailable && (
         <div className={`text-xs mt-1 font-medium ${
           isToday ? 'text-white' : 'text-green-600'
         }`}>
@@ -471,7 +487,7 @@ const CalendarDay = memo(function CalendarDay({
         </div>
       )}
       
-      {!bookingOnDate && !isPast && isUnavailable && (
+      {!bookingOnDate && !isPast && effectiveIsUnavailable && (
         <div className={`text-xs mt-2 font-medium ${
           isToday 
             ? 'text-white'
@@ -480,6 +496,13 @@ const CalendarDay = memo(function CalendarDay({
             : 'text-red-600'
         }`}>
           Unavailable
+        </div>
+      )}
+      
+      {/* Show conflict warning if there's a data conflict */}
+      {hasConflict && (
+        <div className="text-xs mt-1 font-medium text-orange-600">
+          Data Conflict
         </div>
       )}
     </div>
@@ -628,7 +651,6 @@ export function ArtistDashboard() {
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [profileImage, setProfileImage] = useState<string>("")
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
   
@@ -692,38 +714,78 @@ export function ArtistDashboard() {
   // Availability filter state (separate from booking status filters)
   const [availabilityFilter, setAvailabilityFilter] = useState("all") // "all", "unavailable", "available"
   
-  // Available dates state (dates when artist is explicitly marked as available)
-  const [availableDates, setAvailableDates] = useState<string[]>(() => {
-    // Load from localStorage or use default values
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('artist-available-dates')
-      if (saved) {
-        try {
-          return JSON.parse(saved)
-        } catch {
-          // Failed to parse saved available dates, using defaults
+  // Helper function to clean overlapping dates
+  const cleanOverlappingDates = useCallback((available: string[], unavailable: string[]) => {
+    const cleanedAvailable = available.filter(date => !unavailable.includes(date))
+    const cleanedUnavailable = unavailable.filter(date => !available.includes(date))
+    return { cleanedAvailable, cleanedUnavailable }
+  }, [])
+
+  // Helper function to load dates from localStorage with better error handling
+  const loadDatesFromStorage = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return { available: [], unavailable: [] }
+    }
+
+    let available: string[] = []
+    let unavailable: string[] = []
+    
+    try {
+      const savedAvailable = localStorage.getItem('artist-available-dates')
+      const savedUnavailable = localStorage.getItem('artist-unavailable-dates')
+      
+      if (savedAvailable) {
+        available = JSON.parse(savedAvailable)
+        if (!Array.isArray(available)) {
+          console.warn('Invalid available dates format in localStorage, resetting to empty array')
+          available = []
         }
       }
+      
+      if (savedUnavailable) {
+        unavailable = JSON.parse(savedUnavailable)
+        if (!Array.isArray(unavailable)) {
+          console.warn('Invalid unavailable dates format in localStorage, resetting to empty array')
+          unavailable = []
+        }
+      }
+      
+      // Clean overlapping dates to prevent conflicts
+      const { cleanedAvailable, cleanedUnavailable } = cleanOverlappingDates(available, unavailable)
+      
+      // Save cleaned data back to localStorage if there were overlaps
+      if (cleanedAvailable.length !== available.length || cleanedUnavailable.length !== unavailable.length) {
+        console.log('Cleaned overlapping dates from localStorage:', {
+          originalAvailable: available.length,
+          cleanedAvailable: cleanedAvailable.length,
+          originalUnavailable: unavailable.length,
+          cleanedUnavailable: cleanedUnavailable.length
+        })
+        try {
+          localStorage.setItem('artist-available-dates', JSON.stringify(cleanedAvailable))
+          localStorage.setItem('artist-unavailable-dates', JSON.stringify(cleanedUnavailable))
+        } catch (error) {
+          console.warn('Failed to save cleaned dates to localStorage:', error)
+        }
+      }
+      
+      return { available: cleanedAvailable, unavailable: cleanedUnavailable }
+    } catch (error) {
+      console.error('Error loading dates from localStorage:', error)
+      return { available: [], unavailable: [] }
     }
-    // Start with empty array - days are blank by default
-    return []
+  }, [cleanOverlappingDates])
+
+  // Available dates state (dates when artist is explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>(() => {
+    const { available } = loadDatesFromStorage()
+    return available
   })
 
   // Unavailable dates state (dates when artist is unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
-    // Load from localStorage or use default values
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('artist-unavailable-dates')
-      if (saved) {
-        try {
-          return JSON.parse(saved)
-        } catch {
-          // Failed to parse saved unavailable dates, using defaults
-        }
-      }
-    }
-    // Start with empty array - days are blank by default
-    return []
+    const { unavailable } = loadDatesFromStorage()
+    return unavailable
   })
   
   // Earnings data - memoized for performance
@@ -740,7 +802,6 @@ export function ArtistDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Artist",
-        profileImage: "/images/SARBEZ.jpg",
         email: "artist@example.com",
         phone: "+1 (555) 123-4567",
         instagram: "@artistmusic",
@@ -757,7 +818,6 @@ export function ArtistDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Artist",
-      profileImage: currentUser?.profileImage || "/images/SARBEZ.jpg",
       email: currentUser?.email || "artist@example.com",
       phone: "+1 (555) 123-4567",
       instagram: "@artistmusic",
@@ -770,7 +830,7 @@ export function ArtistDashboard() {
     }
   }, [])
 
-  const { name: artistName, profileImage: artistProfileImage } = artistProfileData
+  const { name: artistName } = artistProfileData
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -782,8 +842,22 @@ export function ArtistDashboard() {
     setIsClient(true)
   }, [])
 
+  // Log availability data on mount to verify persistence
+  useEffect(() => {
+    if (isClient) {
+      console.log('Artist Dashboard mounted - Availability data loaded:', {
+        availableDates: availableDates.length,
+        unavailableDates: unavailableDates.length,
+        availableDatesList: availableDates,
+        unavailableDatesList: unavailableDates
+      })
+    }
+  }, [isClient, availableDates, unavailableDates])
+
   // Fetch artist gigs from API
   useEffect(() => {
+    let isMounted = true
+    
     const fetchArtistGigs = async () => {
       try {
         setLoading(true)
@@ -794,20 +868,30 @@ export function ArtistDashboard() {
         }
 
         const response = await gigApi.getGigsByArtist(currentUser.email, 1, 100)
-        if (response.success && response.data) {
-          setArtistGigs(response.data)
-        } else {
-          console.error('Failed to fetch artist gigs:', response.error)
+        if (isMounted) {
+          if (response.success && response.data) {
+            setArtistGigs(response.data)
+          } else {
+            console.error('Failed to fetch artist gigs:', response.error)
+          }
         }
       } catch (err) {
-        console.error('Error fetching artist gigs:', err)
+        if (isMounted) {
+          console.error('Error fetching artist gigs:', err)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     if (isClient) {
       fetchArtistGigs()
+    }
+    
+    return () => {
+      isMounted = false
     }
   }, [isClient])
 
@@ -1067,7 +1151,7 @@ export function ArtistDashboard() {
     setCurrentDate(new Date())
   }, [])
 
-  // Debounced localStorage save function
+  // Debounced localStorage save function with better error handling and logging
   const debouncedLocalStorageSave = useCallback((key: string, value: string[]) => {
     if (localStorageTimeoutRef.current) {
       clearTimeout(localStorageTimeoutRef.current)
@@ -1077,17 +1161,64 @@ export function ArtistDashboard() {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem(key, JSON.stringify(value))
+          console.log(`Successfully saved ${key}:`, value.length, 'dates')
         } catch (error) {
-          console.warn('Failed to save to localStorage:', error)
+          console.warn(`Failed to save ${key} to localStorage:`, error)
+          // Try to clear localStorage if it's full
+          if (error instanceof DOMException && error.code === 22) {
+            console.warn('localStorage appears to be full, attempting to clear old data...')
+            try {
+              // Clear only our keys, not all localStorage
+              localStorage.removeItem('artist-available-dates')
+              localStorage.removeItem('artist-unavailable-dates')
+              // Retry saving
+              localStorage.setItem(key, JSON.stringify(value))
+              console.log(`Successfully saved ${key} after clearing old data`)
+            } catch (retryError) {
+              console.error(`Failed to save ${key} even after clearing old data:`, retryError)
+            }
+          }
         }
       }
     }, 300) // 300ms debounce
+  }, [])
+
+  // Function to clear all availability data (useful for debugging or reset)
+  const clearAllAvailabilityData = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('artist-available-dates')
+        localStorage.removeItem('artist-unavailable-dates')
+        setAvailableDates([])
+        setUnavailableDates([])
+        console.log('Cleared all availability data')
+      } catch (error) {
+        console.error('Failed to clear availability data:', error)
+      }
+    }
   }, [])
 
   // Optimized date availability toggle with batched updates and debounced localStorage
   const toggleDateAvailability = useCallback((dateString: string) => {
     const isAvailable = availableDates.includes(dateString)
     const isUnavailable = unavailableDates.includes(dateString)
+    
+    // Prevent conflicts - if date is in both arrays, remove from both first
+    if (isAvailable && isUnavailable) {
+      startTransition(() => {
+        setAvailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-available-dates', newDates)
+          return newDates
+        })
+        setUnavailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-unavailable-dates', newDates)
+          return newDates
+        })
+      })
+      return
+    }
     
     // Batch state updates to prevent multiple re-renders
     startTransition(() => {
@@ -1155,33 +1286,72 @@ export function ArtistDashboard() {
   }, [notifications, gigUpdates])
 
   // Transform the data structure to match GigDetails interface - memoized
-  const transformedGig = useMemo(() => {
+  const transformedGig = useMemo((): GigProfile | null => {
     if (!selectedGig) return null
     const gig = mockGigs.find(g => g.id.toString() === selectedGig)
     if (!gig) return null
     
     return {
-      id: gig.id,
-      location: gig.location,
-      date: gig.date,
-      time: gig.time,
-      genre: gig.genre,
+      _id: gig.id.toString(),
+      eventName: `${getLocationDisplayName(gig.location)} - ${gig.genre} Night`,
+      eventDate: gig.date,
+      eventTime: gig.time,
+      eventGenre: gig.genre,
+      ticketCapacity: gig.totalTickets,
+      ticketPrice: gig.ticketPrice,
+      doorPersonEmail: "door@example.com",
+      bands: [],
       guarantee: gig.guarantee,
-      tiers: [
-        { threshold: gig.tier1.threshold, amount: gig.tier1.amount, label: `${gig.tier1.threshold} tickets = $${gig.tier1.amount}`, color: gig.tier1.color },
-        { threshold: gig.tier2.threshold, amount: gig.tier2.amount, label: `${gig.tier2.threshold} tickets = $${gig.tier2.amount}`, color: gig.tier2.color },
-        { threshold: gig.tier3.threshold, amount: gig.tier3.amount, label: `${gig.tier3.threshold} tickets = $${gig.tier3.amount}`, color: gig.tier3.color },
-      ],
+      numberOfBands: 1,
       ticketsSold: gig.ticketsSold,
-      totalTickets: gig.totalTickets,
+      selectedLocation: {
+        _id: gig.location,
+        name: getLocationDisplayName(gig.location),
+        address: gig.address,
+        city: "St. Augustine",
+        state: "FL",
+        zipCode: "32084",
+        country: "USA",
+        capacity: gig.totalTickets,
+        description: "Great venue for live music",
+        amenities: ["PA System", "Lighting", "Stage"],
+        contactPerson: "Venue Manager",
+        contactEmail: "info@example.com",
+        contactPhone: "+1 (555) 123-4567",
+        images: [],
+        rating: 4.5,
+        tags: ["music", "venue", "live"],
+        isActive: true,
+        createdBy: "system",
+        authorizedPromoters: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      selectedPromoter: {
+        _id: "promoter-1",
+        firstName: "John",
+        lastName: "Promoter",
+        email: "john@example.com",
+        phone: "+1 (555) 987-6543",
+        role: "promoter",
+        isVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      promoterEmail: "john@example.com",
+      requirements: gig.requirements.map(req => ({ text: req, checked: true })),
+      bonusTiers: {
+        tier1: { amount: gig.tier1.amount, threshold: gig.tier1.threshold, color: gig.tier1.color },
+        tier2: { amount: gig.tier2.amount, threshold: gig.tier2.threshold, color: gig.tier2.color },
+        tier3: { amount: gig.tier3.amount, threshold: gig.tier3.threshold, color: gig.tier3.color }
+      },
+      status: "live" as const,
       rating: gig.rating,
-      reviews: 127, // Default value
-      checklist: gig.requirements.map((req, index) => ({
-        id: index + 1,
-        item: req,
-        completed: true,
-        type: "location" as const
-      }))
+      tags: [gig.genre, "live music"],
+      image: gig.image || "/images/venu-logo.png",
+      createdBy: "system",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   }, [selectedGig, mockGigs])
 
@@ -1222,7 +1392,8 @@ export function ArtistDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PerformanceErrorBoundary componentName="ArtistDashboard">
+      <div className="min-h-screen bg-background">
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mx-4 mt-4">
@@ -1244,14 +1415,6 @@ export function ArtistDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <div className="flex-shrink-0">
-              <SimpleProfileUpload 
-                value={profileImage || artistProfileImage}
-                onChange={setProfileImage}
-                size="lg"
-                className=""
-              />
-            </div>
             <div>
               <span className="font-serif font-bold text-xl">
                 {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
@@ -1890,7 +2053,6 @@ export function ArtistDashboard() {
               email: artistProfileData.email,
               phone: artistProfileData.phone,
               location: "St. Augustine, FL",
-              profileImage: artistProfileImage,
               bio: "A dynamic rock band known for high-energy performances and original compositions. Available for bookings with flexible scheduling and professional sound requirements."
             }}
             onSave={(data) => {
@@ -1960,6 +2122,56 @@ export function ArtistDashboard() {
               </Card>
             </div>
           </div>
+
+          {/* Availability Management Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-foreground">Availability Management</h3>
+            <Card className="p-4 bg-card border-border">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-foreground">Current Availability Data</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Your availability preferences are automatically saved and will persist across sessions.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {availableDates.length} Available Date{availableDates.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-100 border border-red-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {unavailableDates.length} Unavailable Date{unavailableDates.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearAllAvailabilityData}
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    Clear All Availability Data
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    This will remove all your saved availability preferences. Use with caution.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -1969,6 +2181,7 @@ export function ArtistDashboard() {
         isOpen={showEventDetailsModal}
         onClose={() => setShowEventDetailsModal(false)}
       />
-    </div>
+      </div>
+    </PerformanceErrorBoundary>
   )
 }

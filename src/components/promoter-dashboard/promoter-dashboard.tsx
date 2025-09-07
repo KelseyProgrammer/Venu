@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal, LogOut } from "lucide-react"
+import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal, LogOut, User } from "lucide-react"
 import { OverviewTab } from "./overview-tab"
 import { DiscoverTab } from "./discover-tab"
 import { ScheduleTab } from "./schedule-tab"
@@ -18,14 +18,12 @@ import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { authUtils } from "@/lib/utils"
-import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedLocation, setSelectedLocation] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
-  const [profileImage, setProfileImage] = useState<string>("")
   
   // Available dates state (dates when venues are explicitly marked as available)
   const [availableDates, setAvailableDates] = useState<string[]>(() => {
@@ -73,7 +71,6 @@ export function PromoterDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Promoter",
-        profileImage: "/images/venu-logo.png",
         email: "promoter@venu.com",
         phone: "+1 (555) 987-6543",
         company: "VENU Promotions"
@@ -84,14 +81,13 @@ export function PromoterDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Promoter",
-      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
       email: currentUser?.email || "promoter@venu.com",
       phone: "+1 (555) 987-6543",
       company: "VENU Promotions"
     }
   }, [])
 
-  const { name: promoterName, profileImage: promoterProfileImage } = promoterProfileData
+  const { name: promoterName } = promoterProfileData
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -156,12 +152,9 @@ export function PromoterDashboard() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <SimpleProfileUpload 
-                value={profileImage || promoterProfileImage}
-                onChange={setProfileImage}
-                size="lg"
-                className=""
-              />
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
             </div>
             <div>
               <span className="font-serif font-bold text-xl">

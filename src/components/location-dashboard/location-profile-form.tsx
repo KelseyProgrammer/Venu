@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import { ImageUpload } from "@/components/ui/image-upload"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   MapPin, 
@@ -31,7 +30,6 @@ interface LocationProfileFormData {
   id?: string
   name: string
   description?: string
-  profileImage: string
   
   // Address Information
   address: string
@@ -95,7 +93,6 @@ export function LocationProfileForm({
   const [formData, setFormData] = useState<LocationProfileFormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    profileImage: initialData?.profileImage || '',
     address: initialData?.address || '',
     city: initialData?.city || '',
     state: initialData?.state || '',
@@ -165,12 +162,6 @@ export function LocationProfileForm({
     }))
   }, [])
 
-  const handleVenueImageAdd = useCallback((imageUrl: string) => {
-    setFormData(prev => ({
-      ...prev,
-      venueImages: [...prev.venueImages, imageUrl]
-    }))
-  }, [])
 
   const handleVenueImageRemove = useCallback((index: number) => {
     setFormData(prev => ({
@@ -269,17 +260,6 @@ export function LocationProfileForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Profile Image */}
-            <div className="space-y-2">
-              <ImageUpload
-                label="Profile Image"
-                value={formData.profileImage}
-                onChange={(value) => handleInputChange('profileImage', value)}
-                placeholder="Upload venue profile image"
-                required
-              />
-            </div>
-
             {/* Venue Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-foreground">
@@ -530,14 +510,6 @@ export function LocationProfileForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Add Image */}
-            <ImageUpload
-              label="Add Venue Image"
-              value=""
-              onChange={handleVenueImageAdd}
-              placeholder="Upload additional venue image"
-            />
-
             {/* Display Images */}
             {formData.venueImages.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

@@ -13,7 +13,6 @@ import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/cons
 import { Band, Requirement } from "../location-dashboard/types"
 import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
 import { authUtils } from "@/lib/utils"
-import { ImageUpload } from "@/components/ui/image-upload"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -492,12 +491,12 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
 
             {/* Gig Image Upload */}
             <div>
-              <ImageUpload
-                label="Event Image (Optional)"
-                value={gigImage}
-                onChange={setGigImage}
-                placeholder="Upload an image for this event"
-              />
+              <Label className="text-sm font-medium text-foreground">
+                Event Image (Optional)
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Image upload functionality has been removed. You can add images later.
+              </p>
             </div>
           </div>
         </Card>

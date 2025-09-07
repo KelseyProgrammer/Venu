@@ -15,7 +15,6 @@ export function MoreTab() {
   const [newDoorPersonName, setNewDoorPersonName] = useState("")
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
   const [savedDoorPersons, setSavedDoorPersons] = useState<Array<{ id: string; name: string; email: string }>>([])
-  const [profileImage, setProfileImage] = useState<string>("")
 
   const filteredLocations = useMemo(() => [
     { id: "muggys", name: "Muggsy's", revenue: "$2,500", image: "/images/MUGS.jpeg", location: "St. Augustine, FL", eventsCount: 12 },
@@ -122,12 +121,10 @@ export function MoreTab() {
             phone: "+1 (555) 987-6543",
             company: "VENU Promotions",
             location: "St. Augustine, FL",
-            profileImage: profileImage || "",
             bio: "Experienced promoter with a passion for live music and community events."
           }}
           onSave={(data) => {
             console.log('Profile saved:', data)
-            setProfileImage(data.profileImage)
             // In a real implementation, you would save this to the backend
           }}
         />

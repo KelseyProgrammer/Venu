@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ProfilePictureUpload } from "@/components/ui/profile-picture-upload"
 import { ChevronLeft, Music, MapPin, Users, Upload, X, Heart } from "lucide-react"
 import Image from "next/image"
 import { authApi, artistApi, apiUtils } from "@/lib/api"
@@ -33,7 +32,6 @@ export function AuthFlow() {
     password: "" 
   })
   const [profileData, setProfileData] = useState({
-    profileImage: "",
     bio: "",
     spotify: "",
     instagram: "",
@@ -146,7 +144,6 @@ export function AuthFlow() {
           lastName: response.data.user.lastName,
           email: response.data.user.email,
           role: response.data.user.role,
-          profileImage: response.data.user.profileImage
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
@@ -199,15 +196,7 @@ export function AuthFlow() {
       });
       
       if (response.success) {
-        // Update user data with profile image if available
-        const currentUserData = localStorage.getItem('user');
-        if (currentUserData) {
-          const userData = JSON.parse(currentUserData);
-          if (response.data?.profileImage) {
-            userData.profileImage = response.data.profileImage;
-            localStorage.setItem('user', JSON.stringify(userData));
-          }
-        }
+        // Profile image handling removed
         
         // Navigate to artist dashboard
         window.location.href = "/artist";
@@ -243,7 +232,6 @@ export function AuthFlow() {
           lastName: response.data.user.lastName,
           email: response.data.user.email,
           role: response.data.user.role,
-          profileImage: response.data.user.profileImage
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
@@ -302,17 +290,6 @@ export function AuthFlow() {
             
             {selectedRole === "artist" && (
               <div className="space-y-6">
-                {/* Profile Picture Upload */}
-                <div>
-                  <ProfilePictureUpload
-                    value={profileData.profileImage || ""}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, profileImage: value }))}
-                    label="Profile Picture"
-                    size="lg"
-                    required
-                  />
-                </div>
-
                 <div>
                   <Label htmlFor="bio" className="text-foreground">
                     Bio

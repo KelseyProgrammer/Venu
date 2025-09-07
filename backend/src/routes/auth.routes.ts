@@ -193,11 +193,11 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response) =>
 router.put('/profile', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { firstName, lastName, phone, profileImage } = req.body;
+    const { firstName, lastName, phone } = req.body;
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { firstName, lastName, phone, profileImage },
+      { firstName, lastName, phone },
       { new: true, runValidators: true }
     ).select('-password');
 

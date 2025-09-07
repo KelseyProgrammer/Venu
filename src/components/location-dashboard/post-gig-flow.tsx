@@ -14,7 +14,6 @@ import { Band, Requirement } from "./types"
 import { useSocket, socketManager } from "@/lib/socket"
 import { authUtils } from "@/lib/utils"
 import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
-import { ImageUpload } from "@/components/ui/image-upload"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -591,12 +590,12 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
 
             {/* Gig Image Upload */}
             <div>
-              <ImageUpload
-                label="Event Image (Optional)"
-                value={gigImage}
-                onChange={setGigImage}
-                placeholder="Upload an image for this event"
-              />
+              <Label className="text-sm font-medium text-foreground">
+                Event Image (Optional)
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Image upload functionality has been removed. You can add images later.
+              </p>
             </div>
           </div>
         </Card>

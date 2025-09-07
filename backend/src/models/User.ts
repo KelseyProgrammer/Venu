@@ -7,7 +7,6 @@ export interface IUser extends Document {
   firstName: string;
   lastName: string;
   phone?: string;
-  profileImage?: string;
   isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -44,9 +43,6 @@ const userSchema = new Schema<IUser>({
   phone: {
     type: String,
     trim: true,
-  },
-  profileImage: {
-    type: String,
   },
   isVerified: {
     type: Boolean,

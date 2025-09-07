@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star, LogOut } from "lucide-react"
+import { Search, Calendar, FileText, MessageCircle, MoreHorizontal, Plus, MapPin, Users, Star, LogOut, User } from "lucide-react"
 import Image from "next/image"
 import { PostGigFlow } from "./post-gig-flow"
 import { LocationCreationForm } from "./location-creation-form"
@@ -19,7 +19,6 @@ import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { useCurrentUserLocation } from "@/hooks/useLocation"
 import { Card } from "@/components/ui/card"
 import { authUtils } from "@/lib/utils"
-import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 
 interface LocationDashboardProps {
@@ -33,7 +32,6 @@ interface LocationDisplayInfo {
   state: string;
   capacity: number;
   rating: number;
-  profileImage: string;
 }
 
 interface AnalyticsCard {
@@ -46,7 +44,6 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   const [showLocationCreation, setShowLocationCreation] = useState(false)
-  const [profileImage, setProfileImage] = useState<string>("")
   
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -179,9 +176,8 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
       state: location.state,
       capacity: location.capacity,
       rating: location.rating,
-      profileImage: profileImage || location.images?.[0] || "/images/venu-logo.png"
     } as LocationDisplayInfo
-  }, [location, profileImage])
+  }, [location])
 
   // Memoized analytics cards to prevent unnecessary re-renders
   const analyticsCards = useMemo(() => {
@@ -306,12 +302,9 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <SimpleProfileUpload 
-                value={profileImage || locationDisplayInfo?.profileImage || ""}
-                onChange={setProfileImage}
-                size="lg"
-                className=""
-              />
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
             </div>
             <div>
               <h1 className="font-serif font-bold text-xl">

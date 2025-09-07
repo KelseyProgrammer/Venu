@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass, LogOut } from "lucide-react"
+import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass, LogOut, User } from "lucide-react"
 import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -18,7 +18,6 @@ import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 import { useGigs } from "@/hooks/useGigs"
 import { authUtils } from "@/lib/utils"
-import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
 
 // Remove unused interface and component
 // interface ArtistCardProps {
@@ -200,7 +199,6 @@ export function FanDashboard() {
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<string>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
-  const [profileImage, setProfileImage] = useState<string>("")
 
   // Mock user ID - in a real app, this would come from authentication
   const userId = "fan-user-123"
@@ -227,7 +225,6 @@ export function FanDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Music Fan",
-        profileImage: "/images/venu-logo.png",
         email: "fan@example.com",
         location: "St. Augustine, FL"
       }
@@ -237,13 +234,12 @@ export function FanDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Music Fan",
-      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
       email: currentUser?.email || "fan@example.com",
       location: "St. Augustine, FL"
     }
   }, [])
 
-  const { name: fanName, profileImage: fanProfileImage } = fanProfileData
+  const { name: fanName } = fanProfileData
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -585,12 +581,9 @@ export function FanDashboard() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <SimpleProfileUpload 
-                value={profileImage || fanProfileImage}
-                onChange={setProfileImage}
-                size="lg"
-                className=""
-              />
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
             </div>
             <div>
               <h1 className="font-serif font-bold text-xl">

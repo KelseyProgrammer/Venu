@@ -362,7 +362,7 @@ function ArtistCard({ artist, onSelect, favoriteCount }: ArtistCardProps) {
     >
       <div className="flex items-start gap-4">
         <Image
-          src={artist.profileImage || "/images/BandFallBack.PNG"}
+          src="/images/BandFallBack.PNG"
           alt={artist.name}
           width={80}
           height={80}

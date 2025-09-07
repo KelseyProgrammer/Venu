@@ -1,91 +1,90 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { ProfilePictureUpload } from "@/components/ui/profile-picture-upload"
-import { User, Save, Edit, MapPin, Building2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { 
+  User, Building2, Music, 
+  AlertCircle, CheckCircle, Loader2
+} from "lucide-react"
 
 interface ProfileData {
   firstName: string
   lastName: string
   email: string
   phone: string
-  company?: string
   location: string
-  profileImage: string
-  bio?: string
+  bio: string
+  company?: string // For promoters
+  spotify?: string // For artists
+  instagram?: string // For artists
 }
 
 interface ProfileManagementProps {
-  initialData?: Partial<ProfileData>
   userType: "artist" | "promoter" | "location" | "fan"
-  onSave?: (data: ProfileData) => void
-  className?: string
+  initialData: ProfileData
+  onSave: (data: ProfileData) => void
 }
 
-export function ProfileManagement({ 
-  initialData = {}, 
-  userType, 
-  onSave,
-  className = "" 
-}: ProfileManagementProps) {
+export function ProfileManagement({ userType, initialData, onSave }: ProfileManagementProps) {
+  const [formData, setFormData] = useState<ProfileData>(initialData)
   const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: initialData.firstName || "",
-    lastName: initialData.lastName || "",
-    email: initialData.email || "",
-    phone: initialData.phone || "",
-    company: initialData.company || "",
-    location: initialData.location || "",
-    profileImage: initialData.profileImage || "",
-    bio: initialData.bio || ""
-  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  // Calculate form completion percentage
+  const completionPercentage = useMemo(() => {
+    const requiredFields = [
+      formData.firstName,
+      formData.lastName,
+      formData.email,
+      formData.phone,
+      formData.location,
+      formData.bio
+    ]
+    
+    const filledFields = requiredFields.filter(field => 
+      field && field.trim() !== ''
+    ).length
+    
+    return Math.round((filledFields / requiredFields.length) * 100)
+  }, [formData])
 
   const handleInputChange = useCallback((field: keyof ProfileData, value: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setError(null)
   }, [])
 
   const handleSave = useCallback(async () => {
-    setIsSaving(true)
-    setSaveMessage(null)
+    setIsSubmitting(true)
+    setError(null)
 
     try {
-      // Validate required fields
-      if (!profileData.firstName.trim() || !profileData.lastName.trim() || !profileData.email.trim()) {
-        setSaveMessage("Please fill in all required fields")
-        return
-      }
-
-      // Call the onSave callback if provided
-      if (onSave) {
-        onSave(profileData)
-      }
-
-      // In a real implementation, you would save to the backend here
-      // const response = await authApi.updateProfile(profileData)
-      
-      setSaveMessage("Profile updated successfully!")
+      await onSave(formData)
+      setSuccess(true)
       setIsEditing(false)
       
       // Clear success message after 3 seconds
-      setTimeout(() => setSaveMessage(null), 3000)
-    } catch (error) {
-      setSaveMessage("Failed to update profile. Please try again.")
-      console.error('Profile update error:', error)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err) {
+      setError('An error occurred while saving the profile')
+      console.error('Profile save error:', err)
     } finally {
-      setIsSaving(false)
+      setIsSubmitting(false)
     }
-  }, [profileData, onSave])
+  }, [formData, onSave])
+
+  const handleCancel = useCallback(() => {
+    setFormData(initialData)
+    setIsEditing(false)
+    setError(null)
+  }, [initialData])
 
   const getTitle = () => {
     switch (userType) {
@@ -99,221 +98,261 @@ export function ProfileManagement({
 
   const getIcon = () => {
     switch (userType) {
-      case "artist": return <User className="w-5 h-5" />
-      case "promoter": return <Building2 className="w-5 h-5" />
-      case "location": return <MapPin className="w-5 h-5" />
-      case "fan": return <User className="w-5 h-5" />
-      default: return <User className="w-5 h-5" />
+      case "artist": return Music
+      case "promoter": return Building2
+      case "location": return Building2
+      case "fan": return User
+      default: return User
     }
   }
 
+  const IconComponent = getIcon()
+
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="flex items-center justify-between">
-        <h2 className="font-serif font-bold text-xl flex items-center gap-2">
-          {getIcon()}
-          {getTitle()}
-        </h2>
-        <div className="flex items-center gap-2">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">
+          {isEditing ? `Edit ${getTitle()}` : getTitle()}
+        </h1>
+        <p className="text-muted-foreground">
+          {isEditing ? 'Update your profile information' : 'Manage your profile information'}
+        </p>
+      </div>
+
+      {/* Progress Bar */}
+      <Card className="p-4">
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Profile Completion</span>
+            <span className="font-medium">{completionPercentage}%</span>
+          </div>
+          <Progress value={completionPercentage} className="h-2" />
+        </div>
+      </Card>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success Alert */}
+      {success && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            Profile updated successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <IconComponent className="h-5 w-5" />
+              {getTitle()}
+            </CardTitle>
+            <CardDescription>
+              Essential information about your profile
+            </CardDescription>
+          </div>
           {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
+            <Button 
               onClick={() => setIsEditing(true)}
-              className="border-purple-200 text-purple-700 hover:bg-purple-50"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              <Edit className="w-4 h-4 mr-1" />
               Edit Profile
             </Button>
           )}
-          {isEditing && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(false)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Save className="w-4 h-4 mr-1" />
-                {isSaving ? "Saving..." : "Save Changes"}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Save Message */}
-      {saveMessage && (
-        <div className={`p-3 rounded-md text-sm ${
-          saveMessage.includes("successfully") 
-            ? "bg-green-50 text-green-700 border border-green-200" 
-            : "bg-red-50 text-red-700 border border-red-200"
-        }`}>
-          {saveMessage}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Picture Section */}
-        <div className="lg:col-span-1">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg">Profile Picture</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProfilePictureUpload
-                value={profileData.profileImage}
-                onChange={(value) => handleInputChange('profileImage', value)}
-                size="lg"
-                showLabel={false}
-                disabled={!isEditing}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Profile Information */}
-        <div className="lg:col-span-2">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-foreground">
-                    First Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input 
-                    value={profileData.firstName}
-                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    placeholder="Enter first name"
-                    disabled={!isEditing}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-foreground">
-                    Last Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input 
-                    value={profileData.lastName}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    placeholder="Enter last name"
-                    disabled={!isEditing}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-foreground">
-                    Email <span className="text-red-500">*</span>
-                  </Label>
-                  <Input 
-                    value={profileData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="Enter email address"
-                    type="email"
-                    disabled={!isEditing}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-foreground">Phone</Label>
-                  <Input 
-                    value={profileData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Enter phone number"
-                    type="tel"
-                    disabled={!isEditing}
-                    className="mt-1"
-                  />
-                </div>
-                {userType === "promoter" && (
-                  <div>
-                    <Label className="text-sm font-medium text-foreground">Company</Label>
-                    <Input 
-                      value={profileData.company}
-                      onChange={(e) => handleInputChange('company', e.target.value)}
-                      placeholder="Enter company name"
-                      disabled={!isEditing}
-                      className="mt-1"
-                    />
-                  </div>
-                )}
-                <div>
-                  <Label className="text-sm font-medium text-foreground">Location</Label>
-                  <Input 
-                    value={profileData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Enter location"
-                    disabled={!isEditing}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              {/* Bio Section */}
-              <div>
-                <Label className="text-sm font-medium text-foreground">Bio</Label>
-                <textarea
-                  value={profileData.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  placeholder={`Tell us about yourself${userType === "artist" ? " and your music" : ""}...`}
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium text-foreground">
+                  First Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
                   disabled={!isEditing}
-                  className="mt-1 w-full p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground resize-none h-24"
+                  placeholder="Enter first name"
+                  required
                 />
               </div>
 
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Status:</span>
-                <Badge variant="default" className="bg-green-600 text-white">
-                  Active
-                </Badge>
+              {/* Last Name */}
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
+                  Last Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Enter last name"
+                  required
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
 
-      {/* Quick Stats (for artists) */}
-      {userType === "artist" && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">12</div>
-              <div className="text-sm text-muted-foreground">Gigs This Year</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">$3,200</div>
-              <div className="text-sm text-muted-foreground">Total Earnings</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">4.8</div>
-              <div className="text-sm text-muted-foreground">Average Rating</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">85%</div>
-              <div className="text-sm text-muted-foreground">Booking Rate</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Enter email address"
+                  required
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-medium text-foreground">
+                  Phone <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Enter phone number"
+                  required
+                />
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium text-foreground">
+                  Location <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Enter your location"
+                  required
+                />
+              </div>
+
+              {/* Company (for promoters) */}
+              {userType === "promoter" && (
+                <div className="space-y-2">
+                  <Label htmlFor="company" className="text-sm font-medium text-foreground">
+                    Company
+                  </Label>
+                  <Input
+                    id="company"
+                    value={formData.company || ""}
+                    onChange={(e) => handleInputChange('company', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Enter company name"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Bio */}
+            <div className="space-y-2">
+              <Label htmlFor="bio" className="text-sm font-medium text-foreground">
+                Bio <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => handleInputChange('bio', e.target.value)}
+                disabled={!isEditing}
+                placeholder="Tell us about yourself..."
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Social Media & Links */}
+          {(userType === "artist" || userType === "promoter") && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Spotify (for artists) */}
+                {userType === "artist" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="spotify" className="text-sm font-medium text-foreground">
+                      Spotify Profile
+                    </Label>
+                    <Input
+                      id="spotify"
+                      type="url"
+                      value={formData.spotify || ""}
+                      onChange={(e) => handleInputChange('spotify', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="https://open.spotify.com/artist/..."
+                    />
+                  </div>
+                )}
+
+                {/* Instagram */}
+                <div className="space-y-2">
+                  <Label htmlFor="instagram" className="text-sm font-medium text-foreground">
+                    Instagram
+                  </Label>
+                  <Input
+                    id="instagram"
+                    value={formData.instagram || ""}
+                    onChange={(e) => handleInputChange('instagram', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="@yourusername"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {isEditing && (
+            <div className="flex justify-end gap-4 pt-4">
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={handleCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSave}
+                variant="default"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
