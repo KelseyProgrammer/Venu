@@ -195,11 +195,6 @@ export function AuthFlow() {
         availability: profileData.availability,
         priceRange: profileData.priceRange,
         // Add new fields with default values
-        portfolioImages: [],
-        portfolioVideos: [],
-        unavailableDates: [],
-        preferredBookingDays: [],
-        bookingLeadTime: '1 week',
         cancellationPolicy: '24 hours notice required',
       });
       

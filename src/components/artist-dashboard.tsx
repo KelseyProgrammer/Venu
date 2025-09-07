@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, memo, useEffect, useTransition } from "react"
+import { useState, useMemo, useCallback, memo, useEffect, useTransition, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +13,7 @@ import {
   User, LogOut, Clock, Music, CheckCircle
 } from "lucide-react"
 import Image from "next/image"
-import { GigDetails } from "./gig-details"
+// import { GigDetails } from "./gig-details" // Now using dynamic import
 import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
 import { RealTimeNotifications } from "./real-time-notifications"
@@ -22,9 +22,42 @@ import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
 import { authUtils } from "@/lib/utils"
-import { gigApi } from "@/lib/api"
+import { gigApi, GigProfile } from "@/lib/api"
 import { ProfileManagement } from "@/components/ui/profile-management"
 import { SimpleProfileUpload } from "@/components/ui/simple-profile-upload"
+
+// Dynamic imports for better code splitting
+const GigDetailsLazy = memo(function GigDetailsLazy({ gigId, onBack, gigData }: { gigId: string; onBack: () => void; gigData: any }) {
+  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null)
+  
+  useEffect(() => {
+    import("./gig-details").then((module) => {
+      setComponent(() => module.GigDetails)
+    })
+  }, [])
+  
+  if (!Component) {
+    return <div className="flex items-center justify-center p-8">Loading gig details...</div>
+  }
+  
+  return <Component gigId={gigId} onBack={onBack} gigData={gigData} />
+})
+
+// Performance monitoring hook
+const usePerformanceMonitor = () => {
+  const renderStartTime = useRef<number>(0)
+  
+  useEffect(() => {
+    renderStartTime.current = performance.now()
+    
+    return () => {
+      const renderTime = performance.now() - renderStartTime.current
+      if (renderTime > 16) { // More than one frame (16ms at 60fps)
+        console.warn(`Slow render detected: ${renderTime.toFixed(2)}ms`)
+      }
+    }
+  })
+}
 
 // Types for better type safety
 interface Gig {
@@ -81,13 +114,13 @@ interface ArtistEventDetailsModalProps {
   onClose: () => void
 }
 
-function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetailsModalProps) {
+const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetailsModalProps) {
   if (!booking) return null
 
-  const progress = (booking.ticketsSold / booking.totalTickets) * 100
+  const progress = useMemo(() => (booking.ticketsSold / booking.totalTickets) * 100, [booking.ticketsSold, booking.totalTickets])
 
-  // Helper function to convert 24-hour time to 12-hour format
-  const formatTime12Hour = (time24: string): string => {
+  // Memoized helper function to convert 24-hour time to 12-hour format
+  const formatTime12Hour = useCallback((time24: string): string => {
     try {
       const time = time24.trim()
       
@@ -122,7 +155,7 @@ function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetail
     } catch {
       return time24
     }
-  }
+  }, [])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -142,6 +175,9 @@ function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetail
               width={120}
               height={120}
               className="rounded-lg object-cover"
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
             />
             
             <div className="flex-1 space-y-3">
@@ -306,7 +342,149 @@ function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetail
       </DialogContent>
     </Dialog>
   )
-}
+})
+
+// Memoized Calendar Day Component for better performance
+const CalendarDay = memo(function CalendarDay({
+  day,
+  currentMonth,
+  currentYear,
+  today,
+  bookingOnDate,
+  availableDates,
+  unavailableDates,
+  availabilityFilter,
+  onToggleAvailability
+}: {
+  day: number
+  currentMonth: number
+  currentYear: number
+  today: Date
+  bookingOnDate?: Booking | undefined
+  availableDates: string[]
+  unavailableDates: string[]
+  availabilityFilter: string
+  onToggleAvailability: (dateString: string) => void
+}) {
+  const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const isAvailable = availableDates.includes(dateString)
+  const isUnavailable = unavailableDates.includes(dateString)
+  const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear())
+  const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
+  const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate()
+
+  // Early return for non-current month days
+  if (!isCurrentMonth) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  // For unavailable filter, only show unavailable days
+  if (availabilityFilter === "unavailable" && !isUnavailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+  
+  // For available filter, only show explicitly available days
+  if (availabilityFilter === "available" && !isAvailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  const handleClick = useCallback(() => {
+    // Only allow toggling availability for future dates that don't have bookings
+    if (!isPast && !bookingOnDate) {
+      onToggleAvailability(dateString)
+    }
+  }, [isPast, bookingOnDate, dateString, onToggleAvailability])
+
+  return (
+    <div 
+      onClick={handleClick}
+      className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
+        !isPast && !bookingOnDate 
+          ? 'cursor-pointer hover:shadow-md' 
+          : 'cursor-default'
+      } ${
+        isToday 
+          ? 'bg-purple-600 border-purple-600 shadow-md' 
+          : isUnavailable
+          ? availabilityFilter === "unavailable"
+            ? 'bg-red-50 border-red-300 shadow-md' 
+            : 'bg-white border-red-200'
+          : isAvailable
+          ? availabilityFilter === "available"
+            ? 'bg-green-50 border-green-300 shadow-md'
+            : 'bg-white border-green-200'
+          : bookingOnDate && bookingOnDate.status === "confirmed"
+          ? 'bg-white border-green-200' 
+          : bookingOnDate && bookingOnDate.status === "completed"
+          ? 'bg-white border-blue-200'
+          : isPast 
+          ? 'bg-white border-muted' 
+          : 'bg-white border-border hover:border-primary/50'
+      }`}
+    >
+      <div className={`text-sm font-medium mb-1 relative z-10 ${
+        isToday 
+          ? 'text-white' 
+          : isUnavailable
+          ? availabilityFilter === "unavailable"
+            ? 'text-red-700 font-bold'
+            : 'text-red-600'
+          : isAvailable
+          ? availabilityFilter === "available"
+            ? 'text-green-700 font-bold'
+            : 'text-green-600'
+          : bookingOnDate && bookingOnDate.status === "confirmed"
+          ? 'text-green-600' 
+          : bookingOnDate && bookingOnDate.status === "completed"
+          ? 'text-blue-600'
+          : isPast 
+          ? 'text-muted-foreground' 
+          : 'text-gray-900 font-semibold'
+      }`}>
+        {day}
+      </div>
+      
+      {bookingOnDate && (
+        <div className="space-y-1 max-h-12 overflow-hidden">
+          <div 
+            className={`text-xs p-1 rounded truncate ${
+              bookingOnDate.status === "confirmed"
+                ? 'bg-green-200 text-green-800' 
+                : 'bg-blue-200 text-blue-800'
+            }`}
+          >
+            <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
+              {getLocationDisplayName(bookingOnDate.location)}
+            </div>
+            <div className="text-xs font-bold mt-0.5 truncate">
+              {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {!bookingOnDate && !isPast && isAvailable && (
+        <div className={`text-xs mt-1 font-medium ${
+          isToday ? 'text-white' : 'text-green-600'
+        }`}>
+          Available
+        </div>
+      )}
+      
+      {!bookingOnDate && !isPast && isUnavailable && (
+        <div className={`text-xs mt-2 font-medium ${
+          isToday 
+            ? 'text-white'
+            : availabilityFilter === "unavailable"
+            ? 'text-red-700 font-bold'
+            : 'text-red-600'
+        }`}>
+          Unavailable
+        </div>
+      )}
+    </div>
+  )
+})
 
 // Memoized Gig Card Component for better performance
 const GigCard = memo(function GigCard({ 
@@ -320,7 +498,7 @@ const GigCard = memo(function GigCard({
   onSelectGig: (gigId: string) => void
   onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
 }) {
-  const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets, gig])
+  const progress = useMemo(() => (gig.ticketsSold / gig.totalTickets) * 100, [gig.ticketsSold, gig.totalTickets])
   
   // Memoize band tiers calculation to prevent unnecessary recalculations
   const bandTiers = useMemo(() => {
@@ -332,7 +510,7 @@ const GigCard = memo(function GigCard({
         return bandTiers ? { band, bandTiers } : null
       })
       .filter((item): item is { band: typeof gig.bands[0], bandTiers: NonNullable<typeof gigBonusTiers[number][0]> } => item !== null)
-  }, [gig.bands, gigBonusTiers, gig.id])
+  }, [gig, gigBonusTiers])
 
   return (
     <Card className="p-4 bg-card border-border">
@@ -344,7 +522,9 @@ const GigCard = memo(function GigCard({
               width={80}
               height={80}
               className="rounded-lg object-cover w-20 h-20"
-              priority={false}
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
             />
           <div className="absolute -top-1 -right-1">
             <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
@@ -441,6 +621,9 @@ const GigCard = memo(function GigCard({
 })
 
 export function ArtistDashboard() {
+  // Performance monitoring
+  usePerformanceMonitor()
+  
   const [activeTab, setActiveTab] = useState("discover")
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -448,6 +631,9 @@ export function ArtistDashboard() {
   const [profileImage, setProfileImage] = useState<string>("")
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
+  
+  // Debounced localStorage operations
+  const localStorageTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
@@ -460,13 +646,39 @@ export function ArtistDashboard() {
     isConnected: realTimeConnected
   } = useArtistRealTime({ artistId: "artist-123" })
   
-  // Auto-connect socket when component mounts
+  // Auto-connect socket when component mounts - optimized with error handling
   useEffect(() => {
-    autoConnect().catch((err) => {
-      console.error('Failed to auto-connect socket:', err)
-      setError('Failed to connect to real-time services')
-    })
+    let isMounted = true
+    
+    const connectSocket = async () => {
+      try {
+        await autoConnect()
+        if (isMounted) {
+          setError(null) // Clear any previous errors
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Failed to auto-connect socket:', err)
+          setError('Failed to connect to real-time services')
+        }
+      }
+    }
+    
+    connectSocket()
+    
+    return () => {
+      isMounted = false
+    }
   }, [autoConnect])
+
+  // Cleanup localStorage timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (localStorageTimeoutRef.current) {
+        clearTimeout(localStorageTimeoutRef.current)
+      }
+    }
+  }, [])
   
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -563,7 +775,7 @@ export function ArtistDashboard() {
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [artistGigs, setArtistGigs] = useState<any[]>([])
+  const [artistGigs, setArtistGigs] = useState<GigProfile[]>([])
 
   // Set isClient to true after hydration
   useEffect(() => {
@@ -698,7 +910,7 @@ export function ArtistDashboard() {
     if (!artistGigs.length) return []
 
     return artistGigs.map((gig, index) => {
-      const artistBand = gig.artistBand
+      const artistBand = gig.bands?.[0] // Use the first band instead of artistBand
       const location = gig.selectedLocation
       
       // Check if the event is in the past
@@ -713,12 +925,12 @@ export function ArtistDashboard() {
         status = "completed" // Past shows are always considered completed
       } else if (gig.status === "completed") {
         status = "completed"
-      } else if (artistBand?.confirmed) {
+      } else if (artistBand?.email) { // Check if band has email (confirmation indicator)
         status = "confirmed"
       }
 
       // Calculate earnings based on artist percentage
-      const totalRevenue = (gig.ticketsSold || 0) * (gig.ticketPrice || 0)
+      const totalRevenue = (gig.ticketsSold || 0) * gig.ticketPrice
       const artistEarnings = totalRevenue * ((artistBand?.percentage || 0) / 100)
 
       return {
@@ -728,15 +940,15 @@ export function ArtistDashboard() {
         time: gig.eventTime,
         status,
         ticketsSold: gig.ticketsSold || 0,
-        totalTickets: gig.ticketCapacity || 0,
+        totalTickets: gig.ticketCapacity,
         earnings: Math.round(artistEarnings),
         image: gig.image || "/images/BandFallBack.PNG",
-        gigId: gig._id || gig.id,
+        gigId: gig._id,
         eventName: gig.eventName,
         genre: gig.eventGenre,
         artistSetTime: artistBand?.setTime,
         artistPercentage: artistBand?.percentage,
-        artistGuarantee: artistBand?.guarantee || 0,
+        artistGuarantee: gig.guarantee || 0,
         isPast
       }
     })
@@ -781,7 +993,60 @@ export function ArtistDashboard() {
   //   return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
   // }, [gigBonusTiers])
 
-  // Calendar navigation functions - optimized with useCallback
+  // Filter bookings based on selected filter - optimized memoization
+  const filteredBookings = useMemo(() => {
+    if (scheduleFilter === "all") return myBookings
+    
+    return myBookings.filter(booking => {
+      switch (scheduleFilter) {
+        case "confirmed":
+          return booking.status === "confirmed"
+        case "needs-band":
+          return booking.status === "pending"
+        case "past":
+          return booking.isPast === true
+        default:
+          return true
+      }
+    })
+  }, [myBookings, scheduleFilter])
+
+  // Memoize calendar data calculations to prevent expensive recalculations
+  const calendarData = useMemo(() => {
+    const today = new Date()
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    
+    // Pre-calculate booking lookup map for O(1) access
+    const bookingMap = new Map<string, Booking>()
+    filteredBookings.forEach(booking => {
+      const bookingDate = new Date(booking.date)
+      const key = `${bookingDate.getDate()}-${bookingDate.getMonth()}-${bookingDate.getFullYear()}`
+      bookingMap.set(key, booking)
+    })
+    
+    return {
+      today,
+      currentMonth,
+      currentYear,
+      bookingMap,
+      daysInMonth: new Date(currentYear, currentMonth + 1, 0).getDate()
+    }
+  }, [currentDate, filteredBookings])
+
+  // Memoize calendar days generation
+  const calendarDays = useMemo(() => {
+    return Array.from({ length: 35 }, (_, i) => {
+      const day = i - 3 // Start from previous month to fill first week
+      const key = `${day}-${calendarData.currentMonth}-${calendarData.currentYear}`
+      const bookingOnDate = calendarData.bookingMap.get(key)
+      
+      return {
+        day,
+        bookingOnDate
+      }
+    })
+  }, [calendarData])
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prevDate => {
       const newDate = new Date(prevDate)
@@ -802,47 +1067,59 @@ export function ArtistDashboard() {
     setCurrentDate(new Date())
   }, [])
 
-  // Handle single click toggle - cycles through: blank → available → unavailable → blank
+  // Debounced localStorage save function
+  const debouncedLocalStorageSave = useCallback((key: string, value: string[]) => {
+    if (localStorageTimeoutRef.current) {
+      clearTimeout(localStorageTimeoutRef.current)
+    }
+    
+    localStorageTimeoutRef.current = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(key, JSON.stringify(value))
+        } catch (error) {
+          console.warn('Failed to save to localStorage:', error)
+        }
+      }
+    }, 300) // 300ms debounce
+  }, [])
+
+  // Optimized date availability toggle with batched updates and debounced localStorage
   const toggleDateAvailability = useCallback((dateString: string) => {
     const isAvailable = availableDates.includes(dateString)
     const isUnavailable = unavailableDates.includes(dateString)
     
-    if (!isAvailable && !isUnavailable) {
-      // Currently blank → make available
-      setAvailableDates(prevDates => {
-        const newDates = [...prevDates, dateString]
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('artist-available-dates', JSON.stringify(newDates))
-        }
-        return newDates
-      })
-    } else if (isAvailable && !isUnavailable) {
-      // Currently available → make unavailable
-      setAvailableDates(prevDates => {
-        const newDates = prevDates.filter(date => date !== dateString)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('artist-available-dates', JSON.stringify(newDates))
-        }
-        return newDates
-      })
-      setUnavailableDates(prevDates => {
-        const newDates = [...prevDates, dateString]
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
-        }
-        return newDates
-      })
-    } else if (!isAvailable && isUnavailable) {
-      // Currently unavailable → make blank
-      setUnavailableDates(prevDates => {
-        const newDates = prevDates.filter(date => date !== dateString)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
-        }
-        return newDates
-      })
-    }
-  }, [availableDates, unavailableDates])
+    // Batch state updates to prevent multiple re-renders
+    startTransition(() => {
+      if (!isAvailable && !isUnavailable) {
+        // Currently blank → make available
+        setAvailableDates(prevDates => {
+          const newDates = [...prevDates, dateString]
+          debouncedLocalStorageSave('artist-available-dates', newDates)
+          return newDates
+        })
+      } else if (isAvailable && !isUnavailable) {
+        // Currently available → make unavailable
+        setAvailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-available-dates', newDates)
+          return newDates
+        })
+        setUnavailableDates(prevDates => {
+          const newDates = [...prevDates, dateString]
+          debouncedLocalStorageSave('artist-unavailable-dates', newDates)
+          return newDates
+        })
+      } else if (!isAvailable && isUnavailable) {
+        // Currently unavailable → make blank
+        setUnavailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-unavailable-dates', newDates)
+          return newDates
+        })
+      }
+    })
+  }, [availableDates, unavailableDates, startTransition, debouncedLocalStorageSave])
 
   // Optimized tab change handler with useTransition
   const handleTabChange = useCallback((value: string) => {
@@ -863,23 +1140,19 @@ export function ArtistDashboard() {
     sendGigUpdate(gigId, "status-changed", gigData)
   }, [sendGigUpdate])
 
-  // Filter bookings based on selected filter - optimized memoization
-  const filteredBookings = useMemo(() => {
-    if (scheduleFilter === "all") return myBookings
+  // Memoized notification counts to prevent expensive filtering on every render
+  const notificationCounts = useMemo(() => {
+    const bookingRequests = notifications.filter(n => n.type === 'booking-request' && !n.read).length
+    const messages = notifications.filter(n => n.type === 'message' && !n.read).length
+    const newGigs = gigUpdates.filter(u => u.updateType === 'created').length
     
-    return myBookings.filter(booking => {
-      switch (scheduleFilter) {
-        case "confirmed":
-          return booking.status === "confirmed"
-        case "needs-band":
-          return booking.status === "pending"
-        case "past":
-          return booking.isPast === true
-        default:
-          return true
-      }
-    })
-  }, [myBookings, scheduleFilter])
+    return {
+      bookingRequests,
+      messages,
+      newGigs,
+      totalUpdates: gigUpdates.length
+    }
+  }, [notifications, gigUpdates])
 
   // Transform the data structure to match GigDetails interface - memoized
   const transformedGig = useMemo(() => {
@@ -912,11 +1185,7 @@ export function ArtistDashboard() {
     }
   }, [selectedGig, mockGigs])
 
-  if (selectedGig && transformedGig) {
-    return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
-  }
-
-  // Artist stats cards - memoized for performance (moved here to be available before return)
+  // Artist stats cards - memoized for performance
   const artistStatsCards = useMemo(() => {
     // Calculate metrics from myBookings data
     const totalGigs = myBookings.length
@@ -947,6 +1216,10 @@ export function ArtistDashboard() {
       }
     ]
   }, [myBookings])
+
+  if (selectedGig && transformedGig) {
+    return <GigDetailsLazy gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -1094,9 +1367,9 @@ export function ArtistDashboard() {
                 Filter
               </Button>
               {/* Real-time new gig opportunities indicator */}
-              {gigUpdates.filter(u => u.updateType === 'created').length > 0 && (
+              {notificationCounts.newGigs > 0 && (
                 <Badge variant="default" className="bg-orange-600 text-white">
-                  {gigUpdates.filter(u => u.updateType === 'created').length} new gig{gigUpdates.filter(u => u.updateType === 'created').length !== 1 ? 's' : ''}
+                  {notificationCounts.newGigs} new gig{notificationCounts.newGigs !== 1 ? 's' : ''}
                 </Badge>
               )}
             </div>
@@ -1120,9 +1393,9 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Schedule</h2>
             {/* Real-time booking confirmations indicator */}
-            {notifications.filter(n => n.type === 'booking-request' && !n.read).length > 0 && (
+            {notificationCounts.bookingRequests > 0 && (
               <Badge variant="default" className="bg-green-600 text-white">
-                {notifications.filter(n => n.type === 'booking-request' && !n.read).length} new booking{notifications.filter(n => n.type === 'booking-request' && !n.read).length !== 1 ? 's' : ''}
+                {notificationCounts.bookingRequests} new booking{notificationCounts.bookingRequests !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -1463,146 +1736,21 @@ export function ArtistDashboard() {
                 </div>
                 
                 <div className="grid grid-cols-7 gap-1">
-                  {/* Generate calendar days for current month */}
-                  {Array.from({ length: 35 }, (_, i) => {
-                    const day = i - 3; // Start from previous month to fill first week
-                    const today = new Date();
-                    const currentMonth = currentDate.getMonth();
-                    const currentYear = currentDate.getFullYear();
-                    
-                    // Check if this date has a booking (considering filter)
-                    const bookingOnDate = filteredBookings.find(booking => {
-                      const bookingDate = new Date(booking.date);
-                      return bookingDate.getDate() === day && 
-                             bookingDate.getMonth() === currentMonth && 
-                             bookingDate.getFullYear() === currentYear;
-                    });
-                    
-                    // Check if date is available or unavailable
-                    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const isAvailable = availableDates.includes(dateString);
-                    const isUnavailable = unavailableDates.includes(dateString);
-                    
-                    // Check if date is in the past
-                    const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-                    
-                    // Check if date is today
-                    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-                    
-                    // Check if date is in current month
-                    const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
-                    
-                    // For unavailable filter, only show unavailable days
-                    if (availabilityFilter === "unavailable" && !isUnavailable) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    // For available filter, only show explicitly available days
-                    if (availabilityFilter === "available" && !isAvailable) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    if (!isCurrentMonth) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    return (
-                      <div 
-                        key={i} 
-                        onClick={() => {
-                          // Only allow toggling availability for future dates that don't have bookings
-                          if (!isPast && !bookingOnDate) {
-                            // Single click - cycle through: blank → available → unavailable → blank
-                            toggleDateAvailability(dateString)
-                          }
-                        }}
-                        className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
-                          !isPast && !bookingOnDate 
-                            ? 'cursor-pointer hover:shadow-md' 
-                            : 'cursor-default'
-                        } ${
-                          isToday 
-                            ? 'bg-purple-600 border-purple-600 shadow-md' 
-                            : isUnavailable
-                            ? availabilityFilter === "unavailable"
-                              ? 'bg-red-50 border-red-300 shadow-md' 
-                              : 'bg-white border-red-200'
-                            : isAvailable
-                            ? availabilityFilter === "available"
-                              ? 'bg-green-50 border-green-300 shadow-md'
-                              : 'bg-white border-green-200'
-                            : bookingOnDate && bookingOnDate.status === "confirmed"
-                            ? 'bg-white border-green-200' 
-                            : bookingOnDate && bookingOnDate.status === "completed"
-                            ? 'bg-white border-blue-200'
-                            : isPast 
-                            ? 'bg-white border-muted' 
-                            : 'bg-white border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className={`text-sm font-medium mb-1 relative z-10 ${
-                          isToday 
-                            ? 'text-white' 
-                            : isUnavailable
-                            ? availabilityFilter === "unavailable"
-                              ? 'text-red-700 font-bold'
-                              : 'text-red-600'
-                            : isAvailable
-                            ? availabilityFilter === "available"
-                              ? 'text-green-700 font-bold'
-                              : 'text-green-600'
-                            : bookingOnDate && bookingOnDate.status === "confirmed"
-                            ? 'text-green-600' 
-                            : bookingOnDate && bookingOnDate.status === "completed"
-                            ? 'text-blue-600'
-                            : isPast 
-                            ? 'text-muted-foreground' 
-                            : 'text-gray-900 font-semibold'
-                        }`}>
-                          {day}
-                        </div>
-                        
-                        {bookingOnDate && (
-                          <div className="space-y-1 max-h-12 overflow-hidden">
-                            <div 
-                              className={`text-xs p-1 rounded truncate ${
-                                bookingOnDate.status === "confirmed"
-                                  ? 'bg-green-200 text-green-800' 
-                                  : 'bg-blue-200 text-blue-800'
-                              }`}
-                            >
-                              <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
-                                {getLocationDisplayName(bookingOnDate.location)}
-                              </div>
-                              <div className="text-xs font-bold mt-0.5 truncate">
-                                {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {!bookingOnDate && !isPast && isAvailable && (
-                          <div className={`text-xs mt-1 font-medium ${
-                            isToday ? 'text-white' : 'text-green-600'
-                          }`}>
-                            Available
-                          </div>
-                        )}
-                        
-                        {!bookingOnDate && !isPast && isUnavailable && (
-                          <div className={`text-xs mt-2 font-medium ${
-                            isToday 
-                              ? 'text-white'
-                              : availabilityFilter === "unavailable"
-                              ? 'text-red-700 font-bold'
-                              : 'text-red-600'
-                          }`}>
-                            Unavailable
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {/* Generate calendar days for current month - optimized with memoized components */}
+                  {calendarDays.map(({ day, bookingOnDate }, i) => (
+                    <CalendarDay
+                      key={i}
+                      day={day}
+                      currentMonth={calendarData.currentMonth}
+                      currentYear={calendarData.currentYear}
+                      today={calendarData.today}
+                      bookingOnDate={bookingOnDate}
+                      availableDates={availableDates}
+                      unavailableDates={unavailableDates}
+                      availabilityFilter={availabilityFilter}
+                      onToggleAvailability={toggleDateAvailability}
+                    />
+                  ))}
                 </div>
               </Card>
 
@@ -1650,9 +1798,9 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Applications</h2>
             {/* Real-time application updates indicator */}
-            {gigUpdates.length > 0 && (
+            {notificationCounts.totalUpdates > 0 && (
               <Badge variant="default" className="bg-purple-600 text-white">
-                {gigUpdates.length} new update{gigUpdates.length !== 1 ? 's' : ''}
+                {notificationCounts.totalUpdates} new update{notificationCounts.totalUpdates !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -1717,9 +1865,9 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
             {/* Real-time new messages indicator */}
-            {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
+            {notificationCounts.messages > 0 && (
               <Badge variant="default" className="bg-blue-600 text-white">
-                {notifications.filter(n => n.type === 'message' && !n.read).length} new message{notifications.filter(n => n.type === 'message' && !n.read).length !== 1 ? 's' : ''}
+                {notificationCounts.messages} new message{notificationCounts.messages !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>

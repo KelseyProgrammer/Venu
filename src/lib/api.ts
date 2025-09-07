@@ -361,9 +361,9 @@ export const artistApi = {
     website?: string;
     youtube?: string;
     tiktok?: string;
-    location: string;
-    availability: string;
-    priceRange: string;
+    location?: string;
+    availability?: string;
+    priceRange?: string;
     setLength?: string;
     equipmentNeeds?: string;
     pricing?: string;
@@ -446,7 +446,32 @@ export const artistApi = {
   },
 
   // Legacy function names for backward compatibility
-  async createProfile(profileData: any): Promise<ApiResponse<ArtistProfile>> {
+  async createProfile(profileData: {
+    name: string;
+    bio: string;
+    genre: string[];
+    profileImage?: string;
+    email: string;
+    phone?: string;
+    instagram?: string;
+    spotify?: string;
+    appleMusic?: string;
+    website?: string;
+    youtube?: string;
+    tiktok?: string;
+    location?: string;
+    availability?: string;
+    priceRange?: string;
+    equipment?: string[];
+    socialLinks?: string[];
+    portfolio?: string[];
+    reviews?: string;
+    rating?: number;
+    followers?: number;
+    verified?: boolean;
+    featured?: boolean;
+    cancellationPolicy?: string;
+  }): Promise<ApiResponse<ArtistProfile>> {
     return this.createArtist(profileData);
   },
 
@@ -458,7 +483,7 @@ export const artistApi = {
     return this.getArtistByUserId(userId);
   },
 
-  async updateProfile(artistId: string, profileData: any): Promise<ApiResponse<ArtistProfile>> {
+  async updateProfile(artistId: string, profileData: Partial<ArtistProfile>): Promise<ApiResponse<ArtistProfile>> {
     return this.updateArtist(artistId, profileData);
   },
 

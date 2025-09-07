@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
             rawCount: followers
           })
         }
-      } catch (jsonError) {
+      } catch {
         // If JSON parsing fails, try HTML parsing
         console.log('JSON parsing failed, trying HTML parsing...')
       }

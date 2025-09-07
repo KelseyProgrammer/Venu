@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,23 +8,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function UploadTestPage() {
   const [imageUrl, setImageUrl] = useState<string>("")
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+  const [isClient, setIsClient] = useState<boolean>(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleLogin = () => {
-    // Use a placeholder token for testing - replace with actual token in development
-    const realToken = 'PLACEHOLDER_JWT_TOKEN_REPLACE_IN_DEVELOPMENT'
-    localStorage.setItem('authToken', realToken)
-    setIsLoggedIn(true)
+    if (typeof window !== 'undefined') {
+      // Use a placeholder token for testing - replace with actual token in development
+      const realToken = 'PLACEHOLDER_JWT_TOKEN_REPLACE_IN_DEVELOPMENT'
+      localStorage.setItem('authToken', realToken)
+      setIsLoggedIn(true)
+    }
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken')
-    setIsLoggedIn(false)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+      setIsLoggedIn(false)
+    }
   }
 
   const checkAuthStatus = () => {
-    const token = localStorage.getItem('authToken')
-    console.log('🔐 Current auth status:', token ? 'Logged in' : 'Not logged in')
-    console.log('🔐 Token value:', token)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('authToken')
+      console.log('🔐 Current auth status:', token ? 'Logged in' : 'Not logged in')
+      console.log('🔐 Token value:', token)
+    }
   }
 
   return (
@@ -51,7 +62,7 @@ export default function UploadTestPage() {
               <strong>Auth Status:</strong> {isLoggedIn ? 'Logged In' : 'Not Logged In'}
             </p>
             <p className="text-sm">
-              <strong>Token:</strong> {localStorage.getItem('authToken') || 'None'}
+              <strong>Token:</strong> {isClient ? (localStorage.getItem('authToken') || 'None') : 'Loading...'}
             </p>
           </div>
 

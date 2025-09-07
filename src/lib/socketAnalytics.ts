@@ -169,7 +169,7 @@ export const createPerformanceMiddleware = () => {
         const errorMessage = error && typeof error === 'object' && 'message' in error 
           ? (error as { message?: string }).message 
           : 'Unknown error';
-        analytics.trackError(errorMessage);
+        analytics.trackError(errorMessage || 'Unknown error');
       });
 
       // Track disconnection

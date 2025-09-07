@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { uploadApi, authApi } from '@/lib/api'
 
 interface UseProfilePictureOptions {
@@ -16,6 +16,7 @@ export function useProfilePicture({
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Memoize the upload function to prevent unnecessary re-renders
   const uploadProfilePicture = useCallback(async (file: File) => {
     // Check authentication
     const token = localStorage.getItem('authToken')
@@ -80,6 +81,7 @@ export function useProfilePicture({
     }
   }, [userId, onUpdate])
 
+  // Memoize the remove function
   const removeProfilePicture = useCallback(async () => {
     setIsUploading(true)
     setError(null)
@@ -115,13 +117,15 @@ export function useProfilePicture({
     }
   }, [userId, onUpdate])
 
+  // Memoize the image URL function
   const getImageUrl = useCallback((url: string) => {
     if (!url) return ""
     if (url.startsWith('data:')) return url
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${url}`
   }, [])
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     profileImage,
     isUploading,
     error,
@@ -129,5 +133,5 @@ export function useProfilePicture({
     removeProfilePicture,
     getImageUrl,
     setError
-  }
+  }), [profileImage, isUploading, error, uploadProfilePicture, removeProfilePicture, getImageUrl])
 }

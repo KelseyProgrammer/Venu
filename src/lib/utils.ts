@@ -145,7 +145,7 @@ export const authUtils = {
             role: payload.role,
             profileImage: payload.profileImage
           };
-        } catch (tokenError) {
+        } catch {
           console.log('🔐 Invalid token format in getCurrentUser, clearing...');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');

@@ -49,6 +49,22 @@ export function ArtistListing({
     "Downtown", "Midtown", "Uptown", "East Side", "West Side", "Suburbs", "University Area"
   ]
 
+  // Load favorite counts for artists
+  const loadFavoriteCounts = useCallback(async () => {
+    try {
+      const response = await artistApi.getFavoriteCounts()
+      if (response.success && response.data) {
+        const counts: Record<string, number> = {}
+        response.data.forEach((item) => {
+          counts[item.artistId] = item.fanCount
+        })
+        setFavoriteCounts(prev => ({ ...prev, ...counts }))
+      }
+    } catch (err) {
+      console.error('Error loading favorite counts:', err)
+    }
+  }, [])
+
   // Load artists based on current filters
   const loadArtists = useCallback(async (pageNum = 1, reset = false) => {
     try {
@@ -113,24 +129,7 @@ export function ArtistListing({
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, limit])
-
-  // Load favorite counts for artists
-  const loadFavoriteCounts = useCallback(async () => {
-    try {
-      const response = await artistApi.getFavoriteCounts()
-      if (response.success && response.data) {
-        const counts: Record<string, number> = {}
-        response.data.forEach((item) => {
-          counts[item.artistId] = item.fanCount
-        })
-        setFavoriteCounts(prev => ({ ...prev, ...counts }))
-      }
-    } catch (err) {
-      console.error('Error loading favorite counts:', err)
-      // Don't set error state for favorite counts as it's not critical
-    }
-  }, [])
+  }, [searchQuery, selectedGenre, selectedLocation, sortBy, sortOrder, limit, loadFavoriteCounts])
 
   // Load artists on mount and when filters change
   useEffect(() => {
