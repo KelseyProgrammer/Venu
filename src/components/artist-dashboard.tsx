@@ -354,7 +354,8 @@ const CalendarDay = memo(function CalendarDay({
   availableDates,
   unavailableDates,
   availabilityFilter,
-  onToggleAvailability
+  onToggleAvailability,
+  shouldShowDate = true
 }: {
   day: number
   currentMonth: number
@@ -365,6 +366,7 @@ const CalendarDay = memo(function CalendarDay({
   unavailableDates: string[]
   availabilityFilter: string
   onToggleAvailability: (dateString: string) => void
+  shouldShowDate?: boolean
 }) {
   const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const isAvailable = availableDates.includes(dateString)
@@ -383,6 +385,11 @@ const CalendarDay = memo(function CalendarDay({
   // Early return for non-current month days
   if (!isCurrentMonth) {
     return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  // For schedule filters, black out dates that don't match the filter
+  if (!shouldShowDate) {
+    return <div className="h-20 bg-black/20 rounded-lg opacity-50"></div>
   }
 
   // For unavailable filter, only show unavailable days
@@ -777,19 +784,18 @@ export function ArtistDashboard() {
     []
   )
 
-  // Simple artist data fetching
+  // Check authentication on client side
   useEffect(() => {
-    if (isClient) {
-      const currentUser = authUtils.getCurrentUser()
-      if (!currentUser?.email) {
-        const token = authUtils.getAuthToken()
-        if (!token || token.length < 10 || !token.includes('.')) {
-          window.location.href = '/'
-          return
-        }
+    if (!isClient) return
+    
+    const currentUser = authUtils.getCurrentUser()
+    if (!currentUser?.email) {
+      const token = authUtils.getAuthToken()
+      if (!token || token.length < 10 || !token.includes('.')) {
+        window.location.href = '/'
+        return
       }
-          setLoading(false)
-        }
+    }
   }, [isClient])
 
   // Fetch real gigs from API
@@ -903,9 +909,11 @@ export function ArtistDashboard() {
       
       if (new Date(gig.eventDate) < new Date()) {
         status = "completed"; // Past shows are completed
-      } else if (artistBand?.confirmed) {
+      } else if (gig.status === 'live' && artistBand?.confirmed) {
+        // Only consider confirmed if the gig is live AND the artist has confirmed
         status = "confirmed"; // Artist has confirmed
       } else {
+        // All other cases (draft, posted, or no explicit confirmation) are pending
         status = "pending"; // Needs band confirmation
       }
 
@@ -1022,12 +1030,25 @@ export function ArtistDashboard() {
       const key = `${day}-${calendarData.currentMonth}-${calendarData.currentYear}`
       const bookingOnDate = calendarData.bookingMap.get(key)
       
+      // For schedule filters, only show dates that match the filter
+      let shouldShowDate = true
+      if (scheduleFilter !== "all") {
+        if (scheduleFilter === "confirmed") {
+          shouldShowDate = bookingOnDate?.status === "confirmed"
+        } else if (scheduleFilter === "needs-band") {
+          shouldShowDate = bookingOnDate?.status === "pending"
+        } else if (scheduleFilter === "past") {
+          shouldShowDate = bookingOnDate?.status === "completed" || bookingOnDate?.isPast === true
+        }
+      }
+      
       return {
         day,
-        bookingOnDate
+        bookingOnDate: shouldShowDate ? bookingOnDate : undefined,
+        shouldShowDate
       }
     })
-  }, [calendarData.currentYear, calendarData.currentMonth, calendarData.bookingMap])
+  }, [calendarData.currentYear, calendarData.currentMonth, calendarData.bookingMap, scheduleFilter])
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prevDate => {
       const newDate = new Date(prevDate)
@@ -1758,7 +1779,7 @@ export function ArtistDashboard() {
                 
                 <div className="grid grid-cols-7 gap-1">
                   {/* Generate calendar days for current month */}
-                  {calendarDays.map(({ day, bookingOnDate }, i) => (
+                  {calendarDays.map(({ day, bookingOnDate, shouldShowDate }, i) => (
                     <CalendarDay
                       key={i}
                       day={day}
@@ -1770,6 +1791,7 @@ export function ArtistDashboard() {
                       unavailableDates={unavailableDates}
                       availabilityFilter={availabilityFilter}
                       onToggleAvailability={toggleDateAvailability}
+                      shouldShowDate={shouldShowDate}
                     />
                   ))}
                 </div>
