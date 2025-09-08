@@ -35,7 +35,7 @@ export interface Gig {
   guarantee: number
   numberOfBands: number // New field for total expected bands
   image?: string
-  status?: 'draft' | 'posted' | 'live' | 'completed'
+  status?: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed'
   rating?: number
   tags?: string[]
   bonusTiers?: {
@@ -50,7 +50,7 @@ export interface Gig {
 
 export interface PostedGig extends Gig {
   id: string
-  status: 'draft' | 'posted' | 'live' | 'completed'
+  status: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed'
   createdAt: Date
   updatedAt: Date
 }

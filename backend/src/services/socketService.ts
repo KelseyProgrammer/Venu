@@ -10,7 +10,7 @@ class SocketService {
 
   // Send notification to a specific user
   sendNotificationToUser(userId: string, notification: {
-    type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system';
+    type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
     title: string;
     message: string;
     data?: any;
@@ -39,6 +39,21 @@ class SocketService {
 
     this.io.to(userRoom).emit('notification', notificationData);
     console.log(`🔔 Notification sent to user ${userId}: ${notification.title}`);
+    console.log(`🔍 DEBUG: Notification details:`, {
+      userRoom,
+      userId,
+      notificationType: notification.type,
+      notificationData: {
+        id: notificationData.id,
+        type: notificationData.type,
+        title: notificationData.title,
+        to: notificationData.to
+      }
+    });
+    
+    // Check if anyone is in the user room
+    const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
+    console.log(`🔍 DEBUG: Room ${userRoom} has ${roomSize} connected users`);
   }
 
   // Send gig update to location room

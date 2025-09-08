@@ -194,12 +194,12 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         setTime: band.setTime,
         percentage: parseFloat(band.percentage),
         email: band.email,
-        confirmed: true // Mark as confirmed when created
+        confirmed: false // Bands need to confirm before gig is posted
       })),
       guarantee: parseFloat(guarantee),
       numberOfBands: parseInt(numberOfBands) || bands.length,
       bonusTiers: generateDefaultBonusTiers(), // Add default bonus tiers
-      status: "posted" as const,
+      status: "pending-confirmation" as const,
       image: gigImage || "/images/venu-logo.png"
     };
 
@@ -263,8 +263,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         // Send general gig update
         socket.sendGigUpdate(createdGig._id, createdGig.selectedLocation || locationId, "created", createdGig)
         
-        // Backend will handle sending notifications to artists automatically
-        console.log('📧 Backend will send notifications to artists with emails:', bands.map(band => band.email))
+        // Backend will handle sending confirmation notifications to artists automatically
+        console.log('📧 Backend will send confirmation notifications to artists with emails:', bands.map(band => band.email))
       }
       
       // Reset and close

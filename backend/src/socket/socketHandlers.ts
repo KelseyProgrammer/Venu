@@ -443,6 +443,12 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       const userRoom = `user:${socket.user.userId}`;
       socket.join(userRoom);
       console.log(`📱 User ${socket.user.email} joined room: ${userRoom}`);
+      console.log(`🔍 DEBUG: User details:`, {
+        userId: socket.user.userId,
+        email: socket.user.email,
+        role: socket.user.role,
+        userRoom
+      });
       
       // Send any offline messages
       const offlineMessages = messageStore.getOfflineMessages(socket.user.userId);

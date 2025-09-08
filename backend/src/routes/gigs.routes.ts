@@ -40,12 +40,14 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
       // Provide default values for required fields
       doorPersonEmail: req.body.doorPersonEmail || "self@venu.com",
       bonusTiers: req.body.bonusTiers || defaultBonusTiers,
+      // Set status to pending-confirmation if bands are included
+      status: req.body.bands && req.body.bands.length > 0 ? 'pending-confirmation' : 'draft'
     };
     
     const gig = new Gig(gigData);
     await gig.save();
 
-    // Send notifications to artists if their emails are included in bands
+    // Send confirmation notifications to artists if their emails are included in bands
     if (gig.bands && gig.bands.length > 0) {
       try {
         // Get unique email addresses from bands
@@ -57,25 +59,31 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
           role: 'artist' 
         }).select('_id email firstName lastName');
         
-        // Send notifications to found artists
+        console.log(`🔍 DEBUG: Looking for artists with emails:`, bandEmails);
+        console.log(`🔍 DEBUG: Found ${users.length} artist users:`, users.map(u => ({ id: u._id, email: u.email, role: u.role })));
+        console.log(`🔍 DEBUG: Gig details:`, { gigId: gig._id, eventName: gig.eventName, status: gig.status });
+        
+        // Send confirmation notifications to found artists
         for (const user of users) {
-          // Send notification to the artist
+          // Send confirmation notification to the artist
           socketService.sendNotificationToUser(user._id.toString(), {
-            type: 'gig-invitation',
-            title: 'New Gig Invitation',
-            message: `You've been invited to perform at ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,
-            data: { gigId: gig._id, gigData: gig }
+            type: 'gig-confirmation-required',
+            title: 'Gig Confirmation Required',
+            message: `Please confirm your participation in ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,
+            data: { 
+              gigId: gig._id, 
+              gigData: gig,
+              confirmationRequired: true,
+              actionUrl: `/artist/confirm-gig/${gig._id}`
+            }
           });
           
-          // Also send artist-specific notification
-          socketService.sendArtistGigNotification(user._id.toString(), gig);
-          
-          console.log(`🎵 Sent gig notification to artist ${user.email} (${user._id}) for gig ${gig._id}`);
+          console.log(`🎵 Sent confirmation notification to artist ${user.email} (${user._id}) for gig ${gig._id}`);
         }
         
-        console.log(`📧 Found ${users.length} artists to notify for gig ${gig._id}`);
+        console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
       } catch (notificationError) {
-        console.error('Error sending artist notifications:', notificationError);
+        console.error('Error sending artist confirmation notifications:', notificationError);
         // Don't fail the gig creation if notifications fail
       }
     }
@@ -253,6 +261,77 @@ router.get('/by-creator/:userId', authenticateToken, async (req: Request, res: R
     res.json(response);
   } catch (error) {
     console.error('Get gigs by creator error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Band confirmation endpoint
+router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { bandEmail, confirmed } = req.body;
+    const userId = req.user!.userId;
+
+    // Find the gig
+    const gig = await Gig.findById(id);
+    if (!gig) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Gig not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Find the band by email
+    const bandIndex = gig.bands.findIndex(band => band.email.toLowerCase() === bandEmail.toLowerCase());
+    if (bandIndex === -1) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Band not found in this gig',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Update the band's confirmation status
+    gig.bands[bandIndex].confirmed = confirmed;
+    
+    // Check if all bands are now confirmed
+    const allBandsConfirmed = gig.bands.every(band => band.confirmed);
+    
+    // Update gig status if all bands are confirmed
+    if (allBandsConfirmed && gig.status === 'pending-confirmation') {
+      gig.status = 'posted';
+    }
+
+    await gig.save();
+
+    // Send notification to location/promoter about band confirmation
+    if (gig.selectedLocation) {
+      socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+        gigId: gig._id.toString(),
+        updateType: 'status-changed',
+        gigData: gig,
+        updatedBy: {
+          userId: userId,
+          email: req.user!.email,
+          role: req.user!.role
+        }
+      });
+    }
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: gig,
+      message: confirmed ? 'Band confirmed successfully' : 'Band confirmation removed'
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Band confirmation error:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',

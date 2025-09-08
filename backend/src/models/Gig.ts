@@ -26,7 +26,7 @@ export interface IGig extends Document {
   }>;
   guarantee: number;
   numberOfBands: number;
-  status: 'draft' | 'posted' | 'live' | 'completed';
+  status: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed';
   rating: number;
   tags: string[];
   ticketsSold: number;
@@ -132,7 +132,7 @@ const gigSchema = new Schema<IGig>({
     },
     confirmed: {
       type: Boolean,
-      default: true, // Bands are confirmed by default when added
+      default: false, // Bands need to confirm before gig is posted
     },
   }],
   guarantee: {
@@ -147,7 +147,7 @@ const gigSchema = new Schema<IGig>({
   },
   status: {
     type: String,
-    enum: ['draft', 'posted', 'live', 'completed'],
+    enum: ['draft', 'pending-confirmation', 'posted', 'live', 'completed'],
     default: 'draft',
   },
   rating: {

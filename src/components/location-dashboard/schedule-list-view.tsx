@@ -325,6 +325,11 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       Past Show ({event.confirmedBands}/{event.expectedBands})
                     </div>
+                  ) : event.status === 'pending-confirmation' ? (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      Awaiting Band Confirmation ({event.confirmedBands}/{event.expectedBands})
+                    </div>
                   ) : event.expectedBands > event.confirmedBands ? (
                     <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>

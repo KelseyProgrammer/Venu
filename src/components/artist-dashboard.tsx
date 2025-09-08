@@ -18,6 +18,7 @@ import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
 import { authUtils } from "@/lib/utils"
 import { RealTimeNotifications } from "./real-time-notifications"
+import { BandConfirmationModal } from "./band-confirmation-modal"
 import { RealTimeGigUpdates } from "./real-time-gig-updates"
 import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
@@ -85,7 +86,7 @@ interface Booking {
   location: string
   date: string
   time: string
-  status: "confirmed" | "pending" | "completed"
+  status: "confirmed" | "pending" | "completed" | "awaiting-confirmation"
   ticketsSold: number
   totalTickets: number
   earnings: number
@@ -213,12 +214,14 @@ const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking,
               )}
               
               <Badge 
-                variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}
+                variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' || booking.status === 'awaiting-confirmation' ? 'secondary' : 'outline'}
                 className={`text-xs ${
                   booking.status === "confirmed" 
                     ? "bg-green-600" 
                     : booking.status === "pending"
                     ? "bg-yellow-600"
+                    : booking.status === "awaiting-confirmation"
+                    ? "bg-orange-600"
                     : booking.isPast
                     ? "bg-blue-600"
                     : "bg-gray-600"
@@ -228,6 +231,8 @@ const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking,
                   ? "Confirmed" 
                   : booking.status === "pending"
                   ? "Needs Band"
+                  : booking.status === "awaiting-confirmation"
+                  ? "Awaiting Confirmation"
                   : booking.status === "completed"
                   ? "Past Show"
                   : booking.isPast
@@ -426,6 +431,8 @@ const CalendarDay = memo(function CalendarDay({
           ? 'bg-white border-green-200' // COMPLETED: lineup is complete
           : bookingOnDate && bookingOnDate.status === "completed"
           ? 'bg-white border-gray-300' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "awaiting-confirmation"
+          ? 'bg-white border-orange-200' // AWAITING CONFIRMATION: needs band confirmation
           : bookingOnDate && bookingOnDate.status === "pending"
           ? 'bg-white border-yellow-200' // NEEDS BAND: still needs more bands
           : isPast 
@@ -448,6 +455,8 @@ const CalendarDay = memo(function CalendarDay({
           ? 'text-green-600' // COMPLETED: lineup is complete
           : bookingOnDate && bookingOnDate.status === "completed"
           ? 'text-gray-600' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "awaiting-confirmation"
+          ? 'text-orange-600' // AWAITING CONFIRMATION: needs band confirmation
           : bookingOnDate && bookingOnDate.status === "pending"
           ? 'text-yellow-600' // NEEDS BAND: still needs more bands
           : isPast 
@@ -465,6 +474,8 @@ const CalendarDay = memo(function CalendarDay({
                 ? 'bg-green-200 text-green-800' // COMPLETED: lineup is complete
                 : bookingOnDate.status === "completed"
                 ? 'bg-gray-200 text-gray-800' // PAST: event is in the past
+                : bookingOnDate.status === "awaiting-confirmation"
+                ? 'bg-orange-200 text-orange-800' // AWAITING CONFIRMATION: needs band confirmation
                 : 'bg-yellow-200 text-yellow-800' // NEEDS BAND: still needs more bands
             }`}
           >
@@ -476,6 +487,10 @@ const CalendarDay = memo(function CalendarDay({
                 ? `Complete (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
                 : bookingOnDate.status === "completed"
                 ? `Past (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
+                : bookingOnDate.status === "awaiting-confirmation"
+                ? `Confirm Required`
+                : bookingOnDate.status === "pending"
+                ? `Need ${(bookingOnDate.expectedBands || 0) - (bookingOnDate.confirmedBands || 0)} more`
                 : `Need ${(bookingOnDate.expectedBands || 0) - (bookingOnDate.confirmedBands || 0)} more`
               }
             </div>
@@ -647,8 +662,37 @@ export function ArtistDashboard() {
   const [isPending, startTransition] = useTransition()
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false) // Used in JSX
+  const [selectedGigForConfirmation, setSelectedGigForConfirmation] = useState<any | null>(null)
   
+  // Confirmation handlers - TODO: Implement confirmation click handling
+  // const handleConfirmationClick = useCallback((gig: Gig) => {
+  //   setSelectedGigForConfirmation(gig)
+  //   setShowConfirmationModal(true)
+  // }, [])
+
+  const handleConfirmationComplete = useCallback(() => {
+    setShowConfirmationModal(false)
+    setSelectedGigForConfirmation(null)
+    // Refresh gigs data to show updated status
+    window.location.reload() // Simple refresh for now
+  }, [])
   
+  // Handle gig confirmation notifications
+  useEffect(() => {
+    const handleGigConfirmation = (event: CustomEvent) => {
+      const { gig } = event.detail;
+      setSelectedGigForConfirmation(gig);
+      setShowConfirmationModal(true);
+    };
+
+    window.addEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+    
+    return () => {
+      window.removeEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+    };
+  }, []);
+
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
   
@@ -662,6 +706,35 @@ export function ArtistDashboard() {
     sendGigUpdate,
     isConnected: realTimeConnected
   } = useArtistRealTime({ artistId: isClient ? authUtils.getCurrentUser()?.id || "" : "" })
+  
+  // Debug notifications
+  useEffect(() => {
+    console.log(`🔔 ARTIST DASHBOARD: Notifications updated:`, {
+      count: notifications.length,
+      notifications: notifications.map(n => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        read: n.read,
+        to: n.to
+      }))
+    });
+    console.log(`🔔 ARTIST DASHBOARD: Raw notifications array:`, notifications);
+  }, [notifications]);
+  
+  // Debug socket connection
+  useEffect(() => {
+    const userId = isClient ? authUtils.getCurrentUser()?.id : 'not-client';
+    console.log(`🔌 ARTIST DASHBOARD: Socket connection status:`, {
+      isConnected: realTimeConnected,
+      isClient,
+      userId
+    });
+    console.log(`🔌 ARTIST DASHBOARD: User details:`, {
+      userId,
+      userObject: isClient ? authUtils.getCurrentUser() : null
+    });
+  }, [realTimeConnected, isClient]);
   
   // Auto-connect socket when component mounts - optimized with error handling
   useEffect(() => {
@@ -921,16 +994,20 @@ export function ArtistDashboard() {
       // PAST: event before today
       // COMPLETED: bands.length === numberOfBands
       // NEEDS BAND: bands.length < numberOfBands
+      // PENDING CONFIRMATION: gig status is pending-confirmation
       const eventDate = new Date(gig.eventDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
       eventDate.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
       
-      let status: "confirmed" | "pending" | "completed" = "pending";
+      let status: "confirmed" | "pending" | "completed" | "awaiting-confirmation" = "pending";
       
       if (eventDate < today) {
         // PAST event: event before today
         status = "completed";
+      } else if ((gig as any).status === 'pending-confirmation') {
+        // PENDING CONFIRMATION: gig requires band confirmation
+        status = "awaiting-confirmation";
       } else if (gig.bands.length === gig.numberOfBands) {
         // COMPLETED event: number of bands equals expected bands
         status = "confirmed";
@@ -1011,7 +1088,7 @@ export function ArtistDashboard() {
         case "confirmed":
           return booking.status === "confirmed"
         case "needs-band":
-          return booking.status === "pending"
+          return booking.status === "pending" || booking.status === "awaiting-confirmation"
         case "past":
           return booking.status === "completed" || booking.isPast === true
         default:
@@ -1062,8 +1139,8 @@ export function ArtistDashboard() {
           // COMPLETED events: bands.length === numberOfBands
           shouldShowDate = bookingOnDate?.status === "confirmed"
         } else if (scheduleFilter === "needs-band") {
-          // NEEDS BAND events: bands.length < numberOfBands
-          shouldShowDate = bookingOnDate?.status === "pending"
+          // NEEDS BAND events: bands.length < numberOfBands or awaiting confirmation
+          shouldShowDate = bookingOnDate?.status === "pending" || bookingOnDate?.status === "awaiting-confirmation"
         } else if (scheduleFilter === "past") {
           // PAST events: event before today
           shouldShowDate = bookingOnDate?.status === "completed"
@@ -1165,11 +1242,13 @@ export function ArtistDashboard() {
   // Memoized notification counts to prevent expensive filtering on every render
   const notificationCounts = useMemo(() => {
     const bookingRequests = notifications.filter(n => n.type === 'booking-request' && !n.read).length
+    const gigConfirmations = notifications.filter(n => n.type === 'gig-confirmation-required' && !n.read).length
     const messages = notifications.filter(n => n.type === 'message' && !n.read).length
     const newGigs = gigUpdates.filter(u => u.updateType === 'created').length
     
     return {
-      bookingRequests,
+      bookingRequests: bookingRequests + gigConfirmations, // Include both booking requests and gig confirmations
+      gigConfirmations,
       messages,
       newGigs,
       totalUpdates: gigUpdates.length
@@ -1466,6 +1545,12 @@ export function ArtistDashboard() {
                 {notificationCounts.bookingRequests} new booking{notificationCounts.bookingRequests !== 1 ? 's' : ''}
               </Badge>
             )}
+            {/* Gig confirmation notifications indicator */}
+            {notificationCounts.gigConfirmations > 0 && (
+              <Badge variant="default" className="bg-orange-600 text-white">
+                {notificationCounts.gigConfirmations} confirmation{notificationCounts.gigConfirmations !== 1 ? 's' : ''} needed
+              </Badge>
+            )}
           </div>
 
           {/* Schedule Subcategory Navigation */}
@@ -1597,6 +1682,12 @@ export function ArtistDashboard() {
                         <span className="text-muted-foreground">Needs Band</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">Awaiting Confirmation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     </div>
@@ -1612,6 +1703,8 @@ export function ArtistDashboard() {
                       ? 'border-green-200 border-2' 
                            : booking.status === "pending"
                            ? 'border-yellow-200 border-2'
+                           : booking.status === "awaiting-confirmation"
+                           ? 'border-orange-200 border-2'
                            : booking.isPast
                            ? 'border-blue-200 border-2'
                            : 'border-gray-200 border-2'
@@ -1680,6 +1773,11 @@ export function ArtistDashboard() {
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                    Confirmed Show
                             </div>
+                               ) : booking.status === "awaiting-confirmation" ? (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                   Awaiting Band Confirmation
+                                 </div>
                                ) : booking.status === "pending" ? (
                                  <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -1841,6 +1939,14 @@ export function ArtistDashboard() {
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-green-200 rounded"></div>
                     <span className="text-green-600 font-medium">Confirmed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-200 rounded"></div>
+                    <span className="text-orange-600 font-medium">Awaiting Confirmation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+                    <span className="text-yellow-600 font-medium">Needs Band</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-blue-200 rounded"></div>
@@ -2108,6 +2214,14 @@ export function ArtistDashboard() {
         booking={selectedBookingForModal}
         isOpen={showEventDetailsModal}
         onClose={() => setShowEventDetailsModal(false)}
+      />
+
+      {/* Band Confirmation Modal */}
+      <BandConfirmationModal
+        gig={selectedGigForConfirmation}
+        isOpen={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmationComplete}
       />
       </div>
     </PerformanceErrorBoundary>

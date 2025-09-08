@@ -139,8 +139,21 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
           }
         },
         onNotification: (notification: SocketNotification) => {
-          if (notification.to === artistId) {
+          console.log(`🔔 ARTIST HOOK: Received notification:`, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            to: notification.to,
+            userId,
+            artistId,
+            matches: notification.to === userId || notification.to === artistId
+          });
+          // Check if notification is for this user (either by userId or artistId)
+          if (notification.to === userId || notification.to === artistId) {
+            console.log(`✅ ARTIST HOOK: Notification accepted for user`);
             setNotifications(prev => [notification, ...prev].slice(0, 100));
+          } else {
+            console.log(`❌ ARTIST HOOK: Notification rejected - not for this user`);
           }
         }
       },

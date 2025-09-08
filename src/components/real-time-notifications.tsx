@@ -22,6 +22,8 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
     switch (type) {
       case 'gig-invitation':
         return '🎵';
+      case 'gig-confirmation-required':
+        return '✅';
       case 'booking-request':
         return '📅';
       case 'status-update':
@@ -39,6 +41,8 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
     switch (type) {
       case 'gig-invitation':
         return 'bg-purple-100 text-purple-800';
+      case 'gig-confirmation-required':
+        return 'bg-orange-100 text-orange-800';
       case 'booking-request':
         return 'bg-blue-100 text-blue-800';
       case 'status-update':
@@ -129,6 +133,14 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
                     onClick={() => {
                       if (!notification.read) {
                         markAsRead(notification.id);
+                      }
+                      
+                      // Handle gig confirmation notifications
+                      if (notification.type === 'gig-confirmation-required' && notification.data?.gigData) {
+                        // Dispatch custom event to open confirmation modal
+                        window.dispatchEvent(new CustomEvent('open-gig-confirmation', { 
+                          detail: { gig: notification.data.gigData } 
+                        }));
                       }
                     }}
                   >

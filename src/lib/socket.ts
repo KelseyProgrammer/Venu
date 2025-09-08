@@ -33,7 +33,7 @@ export interface SocketNotification {
     role: string;
   };
   to: string;
-  type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system';
+  type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
   title: string;
   message: string;
   data?: Record<string, unknown>;
@@ -342,6 +342,11 @@ class OptimizedSocketManager {
       socket.on('connect', () => {
         clearTimeout(connectionTimeout);
         console.log('✅ Optimized Socket.IO connected');
+        console.log('🔍 DEBUG: Socket connection details:', {
+          socketId: socket.id,
+          userId: token ? 'token-provided' : 'no-token',
+          connected: socket.connected
+        });
         resolve(socket);
       });
 
@@ -696,7 +701,16 @@ class SocketManager {
 
   onNotification(callback: (notification: SocketNotification) => void): void {
     if (this.socket) {
-      this.socket.on('notification', callback);
+      this.socket.on('notification', (notification) => {
+        console.log('🔔 SOCKET: Received notification:', {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          to: notification.to,
+          timestamp: notification.timestamp
+        });
+        callback(notification);
+      });
     }
   }
 

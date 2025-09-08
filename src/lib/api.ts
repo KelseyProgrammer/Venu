@@ -723,6 +723,16 @@ export const gigApi = {
       method: 'DELETE',
     });
   },
+
+  async confirmBand(gigId: string, confirmationData: {
+    bandEmail: string;
+    confirmed: boolean;
+  }): Promise<ApiResponse<GigProfile>> {
+    return apiRequest<GigProfile>(`/gigs/${gigId}/confirm-band`, {
+      method: 'POST',
+      body: JSON.stringify(confirmationData),
+    });
+  },
 };
 
 // Promoter API functions

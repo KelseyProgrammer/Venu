@@ -182,13 +182,13 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
         setTime: band.setTime,
         percentage: parseFloat(band.percentage),
         email: band.email,
-        confirmed: true // Mark as confirmed when created
+        confirmed: false // Bands need to confirm before gig is posted
       })),
       guarantee: parseFloat(guarantee),
       numberOfBands: parseInt(numberOfBands) || bands.length,
       bonusTiers: generateDefaultBonusTiers(),
       image: gigImage || "/images/venu-logo.png", // Add default bonus tiers
-      status: "posted" as const
+      status: "pending-confirmation" as const
     };
 
     try {
