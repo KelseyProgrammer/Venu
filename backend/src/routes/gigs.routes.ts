@@ -66,19 +66,11 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         console.log(`🔍 DEBUG: Gig details:`, { gigId: gig._id, eventName: gig.eventName, status: gig.status });
         console.log(`🔍 DEBUG: About to send notifications to ${users.length} users`);
         
-        // Send confirmation notifications to found artists
-        for (const user of users) {
-          console.log(`🔍 DEBUG: Sending notification to user ${user._id} (${user.email})`);
-          console.log(`🔍 DEBUG: User details:`, {
-            userId: user._id,
-            email: user.email,
-            role: user.role,
-            userRoom: `user:${user._id}`
-          });
-          
-          // Send confirmation notification to the artist
-          await socketService.sendNotificationToUser(user._id.toString(), {
-            type: 'gig-confirmation-required',
+        // Batch send confirmation notifications to all artists (optimized)
+        const batchNotifications = users.map(user => ({
+          userId: user._id.toString(),
+          notification: {
+            type: 'gig-confirmation-required' as const,
             title: 'Gig Confirmation Required',
             message: `Please confirm your participation in ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,
             data: { 
@@ -87,11 +79,11 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
               confirmationRequired: true,
               actionUrl: `/artist/confirm-gig/${gig._id}`
             }
-          });
-          
-          console.log(`🎵 Sent confirmation notification to artist ${user.email} (${user._id}) for gig ${gig._id}`);
-          console.log(`✅ DEBUG: Notification sent to user ${user._id}`);
-        }
+          }
+        }));
+        
+        await socketService.sendBatchNotifications(batchNotifications);
+        console.log(`🎵 Batch sent confirmation notifications to ${users.length} artists for gig ${gig._id}`);
         
         console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
       } catch (notificationError) {
@@ -287,15 +279,15 @@ router.get('/by-creator/:userId', authenticateToken, async (req: Request, res: R
   }
 });
 
-// Band confirmation endpoint
+// Band confirmation endpoint (optimized)
 router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { bandEmail, confirmed } = req.body;
     const userId = req.user!.userId;
 
-    // Find the gig
-    const gig = await Gig.findById(id);
+    // Find the gig with optimized query
+    const gig = await Gig.findById(id).select('bands status eventName selectedLocation');
     if (!gig) {
       const response: ApiResponse<null> = {
         success: false,
@@ -304,8 +296,10 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
       return res.status(404).json(response);
     }
 
-    // Find the band by email
-    const bandIndex = gig.bands.findIndex(band => band.email.toLowerCase() === bandEmail.toLowerCase());
+    // Find the band by email (case-insensitive)
+    const bandIndex = gig.bands.findIndex(band => 
+      band.email.toLowerCase() === bandEmail.toLowerCase()
+    );
     if (bandIndex === -1) {
       const response: ApiResponse<null> = {
         success: false,
@@ -317,7 +311,7 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     // Update the band's confirmation status
     gig.bands[bandIndex].confirmed = confirmed;
     
-    // Check if all bands are now confirmed
+    // Check if all bands are now confirmed (optimized check)
     const allBandsConfirmed = gig.bands.every(band => band.confirmed);
     
     // Update gig status if all bands are confirmed
@@ -325,7 +319,16 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
       gig.status = 'posted';
     }
 
-    await gig.save();
+    // Use updateOne for better performance instead of save()
+    await Gig.updateOne(
+      { _id: id },
+      { 
+        $set: { 
+          'bands': gig.bands,
+          ...(allBandsConfirmed && gig.status === 'pending-confirmation' ? { status: 'posted' } : {})
+        }
+      }
+    );
 
     // Send notification to location/promoter about band confirmation
     if (gig.selectedLocation) {

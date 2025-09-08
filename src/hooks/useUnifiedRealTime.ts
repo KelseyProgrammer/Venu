@@ -184,15 +184,36 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     };
   }, [userRole, locationId, artistId, userId]);
 
-  // Listen for notifications
+  // Listen for notifications (optimized with debouncing)
   useEffect(() => {
-    const handleNotification = eventHandlers.onNotification;
+    let notificationTimeout: NodeJS.Timeout;
+    const pendingNotifications: SocketNotification[] = [];
+    
+    const handleNotification = (notification: SocketNotification) => {
+      // Add to pending queue
+      pendingNotifications.push(notification);
+      
+      // Debounce notification processing to reduce UI updates
+      clearTimeout(notificationTimeout);
+      notificationTimeout = setTimeout(() => {
+        if (pendingNotifications.length > 0) {
+          // Process all pending notifications at once
+          setNotifications(prev => {
+            const newNotifications = [...pendingNotifications, ...prev].slice(0, 100);
+            pendingNotifications.length = 0; // Clear the queue
+            return newNotifications;
+          });
+        }
+      }, 50); // 50ms debounce
+    };
+
     onNotification(handleNotification);
 
     return () => {
+      clearTimeout(notificationTimeout);
       removeListener('notification', handleNotification as (...args: unknown[]) => void);
     };
-  }, [eventHandlers.onNotification, onNotification, removeListener]);
+  }, [onNotification, removeListener]);
 
   // Listen for gig updates
   useEffect(() => {

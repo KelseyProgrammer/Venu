@@ -319,20 +319,25 @@ class OptimizedSocketManager {
   private async createConnection(token: string): Promise<Socket<ServerToClientEvents, ClientToServerEvents>> {
     return new Promise((resolve, reject) => {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      console.log('🔌 Attempting Socket.IO connection to:', backendUrl);
-      console.log('🔐 Token provided:', !!token);
+      console.log('🔌 Attempting optimized Socket.IO connection to:', backendUrl);
       
       const socket = io(backendUrl, {
         auth: { token },
-        transports: ['polling'], // Start with polling only to avoid WebSocket issues
-        timeout: 20000,
-        forceNew: false, // Allow connection reuse
+        transports: ['websocket', 'polling'], // Prefer WebSocket for better performance
+        timeout: 10000, // Reduced timeout for faster failure detection
+        forceNew: false,
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        upgrade: true, // Allow transport upgrades
-        rememberUpgrade: true // Remember successful transport upgrades
+        reconnectionAttempts: 3, // Reduced attempts for faster recovery
+        reconnectionDelay: 500, // Faster reconnection
+        reconnectionDelayMax: 2000,
+        upgrade: true,
+        rememberUpgrade: true,
+        // Performance optimizations
+        pingTimeout: 60000,
+        pingInterval: 25000,
+        // Reduce connection overhead
+        autoConnect: true,
+        multiplex: true
       });
 
       // Set up connection timeout

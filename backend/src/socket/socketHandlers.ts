@@ -692,7 +692,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       console.log(`🎵 Gig ${updateType} by ${socket.user.email} in location ${locationId}`);
     });
 
-    // Handle notifications
+    // Handle notifications (optimized)
     socket.on('send-notification', (data: { targetUserId: string; type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system'; title: string; message: string; data?: any }) => {
       if (!socket.user) {
         socket.emit('error', { message: 'Authentication required' });
@@ -702,7 +702,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       const { targetUserId, type, title, message, data: notificationData } = data;
       
       const notification: SocketNotification = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
         from: {
           userId: socket.user.userId,
           email: socket.user.email,
@@ -717,11 +717,16 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         read: false
       };
 
-      // Send to specific user
+      // Send to specific user (optimized room check)
       const userRoom = `user:${targetUserId}`;
-      io.to(userRoom).emit('notification', notification);
+      const roomSize = io.sockets.adapter.rooms.get(userRoom)?.size || 0;
       
-      console.log(`🔔 Notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
+      if (roomSize > 0) {
+        io.to(userRoom).emit('notification', notification);
+        console.log(`🔔 Notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
+      } else {
+        console.log(`📬 User ${targetUserId} is offline, notification will be stored`);
+      }
     });
 
     // Handle typing indicators

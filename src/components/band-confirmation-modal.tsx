@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, Clock, Calendar, MapPin, Users } from "lucide-react"
 import { gigApi } from "@/lib/api"
 import { Gig } from "@/lib/types"
+import { authUtils } from "@/lib/utils"
 
 interface BandConfirmationModalProps {
   gig: Gig | null
@@ -22,7 +23,8 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
   useEffect(() => {
     if (gig) {
       // Find the current user's band in the gig
-      const currentUserEmail = localStorage.getItem('userEmail')?.toLowerCase()
+      const currentUser = authUtils.getCurrentUser()
+      const currentUserEmail = currentUser?.email?.toLowerCase()
       const userBand = gig.bands.find(band => 
         band.email.toLowerCase() === currentUserEmail
       )
@@ -30,12 +32,13 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
     }
   }, [gig])
 
-  const handleConfirmation = async (confirm: boolean) => {
+  const handleConfirmation = useCallback(async (confirm: boolean) => {
     if (!gig) return
 
     setIsConfirming(true)
     try {
-      const currentUserEmail = localStorage.getItem('userEmail')
+      const currentUser = authUtils.getCurrentUser()
+      const currentUserEmail = currentUser?.email
       if (!currentUserEmail) {
         throw new Error('User email not found')
       }
@@ -60,14 +63,19 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
     } finally {
       setIsConfirming(false)
     }
-  }
+  }, [gig, onConfirm])
+
+  // Memoize user band lookup to prevent unnecessary recalculations
+  const userBand = useMemo(() => {
+    if (!gig) return null
+    const currentUser = authUtils.getCurrentUser()
+    const currentUserEmail = currentUser?.email?.toLowerCase()
+    return gig.bands.find(band => 
+      band.email.toLowerCase() === currentUserEmail
+    )
+  }, [gig])
 
   if (!gig || !isOpen) return null
-
-  const currentUserEmail = localStorage.getItem('userEmail')?.toLowerCase()
-  const userBand = gig.bands.find(band => 
-    band.email.toLowerCase() === currentUserEmail
-  )
 
   if (!userBand) {
     return (

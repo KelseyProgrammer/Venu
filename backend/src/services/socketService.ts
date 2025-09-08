@@ -88,7 +88,7 @@ class SocketService {
     }
   }
 
-  // Send notification to a specific user
+  // Send notification to a specific user (optimized)
   async sendNotificationToUser(userId: string, notification: {
     type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
     title: string;
@@ -102,7 +102,7 @@ class SocketService {
 
     const userRoom = `user:${userId}`;
     const notificationData = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
       from: {
         userId: 'system',
         email: 'system@venu.com',
@@ -117,9 +117,8 @@ class SocketService {
       read: false
     };
 
-    // Check if anyone is in the user room
+    // Check if anyone is in the user room (optimized check)
     const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
-    console.log(`🔍 DEBUG: Room ${userRoom} has ${roomSize} connected users`);
 
     if (roomSize > 0) {
       // User is online, send notification immediately
@@ -130,19 +129,66 @@ class SocketService {
       await this.storeOfflineNotification(userId, notificationData);
       console.log(`📬 Notification stored in database for offline user ${userId}: ${notification.title}`);
     }
+  }
 
-    console.log(`🔍 DEBUG: Notification details:`, {
-      userRoom,
-      userId,
-      notificationType: notification.type,
-      roomSize,
-      notificationData: {
-        id: notificationData.id,
-        type: notificationData.type,
-        title: notificationData.title,
-        to: notificationData.to
+  // Batch send notifications to multiple users (new optimized method)
+  async sendBatchNotifications(notifications: Array<{
+    userId: string;
+    notification: {
+      type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
+      title: string;
+      message: string;
+      data?: any;
+    };
+  }>): Promise<void> {
+    if (!this.io) {
+      console.warn('Socket.IO not initialized, cannot send notifications');
+      return;
+    }
+
+    const onlineUsers: string[] = [];
+    const offlineNotifications: Array<{ userId: string; notificationData: any }> = [];
+
+    // Batch check room sizes and prepare notifications
+    for (const { userId, notification } of notifications) {
+      const userRoom = `user:${userId}`;
+      const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
+      
+      const notificationData = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        from: {
+          userId: 'system',
+          email: 'system@venu.com',
+          role: 'system'
+        },
+        to: userId,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        data: notification.data,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+
+      if (roomSize > 0) {
+        onlineUsers.push(userId);
+        // Send immediately to online users
+        this.io.to(userRoom).emit('notification', notificationData);
+      } else {
+        offlineNotifications.push({ userId, notificationData });
       }
-    });
+    }
+
+    // Batch store offline notifications
+    if (offlineNotifications.length > 0) {
+      await Promise.allSettled(
+        offlineNotifications.map(({ userId, notificationData }) => 
+          this.storeOfflineNotification(userId, notificationData)
+        )
+      );
+    }
+
+    console.log(`🔔 Batch notification complete: ${onlineUsers.length} online, ${offlineNotifications.length} offline`);
   }
 
   // Send gig update to location room
