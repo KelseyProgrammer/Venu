@@ -704,14 +704,17 @@ export function ArtistDashboard() {
     notifications,
     gigUpdates,
     sendGigUpdate,
-    isConnected: realTimeConnected
+    isConnected: realTimeConnected,
+    markAsRead,
+    markAllAsRead
   } = useArtistRealTime({ artistId: isClient ? authUtils.getCurrentUser()?.id || "" : "" })
   
   // Debug notifications
   useEffect(() => {
     console.log(`🔔 ARTIST DASHBOARD: Notifications updated:`, {
-      count: notifications.length,
-      notifications: notifications.map(n => ({
+      count: (notifications || []).length,
+      realTimeConnected,
+      notifications: (notifications || []).map(n => ({
         id: n.id,
         type: n.type,
         title: n.title,
@@ -720,7 +723,7 @@ export function ArtistDashboard() {
       }))
     });
     console.log(`🔔 ARTIST DASHBOARD: Raw notifications array:`, notifications);
-  }, [notifications]);
+  }, [notifications, realTimeConnected]);
   
   // Debug socket connection
   useEffect(() => {
@@ -1241,9 +1244,9 @@ export function ArtistDashboard() {
 
   // Memoized notification counts to prevent expensive filtering on every render
   const notificationCounts = useMemo(() => {
-    const bookingRequests = notifications.filter(n => n.type === 'booking-request' && !n.read).length
-    const gigConfirmations = notifications.filter(n => n.type === 'gig-confirmation-required' && !n.read).length
-    const messages = notifications.filter(n => n.type === 'message' && !n.read).length
+    const bookingRequests = (notifications || []).filter(n => n.type === 'booking-request' && !n.read).length
+    const gigConfirmations = (notifications || []).filter(n => n.type === 'gig-confirmation-required' && !n.read).length
+    const messages = (notifications || []).filter(n => n.type === 'message' && !n.read).length
     const newGigs = gigUpdates.filter(u => u.updateType === 'created').length
     
     return {
@@ -1407,7 +1410,13 @@ export function ArtistDashboard() {
             {/* Real-time gig updates for booking confirmations */}
             <RealTimeGigUpdates locationId="artist-dashboard" />
             {/* Real-time notifications */}
-            <RealTimeNotifications />
+            <RealTimeNotifications 
+              notifications={notifications}
+              unreadCount={(notifications || []).filter(n => !n.read).length}
+              isConnected={realTimeConnected}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
             {/* Logout button */}
             <Button 
               variant="outline" 

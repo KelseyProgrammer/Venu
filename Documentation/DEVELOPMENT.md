@@ -91,6 +91,93 @@ If you get "port already in use" errors:
 - Check that frontend is running on port 3000
 - Verify the API_BASE_URL in `src/lib/api.ts` points to `http://localhost:3001/api`
 
+### Notification System Debugging
+
+#### Comprehensive Debugging Tools
+The project includes multiple debugging tools for troubleshooting notification issues:
+
+**Available Debug Scripts:**
+- `notification-debugger.js` - Comprehensive debugging and testing solution
+- `direct-notification-test.js` - Direct notification flow testing  
+- `notification-success-test.js` - Success verification testing
+- `simple-notification-debugger.js` - Simplified browser console debugging
+
+#### Using Debug Tools
+
+1. **Browser Console Debugging:**
+   ```javascript
+   // Copy and paste any debug script into browser console
+   // Example: simple-notification-debugger.js
+   
+   // Available functions after running debugger:
+   notificationDebugger.runFullDiagnostic()
+   notificationDebugger.testSocketConnection()
+   notificationDebugger.createTestNotification()
+   ```
+
+2. **Debug Console Output:**
+   ```javascript
+   🔧 VENU Notification System Debugger
+   =====================================
+   
+   1️⃣ Checking Authentication...
+   ✅ Auth token valid
+   👤 User: { userId: "507f1f77bcf86cd799439011", email: "artist@gmail.com", role: "artist" }
+   
+   2️⃣ Checking Socket Connection...
+   ✅ Socket manager exists
+   🔌 Connected: true
+   🔌 Socket ID: abc123def456
+   ```
+
+3. **Backend Debug Logging:**
+   Monitor backend console for these debug messages:
+   ```
+   🔍 DEBUG: Gig has 2 bands, attempting to send notifications
+   🔍 DEBUG: Looking for artists with emails: ["artist@gmail.com"]
+   🔍 DEBUG: Found 1 artist users: [{ id: "507f1f77bcf86cd799439011", email: "artist@gmail.com", role: "artist" }]
+   🔔 Notification sent to user 507f1f77bcf86cd799439011: Gig Confirmation Required
+   ```
+
+#### Common Notification Issues
+
+1. **Notifications Not Appearing:**
+   - Check browser console for debug messages
+   - Verify user is logged in with valid token
+   - Ensure Socket.IO connection is established
+   - Run `notificationDebugger.runFullDiagnostic()` in console
+
+2. **Socket Connection Issues:**
+   - Check if backend server is running on port 3001
+   - Verify authentication token is valid
+   - Test with `notificationDebugger.testSocketConnection()`
+
+3. **Offline Notifications:**
+   - Notifications are stored in database when users are offline
+   - Check MongoDB for stored notifications
+   - Verify notification delivery when user reconnects
+
+#### Debug Console Commands
+```javascript
+// Run comprehensive diagnostic
+notificationDebugger.runFullDiagnostic()
+
+// Test socket connection manually  
+notificationDebugger.testSocketConnection()
+
+// Create test notification
+notificationDebugger.createTestNotification()
+
+// Test backend API endpoints
+notificationDebugger.testNotificationAPI()
+
+// Check authentication status
+notificationDebugger.checkAuth()
+
+// Monitor console logs for notifications
+notificationDebugger.monitorLogs()
+```
+
 ## Development Workflow
 
 ### Efficient Build Process

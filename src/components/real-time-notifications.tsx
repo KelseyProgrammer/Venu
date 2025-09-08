@@ -1,22 +1,45 @@
 "use client"
 
 import { useCallback } from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useWindowManagerContext } from '@/contexts/WindowManagerContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, BellRing, X, CheckCheck } from 'lucide-react';
 import { format } from 'date-fns';
+import { SocketNotification } from '@/lib/socket';
 
 interface RealTimeNotificationsProps {
   className?: string;
+  notifications?: SocketNotification[];
+  unreadCount: number;
+  isConnected: boolean;
+  error?: string | null;
+  onMarkAsRead?: (notificationId: string) => void;
+  onMarkAllAsRead?: () => void;
 }
 
-export function RealTimeNotifications({ className = "" }: RealTimeNotificationsProps) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected, error } = useNotifications();
+export function RealTimeNotifications({ 
+  className = "",
+  notifications,
+  unreadCount,
+  isConnected,
+  error,
+  onMarkAsRead,
+  onMarkAllAsRead
+}: RealTimeNotificationsProps) {
   const { openWindow, closeWindow, isWindowOpen, windowRef } = useWindowManagerContext();
   const isOpen = isWindowOpen('notifications');
+
+  // Debug logging
+  console.log('🔔 RealTimeNotifications: Component rendered with:', {
+    notificationsCount: notifications?.length || 0,
+    unreadCount,
+    isConnected,
+    error,
+    hasMarkAsRead: !!onMarkAsRead,
+    hasMarkAllAsRead: !!onMarkAllAsRead
+  });
 
   const getNotificationIcon = useCallback((type: string) => {
     switch (type) {
@@ -98,7 +121,7 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={markAllAsRead}
+                  onClick={onMarkAllAsRead}
                   className="text-xs"
                 >
                   <CheckCheck className="w-3 h-3 mr-1" />
@@ -117,22 +140,22 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
 
           {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {!notifications || notifications.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No notifications yet</p>
               </div>
             ) : (
               <div className="divide-y">
-                {notifications.map((notification) => (
+                {notifications?.map((notification) => (
                   <div
                     key={notification.id}
                     className={`p-4 hover:bg-muted/50 cursor-pointer ${
                       !notification.read ? 'bg-blue-50/50' : ''
                     }`}
                     onClick={() => {
-                      if (!notification.read) {
-                        markAsRead(notification.id);
+                      if (!notification.read && onMarkAsRead) {
+                        onMarkAsRead(notification.id);
                       }
                       
                       // Handle gig confirmation notifications
@@ -188,7 +211,7 @@ export function RealTimeNotifications({ className = "" }: RealTimeNotificationsP
               <span>
                 {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
               </span>
-              <span>{notifications.length} total</span>
+              <span>{notifications?.length || 0} total</span>
             </div>
           </div>
         </Card>

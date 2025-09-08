@@ -69,8 +69,15 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         // Send confirmation notifications to found artists
         for (const user of users) {
           console.log(`🔍 DEBUG: Sending notification to user ${user._id} (${user.email})`);
+          console.log(`🔍 DEBUG: User details:`, {
+            userId: user._id,
+            email: user.email,
+            role: user.role,
+            userRoom: `user:${user._id}`
+          });
+          
           // Send confirmation notification to the artist
-          socketService.sendNotificationToUser(user._id.toString(), {
+          await socketService.sendNotificationToUser(user._id.toString(), {
             type: 'gig-confirmation-required',
             title: 'Gig Confirmation Required',
             message: `Please confirm your participation in ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,

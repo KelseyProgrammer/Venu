@@ -8,6 +8,7 @@ import {
   SocketGigUpdate,
   SocketNotification
 } from './types.js';
+import { socketService } from '../services/socketService.js';
 
 // Extend Socket interface to include user data
 interface AuthenticatedSocket extends Socket {
@@ -456,6 +457,35 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         socket.emit('offline-messages', { messages: offlineMessages });
         console.log(`📬 Sent ${offlineMessages.length} offline messages to ${socket.user.email}`);
       }
+
+      // Send any offline notifications
+      (async () => {
+        try {
+          const offlineNotifications = await socketService.getOfflineNotifications(socket.user.userId);
+          console.log(`🔍 DEBUG: Checking offline notifications for user ${socket.user.userId}:`, {
+            userId: socket.user.userId,
+            email: socket.user.email,
+            offlineNotificationsCount: offlineNotifications.length,
+            offlineNotifications: offlineNotifications.map(n => ({
+              id: n.id,
+              type: n.type,
+              title: n.title,
+              timestamp: n.timestamp
+            }))
+          });
+          
+          if (offlineNotifications.length > 0) {
+            offlineNotifications.forEach(notification => {
+              socket.emit('notification', notification);
+            });
+            console.log(`🔔 Sent ${offlineNotifications.length} offline notifications to ${socket.user.email}`);
+          } else {
+            console.log(`📭 No offline notifications found for user ${socket.user.email}`);
+          }
+        } catch (error) {
+          console.error(`❌ ERROR: Failed to retrieve offline notifications for user ${socket.user.userId}:`, error);
+        }
+      })();
     }
 
     // Handle joining location-specific rooms

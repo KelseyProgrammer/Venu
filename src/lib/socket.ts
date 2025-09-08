@@ -324,13 +324,15 @@ class OptimizedSocketManager {
       
       const socket = io(backendUrl, {
         auth: { token },
-        transports: ['websocket', 'polling'],
+        transports: ['polling'], // Start with polling only to avoid WebSocket issues
         timeout: 20000,
         forceNew: false, // Allow connection reuse
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
+        reconnectionDelayMax: 5000,
+        upgrade: true, // Allow transport upgrades
+        rememberUpgrade: true // Remember successful transport upgrades
       });
 
       // Set up connection timeout
@@ -358,6 +360,16 @@ class OptimizedSocketManager {
           name: error.name,
           stack: error.stack
         });
+        
+        // Try to provide more helpful error messages
+        if (error.message.includes('websocket error')) {
+          console.log('🔄 WebSocket failed, Socket.IO will try polling transport automatically');
+        } else if (error.message.includes('Authentication token required')) {
+          console.log('🔐 Authentication issue - check if user is logged in');
+        } else if (error.message.includes('Invalid token payload')) {
+          console.log('🔐 Token format issue - check token validity');
+        }
+        
         reject(error);
       });
 
@@ -582,11 +594,13 @@ class SocketManager {
       const connection = await this.optimizedManager.getConnection(userId, token);
       this.socket = connection;
       this.isConnected = true;
+      console.log('✅ Socket connection established successfully');
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to connect:', error);
       // Don't clear auth data on connection failure - just skip socket connection
       console.log('Socket connection failed, continuing without real-time features');
+      console.log('This is normal if the user is not authenticated or server is unavailable');
       return Promise.resolve();
     }
   }
@@ -615,7 +629,13 @@ class SocketManager {
     }
     
     if (!this.isConnected) {
-      return this.connect(token);
+      try {
+        await this.connect(token);
+        console.log('✅ Socket auto-connect successful');
+      } catch (error) {
+        console.log('⚠️ Socket auto-connect failed, continuing without real-time features:', error);
+        // Don't throw error - allow app to continue without real-time features
+      }
     }
     return Promise.resolve();
   }
