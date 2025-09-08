@@ -97,6 +97,8 @@ interface Booking {
   artistPercentage?: number
   artistGuarantee?: number
   isPast?: boolean
+  confirmedBands?: number
+  expectedBands?: number
 }
 
 // Artist Event Details Modal Component
@@ -421,9 +423,11 @@ const CalendarDay = memo(function CalendarDay({
             ? 'bg-green-50 border-green-300 shadow-md'
             : 'bg-white border-green-200'
           : bookingOnDate && bookingOnDate.status === "confirmed"
-          ? 'bg-white border-green-200' 
+          ? 'bg-white border-green-200' // COMPLETED: lineup is complete
           : bookingOnDate && bookingOnDate.status === "completed"
-          ? 'bg-white border-blue-200'
+          ? 'bg-white border-gray-300' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "pending"
+          ? 'bg-white border-yellow-200' // NEEDS BAND: still needs more bands
           : isPast 
           ? 'bg-white border-muted' 
           : 'bg-white border-border hover:border-primary/50'
@@ -441,9 +445,11 @@ const CalendarDay = memo(function CalendarDay({
             ? 'text-green-700 font-bold'
             : 'text-green-600'
           : bookingOnDate && bookingOnDate.status === "confirmed"
-          ? 'text-green-600' 
+          ? 'text-green-600' // COMPLETED: lineup is complete
           : bookingOnDate && bookingOnDate.status === "completed"
-          ? 'text-blue-600'
+          ? 'text-gray-600' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "pending"
+          ? 'text-yellow-600' // NEEDS BAND: still needs more bands
           : isPast 
           ? 'text-muted-foreground' 
           : 'text-gray-900 font-semibold'
@@ -456,15 +462,22 @@ const CalendarDay = memo(function CalendarDay({
           <div 
             className={`text-xs p-1 rounded truncate ${
               bookingOnDate.status === "confirmed"
-                ? 'bg-green-200 text-green-800' 
-                : 'bg-blue-200 text-blue-800'
+                ? 'bg-green-200 text-green-800' // COMPLETED: lineup is complete
+                : bookingOnDate.status === "completed"
+                ? 'bg-gray-200 text-gray-800' // PAST: event is in the past
+                : 'bg-yellow-200 text-yellow-800' // NEEDS BAND: still needs more bands
             }`}
           >
             <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
               {getLocationDisplayName(bookingOnDate.location)}
             </div>
             <div className="text-xs font-bold mt-0.5 truncate">
-              {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
+              {bookingOnDate.status === "confirmed" 
+                ? `Complete (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
+                : bookingOnDate.status === "completed"
+                ? `Past (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
+                : `Need ${(bookingOnDate.expectedBands || 0) - (bookingOnDate.confirmedBands || 0)} more`
+              }
             </div>
           </div>
         </div>
@@ -472,7 +485,7 @@ const CalendarDay = memo(function CalendarDay({
       
       {!bookingOnDate && !isPast && isAvailable && (
         <div className={`text-xs mt-1 font-medium ${
-          isToday ? 'text-white' : 'text-green-600'
+          isToday ? 'text-white' : 'text-black'
         }`}>
           Available
         </div>
@@ -904,17 +917,26 @@ export function ArtistDashboard() {
         band.email.toLowerCase() === currentUser.email.toLowerCase()
       );
 
-      // Determine status based on gig status and artist confirmation
+      // Determine event status based on new requirements:
+      // PAST: event before today
+      // COMPLETED: bands.length === numberOfBands
+      // NEEDS BAND: bands.length < numberOfBands
+      const eventDate = new Date(gig.eventDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+      eventDate.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+      
       let status: "confirmed" | "pending" | "completed" = "pending";
       
-      if (new Date(gig.eventDate) < new Date()) {
-        status = "completed"; // Past shows are completed
-      } else if (gig.status === 'live' && artistBand?.confirmed) {
-        // Only consider confirmed if the gig is live AND the artist has confirmed
-        status = "confirmed"; // Artist has confirmed
+      if (eventDate < today) {
+        // PAST event: event before today
+        status = "completed";
+      } else if (gig.bands.length === gig.numberOfBands) {
+        // COMPLETED event: number of bands equals expected bands
+        status = "confirmed";
       } else {
-        // All other cases (draft, posted, or no explicit confirmation) are pending
-        status = "pending"; // Needs band confirmation
+        // NEEDS BAND event: still needs more bands
+        status = "pending";
       }
 
       return {
@@ -933,7 +955,10 @@ export function ArtistDashboard() {
         artistSetTime: artistBand?.setTime || "",
         artistPercentage: artistBand?.percentage || 0,
         artistGuarantee: 0, // Default guarantee
-        isPast: new Date(gig.eventDate) < new Date()
+        isPast: eventDate < today,
+        // Add band count information for display
+        confirmedBands: gig.bands.length,
+        expectedBands: gig.numberOfBands
       };
     });
   }, [gigs])
@@ -1034,11 +1059,14 @@ export function ArtistDashboard() {
       let shouldShowDate = true
       if (scheduleFilter !== "all") {
         if (scheduleFilter === "confirmed") {
+          // COMPLETED events: bands.length === numberOfBands
           shouldShowDate = bookingOnDate?.status === "confirmed"
         } else if (scheduleFilter === "needs-band") {
+          // NEEDS BAND events: bands.length < numberOfBands
           shouldShowDate = bookingOnDate?.status === "pending"
         } else if (scheduleFilter === "past") {
-          shouldShowDate = bookingOnDate?.status === "completed" || bookingOnDate?.isPast === true
+          // PAST events: event before today
+          shouldShowDate = bookingOnDate?.status === "completed"
         }
       }
       

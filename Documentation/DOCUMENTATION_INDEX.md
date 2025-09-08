@@ -574,6 +574,7 @@ This consolidated index replaces the following individual markdown files:
 - `EFFICIENT_BUILD.md` - Build process optimization (89 lines)
 
 ### Feature-Specific Documentation
+- `CALENDAR_EVENT_STATUS_STANDARD.md` - **NEW** Gold standard for calendar event status logic across all dashboards
 - `DYNAMIC_CALENDAR_UPDATE_FEATURE.md` - Complete implementation guide for automatic artist calendar updates
 - `SOCKET_IO_OPTIMIZATION.md` - Real-time communication optimization (1,009 lines)
 - `SOCKET_IO_SETUP.md` - Socket.io implementation guide
