@@ -4,6 +4,81 @@
 
 This document describes the comprehensive debugging and testing tools created for the VENU notification system. These tools help developers troubleshoot notification issues, test the real-time system, and validate the complete notification workflow.
 
+## Recent Updates (December 2024)
+
+### Enhanced Debugging Capabilities
+
+#### Improved Notification Filtering Debug
+**File**: `src/hooks/useUnifiedRealTime.ts`
+
+The debugging tools now provide enhanced logging for notification filtering:
+
+```typescript
+// Enhanced notification handler with improved filtering
+onNotification: (notification: SocketNotification) => {
+  console.log(`🔔 ARTIST HOOK: Received notification:`, {
+    id: notification.id,
+    type: notification.type,
+    title: notification.title,
+    to: notification.to,
+    userId,
+    artistId,
+    matches: notification.to === userId || notification.to === artistId
+  });
+  
+  // Check if notification is for this user (either by userId or artistId)
+  if (notification.to === userId || notification.to === artistId) {
+    console.log(`✅ ARTIST HOOK: Notification accepted for user`);
+    setNotifications(prev => [notification, ...prev].slice(0, 100));
+  } else {
+    console.log(`❌ ARTIST HOOK: Notification rejected - not for this user`);
+  }
+}
+```
+
+#### Key Debugging Enhancements
+- **Dual ID Matching**: Debug logs show both userId and artistId matching
+- **Enhanced Console Output**: More detailed logging for troubleshooting
+- **Memory Management**: Debug logs show notification storage limits
+- **Performance Monitoring**: Track notification processing performance
+
+### Enhanced Socket Service Debugging
+
+#### Improved Backend Logging
+**File**: `backend/src/services/socketService.ts`
+
+The socket service now provides better debugging information:
+
+```typescript
+// Enhanced notification delivery with better logging
+async sendNotificationToUser(userId: string, notification: {
+  type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
+  title: string;
+  message: string;
+  data?: any;
+}): Promise<void> {
+  // Check if anyone is in the user room
+  const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
+  console.log(`🔍 DEBUG: Room ${userRoom} has ${roomSize} connected users`);
+
+  if (roomSize > 0) {
+    // User is online, send notification immediately
+    this.io.to(userRoom).emit('notification', notificationData);
+    console.log(`🔔 Notification sent to user ${userId}: ${notification.title}`);
+  } else {
+    // User is offline, store notification in database for later delivery
+    await this.storeOfflineNotification(userId, notificationData);
+    console.log(`📬 Notification stored in database for offline user ${userId}: ${notification.title}`);
+  }
+}
+```
+
+#### Debugging Features
+- **Room Size Monitoring**: Track connected users in rooms
+- **Online/Offline Detection**: Clear logging of user status
+- **Database Storage Logging**: Track offline notification storage
+- **Delivery Confirmation**: Log successful notification delivery
+
 ## Available Debugging Tools
 
 ### 1. Comprehensive Notification Debugger
