@@ -4,6 +4,7 @@ import { Montserrat } from "next/font/google"
 import { Open_Sans } from "next/font/google"
 import "./globals.css"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
+import { SocketInitializer } from "@/components/socket-initializer"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} dark`}>
       <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <SocketInitializer />
         <WindowManagerProvider>
           {children}
         </WindowManagerProvider>

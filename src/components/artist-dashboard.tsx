@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { 
   Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, 
   MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, 
@@ -163,6 +163,9 @@ const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking,
           <DialogTitle className="text-2xl font-bold text-foreground">
             {booking.eventName || getLocationDisplayName(booking.location)}
           </DialogTitle>
+          <DialogDescription>
+            Event details and booking information
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -674,9 +677,11 @@ export function ArtistDashboard() {
   const handleConfirmationComplete = useCallback(() => {
     setShowConfirmationModal(false)
     setSelectedGigForConfirmation(null)
-    // Refresh gigs data to show updated status
-    window.location.reload() // Simple refresh for now
-  }, [])
+    // Trigger a custom event to refresh gig data
+    window.dispatchEvent(new CustomEvent('gig-confirmation-completed', { 
+      detail: { gigId: selectedGigForConfirmation?._id } 
+    }))
+  }, [selectedGigForConfirmation])
   
   // Handle gig confirmation notifications
   useEffect(() => {
@@ -686,10 +691,19 @@ export function ArtistDashboard() {
       setShowConfirmationModal(true);
     };
 
+    const handleGigConfirmationCompleted = (event: CustomEvent) => {
+      const { gigId } = event.detail;
+      console.log('🔄 Gig confirmation completed, refreshing data for gig:', gigId);
+      // Force a re-render by updating state
+      setActiveTab(prev => prev); // This will trigger a re-render
+    };
+
     window.addEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+    window.addEventListener('gig-confirmation-completed', handleGigConfirmationCompleted as EventListener);
     
     return () => {
       window.removeEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+      window.removeEventListener('gig-confirmation-completed', handleGigConfirmationCompleted as EventListener);
     };
   }, []);
 

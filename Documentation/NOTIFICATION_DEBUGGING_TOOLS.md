@@ -6,6 +6,49 @@ This document describes the comprehensive debugging and testing tools created fo
 
 ## Recent Updates (December 2024)
 
+### New Socket Initializer Component
+**File**: `src/components/socket-initializer.tsx`
+
+A new React component that handles dynamic socket initialization with comprehensive debugging:
+
+```typescript
+export function SocketInitializer() {
+  const [status, setStatus] = useState('Initializing...')
+  
+  useEffect(() => {
+    // Dynamic import of socket.io-client
+    import('socket.io-client').then(({ io }) => {
+      // Expose io to window for debugging
+      if (typeof window !== 'undefined') {
+        (window as any).io = io
+      }
+      
+      // Import socket manager after socket.io is loaded
+      import('@/lib/socket').then(({ socketManager }) => {
+        // Expose socket manager to window
+        if (typeof window !== 'undefined') {
+          (window as any).socketManager = socketManager
+        }
+        
+        // Initialize socket connection
+        socketManager.autoConnect().then(() => {
+          console.log('✅ SocketInitializer: Socket auto-connect completed')
+        })
+      })
+    })
+  }, [])
+  
+  return null // This component doesn't render anything
+}
+```
+
+#### Key Features
+- **Dynamic Loading**: Loads socket.io-client only when needed
+- **Window Exposure**: Exposes socket manager to window for debugging
+- **Status Tracking**: Provides real-time initialization status
+- **Error Handling**: Comprehensive error catching and logging
+- **Auto-Connect**: Automatically establishes socket connection
+
 ### Enhanced Debugging Capabilities
 
 #### Improved Notification Filtering Debug
@@ -198,6 +241,42 @@ notificationTests.testReactState()
 ```
 
 ### 4. Simple Notification Debugger
+**File**: `simple-notification-debugger.js`
+
+A lightweight debugging tool for quick notification system checks.
+
+### 5. Debug Second Notification
+**File**: `debug-second-notification.js`
+
+A specialized debugging tool for testing second notification delivery and timing issues.
+
+#### Features
+- **Second Notification Testing**: Specifically tests notification delivery after the first
+- **Timing Analysis**: Analyzes notification timing and delivery patterns
+- **Sequence Validation**: Ensures proper notification ordering
+- **Performance Monitoring**: Tracks notification delivery performance
+
+### 6. Simple Socket Test
+**File**: `simple-socket-test.js`
+
+A minimal socket connection testing tool for basic connectivity validation.
+
+#### Features
+- **Basic Socket Testing**: Tests fundamental socket connectivity
+- **Connection Validation**: Verifies socket connection establishment
+- **Minimal Dependencies**: Lightweight tool with minimal requirements
+- **Quick Diagnostics**: Fast socket connection validation
+
+#### Usage
+```javascript
+// Copy and paste simple-socket-test.js into browser console
+// Available functions:
+socketTest.runBasicTest()
+socketTest.testConnection()
+socketTest.validateSocket()
+```
+
+### 7. Simple Notification Debugger (Updated)
 **File**: `simple-notification-debugger.js`
 
 A lightweight debugging tool for quick notification system checks.
@@ -486,5 +565,5 @@ By using these tools systematically, developers can ensure the notification syst
 
 **Last Updated**: December 2024  
 **Status**: ✅ Complete and Production Ready  
-**Tools Available**: 4 comprehensive debugging scripts  
-**Coverage**: Authentication, Socket.IO, Notifications, Offline Support, API Testing
+**Tools Available**: 7 comprehensive debugging scripts + Socket Initializer Component  
+**Coverage**: Authentication, Socket.IO, Notifications, Offline Support, API Testing, Socket Initialization, Second Notification Testing

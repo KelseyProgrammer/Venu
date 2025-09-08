@@ -314,24 +314,41 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     // Check if all bands are now confirmed (optimized check)
     const allBandsConfirmed = gig.bands.every(band => band.confirmed);
     
-    // Update gig status if all bands are confirmed
+    // Determine new status
+    let newStatus = gig.status;
     if (allBandsConfirmed && gig.status === 'pending-confirmation') {
-      gig.status = 'posted';
+      newStatus = 'posted';
     }
 
     // Use updateOne for better performance instead of save()
+    const updateData: any = { 
+      'bands': gig.bands
+    };
+    
+    // Only update status if it changed
+    if (newStatus !== gig.status) {
+      updateData.status = newStatus;
+    }
+
     await Gig.updateOne(
       { _id: id },
-      { 
-        $set: { 
-          'bands': gig.bands,
-          ...(allBandsConfirmed && gig.status === 'pending-confirmation' ? { status: 'posted' } : {})
-        }
-      }
+      { $set: updateData }
     );
+
+    // Update the local gig object to reflect the changes
+    gig.status = newStatus;
 
     // Send notification to location/promoter about band confirmation
     if (gig.selectedLocation) {
+      console.log(`🔔 Sending gig update to location ${gig.selectedLocation} for band confirmation:`, {
+        gigId: gig._id.toString(),
+        bandEmail: bandEmail,
+        confirmed: confirmed,
+        allBandsConfirmed: allBandsConfirmed,
+        newStatus: newStatus,
+        previousStatus: gig.status
+      });
+      
       socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
         gigId: gig._id.toString(),
         updateType: 'status-changed',

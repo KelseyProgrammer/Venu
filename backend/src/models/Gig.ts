@@ -23,6 +23,7 @@ export interface IGig extends Document {
     setTime: string;
     percentage: number;
     email: string;
+    confirmed: boolean;
   }>;
   guarantee: number;
   numberOfBands: number;

@@ -333,8 +333,6 @@ class OptimizedSocketManager {
         upgrade: true,
         rememberUpgrade: true,
         // Performance optimizations
-        pingTimeout: 60000,
-        pingInterval: 25000,
         // Reduce connection overhead
         autoConnect: true,
         multiplex: true
@@ -576,6 +574,7 @@ class SocketManager {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
   private isConnected = false;
   private optimizedManager = OptimizedSocketManager.getInstance();
+  private notificationListeners: Set<(notification: SocketNotification) => void> = new Set();
 
   // Initialize socket connection
   async connect(token: string): Promise<void> {
@@ -654,6 +653,7 @@ class SocketManager {
       }
       this.socket = null;
       this.isConnected = false;
+      this.notificationListeners.clear(); // Clear all notification listeners
     }
   }
 
@@ -725,7 +725,11 @@ class SocketManager {
   }
 
   onNotification(callback: (notification: SocketNotification) => void): void {
-    if (this.socket) {
+    // Add callback to our listener set
+    this.notificationListeners.add(callback);
+    
+    // Set up the socket listener only once
+    if (this.socket && this.notificationListeners.size === 1) {
       this.socket.on('notification', (notification) => {
         console.log('🔔 SOCKET: Received notification:', {
           id: notification.id,
@@ -734,7 +738,11 @@ class SocketManager {
           to: notification.to,
           timestamp: notification.timestamp
         });
-        callback(notification);
+        
+        // Call all registered callbacks
+        this.notificationListeners.forEach(listener => {
+          listener(notification);
+        });
       });
     }
   }
@@ -800,7 +808,14 @@ class SocketManager {
 
   // Remove specific listener
   removeListener(event: keyof ServerToClientEvents, callback: (...args: unknown[]) => void): void {
-    if (this.socket) {
+    if (event === 'notification') {
+      this.notificationListeners.delete(callback as (notification: SocketNotification) => void);
+      
+      // If no more listeners, remove the socket listener
+      if (this.notificationListeners.size === 0 && this.socket) {
+        this.socket.off('notification');
+      }
+    } else if (this.socket) {
       this.socket.off(event, callback);
     }
   }
@@ -808,6 +823,11 @@ class SocketManager {
 
 // Create singleton instance
 export const socketManager = new SocketManager();
+
+// Expose socket manager to window for debugging
+if (typeof window !== 'undefined') {
+  (window as any).socketManager = socketManager;
+}
 
 // React hook for socket connection
 export const useSocket = () => {

@@ -1,4 +1,4 @@
-// Comprehensive notification debugging and testing solution
+// Comprnpm ehensive notification debugging and testing solution
 // This script will help identify and fix notification issues
 
 console.log('🔧 VENU Notification System Debugger');
@@ -55,50 +55,53 @@ function testSocketConnection() {
   const auth = checkAuth();
   if (!auth) return;
   
-  // Import socket.io client dynamically
-  import('socket.io-client').then(({ io }) => {
-    console.log('🔌 Creating test socket connection...');
+  // Check if socket.io is available globally
+  if (typeof io === 'undefined') {
+    console.log('❌ Socket.io-client not available globally');
+    console.log('💡 Try: npm install socket.io-client');
+    console.log('💡 Or check if socket.ts is properly imported');
+    return;
+  }
+  
+  console.log('🔌 Creating test socket connection...');
+  
+  const socket = io('http://localhost:3001', {
+    auth: { token: auth.token },
+    transports: ['polling']
+  });
+  
+  socket.on('connect', () => {
+    console.log('✅ Test socket connected:', socket.id);
     
-    const socket = io('http://localhost:3001', {
-      auth: { token: auth.token },
-      transports: ['polling']
+    // Listen for notifications
+    socket.on('notification', (notification) => {
+      console.log('🔔 Test notification received:', notification);
     });
     
-    socket.on('connect', () => {
-      console.log('✅ Test socket connected:', socket.id);
-      
-      // Listen for notifications
-      socket.on('notification', (notification) => {
-        console.log('🔔 Test notification received:', notification);
-      });
-      
-      // Test sending a notification to yourself
-      socket.emit('send-notification', {
-        targetUserId: auth.payload.userId,
-        type: 'system',
-        title: 'Test Notification',
-        message: 'This is a test notification from the debugger',
-        data: { debug: true }
-      });
-      
-      console.log('📤 Test notification sent to:', auth.payload.userId);
-      
-      // Clean up after 10 seconds
-      setTimeout(() => {
-        socket.disconnect();
-        console.log('🧹 Test socket disconnected');
-      }, 10000);
+    // Test sending a notification to yourself
+    socket.emit('send-notification', {
+      targetUserId: auth.payload.userId,
+      type: 'system',
+      title: 'Test Notification',
+      message: 'This is a test notification from the debugger',
+      data: { debug: true }
     });
     
-    socket.on('connect_error', (error) => {
-      console.error('❌ Test socket connection error:', error);
-    });
+    console.log('📤 Test notification sent to:', auth.payload.userId);
     
-    socket.on('disconnect', (reason) => {
-      console.log('❌ Test socket disconnected:', reason);
-    });
-  }).catch(error => {
-    console.error('❌ Failed to import socket.io-client:', error);
+    // Clean up after 10 seconds
+    setTimeout(() => {
+      socket.disconnect();
+      console.log('🧹 Test socket disconnected');
+    }, 10000);
+  });
+  
+  socket.on('connect_error', (error) => {
+    console.error('❌ Test socket connection error:', error);
+  });
+  
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Test socket disconnected:', reason);
   });
 }
 
