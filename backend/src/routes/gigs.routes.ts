@@ -49,6 +49,8 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
 
     // Send confirmation notifications to artists if their emails are included in bands
     if (gig.bands && gig.bands.length > 0) {
+      console.log(`🔍 DEBUG: Gig has ${gig.bands.length} bands, attempting to send notifications`);
+      console.log(`🔍 DEBUG: Gig bands:`, gig.bands.map(b => ({ name: b.name, email: b.email })));
       try {
         // Get unique email addresses from bands
         const bandEmails = [...new Set(gig.bands.map(band => band.email.toLowerCase()))];
@@ -62,9 +64,11 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         console.log(`🔍 DEBUG: Looking for artists with emails:`, bandEmails);
         console.log(`🔍 DEBUG: Found ${users.length} artist users:`, users.map(u => ({ id: u._id, email: u.email, role: u.role })));
         console.log(`🔍 DEBUG: Gig details:`, { gigId: gig._id, eventName: gig.eventName, status: gig.status });
+        console.log(`🔍 DEBUG: About to send notifications to ${users.length} users`);
         
         // Send confirmation notifications to found artists
         for (const user of users) {
+          console.log(`🔍 DEBUG: Sending notification to user ${user._id} (${user.email})`);
           // Send confirmation notification to the artist
           socketService.sendNotificationToUser(user._id.toString(), {
             type: 'gig-confirmation-required',
@@ -79,11 +83,18 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
           });
           
           console.log(`🎵 Sent confirmation notification to artist ${user.email} (${user._id}) for gig ${gig._id}`);
+          console.log(`✅ DEBUG: Notification sent to user ${user._id}`);
         }
         
         console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
       } catch (notificationError) {
-        console.error('Error sending artist confirmation notifications:', notificationError);
+        console.error('❌ ERROR: Error sending artist confirmation notifications:', notificationError);
+        console.error('❌ ERROR: Notification error details:', {
+          error: notificationError.message,
+          stack: notificationError.stack,
+          gigId: gig._id,
+          bands: gig.bands
+        });
         // Don't fail the gig creation if notifications fail
       }
     }
