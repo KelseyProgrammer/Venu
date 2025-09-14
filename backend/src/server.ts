@@ -3,7 +3,6 @@ import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
-import path from "path";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";

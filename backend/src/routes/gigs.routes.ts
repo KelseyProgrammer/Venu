@@ -25,9 +25,15 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
       tier3: { amount: 0, threshold: 75, color: "bg-blue-500" }
     };
 
+    // Generate unique gigId
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const gigId = `GIG-${timestamp}-${randomString}`;
+
     // Convert string IDs to ObjectIds for MongoDB references
     const gigData = {
       ...req.body,
+      gigId: gigId,
       createdBy: req.user!.userId,
       selectedLocation: req.body.selectedLocation ? new mongoose.Types.ObjectId(req.body.selectedLocation) : undefined,
       selectedPromoter: req.body.selectedPromoter ? new mongoose.Types.ObjectId(req.body.selectedPromoter) : undefined,
@@ -82,7 +88,7 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
           }
         }));
         
-        await socketService.sendBatchNotifications(batchNotifications);
+        socketService.sendBatchNotifications(batchNotifications);
         console.log(`🎵 Batch sent confirmation notifications to ${users.length} artists for gig ${gig._id}`);
         
         console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
@@ -102,7 +108,7 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
     if (gig.selectedLocation) {
       try {
         socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
-          gigId: gig._id.toString(),
+          gigId: gig.gigId,
           updateType: 'created',
           gigData: gig,
           updatedBy: {
@@ -341,7 +347,7 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     // Send notification to location/promoter about band confirmation
     if (gig.selectedLocation) {
       console.log(`🔔 Sending gig update to location ${gig.selectedLocation} for band confirmation:`, {
-        gigId: gig._id.toString(),
+        gigId: gig.gigId,
         bandEmail: bandEmail,
         confirmed: confirmed,
         allBandsConfirmed: allBandsConfirmed,
@@ -350,7 +356,7 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
       });
       
       socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
-        gigId: gig._id.toString(),
+        gigId: gig.gigId,
         updateType: 'status-changed',
         gigData: gig,
         updatedBy: {

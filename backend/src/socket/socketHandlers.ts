@@ -458,34 +458,8 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         console.log(`📬 Sent ${offlineMessages.length} offline messages to ${socket.user.email}`);
       }
 
-      // Send any offline notifications
-      (async () => {
-        try {
-          const offlineNotifications = await socketService.getOfflineNotifications(socket.user.userId);
-          console.log(`🔍 DEBUG: Checking offline notifications for user ${socket.user.userId}:`, {
-            userId: socket.user.userId,
-            email: socket.user.email,
-            offlineNotificationsCount: offlineNotifications.length,
-            offlineNotifications: offlineNotifications.map(n => ({
-              id: n.id,
-              type: n.type,
-              title: n.title,
-              timestamp: n.timestamp
-            }))
-          });
-          
-          if (offlineNotifications.length > 0) {
-            offlineNotifications.forEach(notification => {
-              socket.emit('notification', notification);
-            });
-            console.log(`🔔 Sent ${offlineNotifications.length} offline notifications to ${socket.user.email}`);
-          } else {
-            console.log(`📭 No offline notifications found for user ${socket.user.email}`);
-          }
-        } catch (error) {
-          console.error(`❌ ERROR: Failed to retrieve offline notifications for user ${socket.user.userId}:`, error);
-        }
-      })();
+      // Real-time notifications only - no offline storage
+      console.log(`📱 User ${socket.user.email} connected - real-time notifications enabled`);
     }
 
     // Handle joining location-specific rooms
@@ -692,7 +666,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       console.log(`🎵 Gig ${updateType} by ${socket.user.email} in location ${locationId}`);
     });
 
-    // Handle notifications (optimized)
+    // Handle notifications (real-time only)
     socket.on('send-notification', (data: { targetUserId: string; type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system'; title: string; message: string; data?: any }) => {
       if (!socket.user) {
         socket.emit('error', { message: 'Authentication required' });
@@ -702,7 +676,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       const { targetUserId, type, title, message, data: notificationData } = data;
       
       const notification: SocketNotification = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         from: {
           userId: socket.user.userId,
           email: socket.user.email,
@@ -717,15 +691,15 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         read: false
       };
 
-      // Send to specific user (optimized room check)
+      // Send to specific user if online
       const userRoom = `user:${targetUserId}`;
       const roomSize = io.sockets.adapter.rooms.get(userRoom)?.size || 0;
       
       if (roomSize > 0) {
         io.to(userRoom).emit('notification', notification);
-        console.log(`🔔 Notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
+        console.log(`🔔 Real-time notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
       } else {
-        console.log(`📬 User ${targetUserId} is offline, notification will be stored`);
+        console.log(`📱 User ${targetUserId} is offline, notification not delivered`);
       }
     });
 

@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IGig extends Document {
+  gigId: string;
   eventName: string;
   eventDate: Date;
   eventTime: string;
@@ -43,6 +44,12 @@ export interface IGig extends Document {
 }
 
 const gigSchema = new Schema<IGig>({
+  gigId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
   eventName: {
     type: String,
     required: true,
@@ -224,6 +231,17 @@ gigSchema.index({
     eventGenre: 5,
     tags: 3
   }
+});
+
+// Generate unique gigId before saving
+gigSchema.pre('save', async function(next) {
+  if (!this.gigId) {
+    // Generate a unique gigId using timestamp and random string
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.gigId = `GIG-${timestamp}-${randomString}`;
+  }
+  next();
 });
 
 export default mongoose.model<IGig>('Gig', gigSchema);

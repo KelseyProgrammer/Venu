@@ -1,6 +1,5 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { ServerToClientEvents } from '../socket/types.js';
-import Notification from '../models/Notification.js';
 
 class SocketService {
   private io: SocketIOServer<{}, ServerToClientEvents> | null = null;
@@ -9,92 +8,13 @@ class SocketService {
     this.io = io;
   }
 
-  // Store notification for offline user in database
-  private async storeOfflineNotification(userId: string, notification: any): Promise<void> {
-    try {
-      const notificationDoc = new Notification({
-        id: notification.id,
-        from: notification.from,
-        to: userId,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        data: notification.data,
-        timestamp: new Date(notification.timestamp),
-        read: false,
-        delivered: false,
-      });
-
-      await notificationDoc.save();
-      
-      console.log(`📬 DEBUG: Stored offline notification in database for user ${userId}:`, {
-        userId,
-        notificationId: notification.id,
-        notificationType: notification.type,
-        notificationTitle: notification.title,
-        databaseId: notificationDoc._id
-      });
-    } catch (error) {
-      console.error(`❌ ERROR: Failed to store offline notification for user ${userId}:`, error);
-    }
-  }
-
-  // Get offline notifications for user from database
-  async getOfflineNotifications(userId: string): Promise<any[]> {
-    try {
-      const notifications = await Notification.find({ 
-        to: userId, 
-        delivered: false 
-      }).sort({ timestamp: -1 }).limit(50); // Limit to 50 most recent
-
-      console.log(`📬 DEBUG: Retrieved offline notifications from database for user ${userId}:`, {
-        userId,
-        notificationsCount: notifications.length,
-        notifications: notifications.map(n => ({
-          id: n.id,
-          type: n.type,
-          title: n.title,
-          timestamp: n.timestamp
-        }))
-      });
-
-      // Convert to the format expected by the frontend
-      const formattedNotifications = notifications.map(notification => ({
-        id: notification.id,
-        from: notification.from,
-        to: notification.to,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        data: notification.data,
-        timestamp: notification.timestamp.toISOString(),
-        read: notification.read
-      }));
-
-      // Mark notifications as delivered AFTER formatting to prevent race conditions
-      if (notifications.length > 0) {
-        const notificationIds = notifications.map(n => n._id);
-        await Notification.updateMany(
-          { _id: { $in: notificationIds } },
-          { delivered: true }
-        );
-        console.log(`📬 DEBUG: Marked ${notifications.length} notifications as delivered for user ${userId}`);
-      }
-
-      return formattedNotifications;
-    } catch (error) {
-      console.error(`❌ ERROR: Failed to retrieve offline notifications for user ${userId}:`, error);
-      return [];
-    }
-  }
-
-  // Send notification to a specific user (optimized)
-  async sendNotificationToUser(userId: string, notification: {
+  // Send notification to a specific user (real-time only)
+  sendNotificationToUser(userId: string, notification: {
     type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
     title: string;
     message: string;
     data?: any;
-  }): Promise<void> {
+  }): void {
     if (!this.io) {
       console.warn('Socket.IO not initialized, cannot send notification');
       return;
@@ -102,7 +22,7 @@ class SocketService {
 
     const userRoom = `user:${userId}`;
     const notificationData = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       from: {
         userId: 'system',
         email: 'system@venu.com',
@@ -117,22 +37,19 @@ class SocketService {
       read: false
     };
 
-    // Check if anyone is in the user room (optimized check)
+    // Check if user is online and send notification
     const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
-
+    
     if (roomSize > 0) {
-      // User is online, send notification immediately
       this.io.to(userRoom).emit('notification', notificationData);
-      console.log(`🔔 Notification sent to user ${userId}: ${notification.title}`);
+      console.log(`🔔 Real-time notification sent to user ${userId}: ${notification.title}`);
     } else {
-      // User is offline, store notification in database for later delivery
-      await this.storeOfflineNotification(userId, notificationData);
-      console.log(`📬 Notification stored in database for offline user ${userId}: ${notification.title}`);
+      console.log(`📱 User ${userId} is offline, notification not delivered`);
     }
   }
 
-  // Batch send notifications to multiple users (new optimized method)
-  async sendBatchNotifications(notifications: Array<{
+  // Send notifications to multiple users (real-time only)
+  sendBatchNotifications(notifications: Array<{
     userId: string;
     notification: {
       type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
@@ -140,16 +57,16 @@ class SocketService {
       message: string;
       data?: any;
     };
-  }>): Promise<void> {
+  }>): void {
     if (!this.io) {
       console.warn('Socket.IO not initialized, cannot send notifications');
       return;
     }
 
-    const onlineUsers: string[] = [];
-    const offlineNotifications: Array<{ userId: string; notificationData: any }> = [];
+    let deliveredCount = 0;
+    let offlineCount = 0;
 
-    // Batch check room sizes and prepare notifications
+    // Send notifications to all users
     for (const { userId, notification } of notifications) {
       const userRoom = `user:${userId}`;
       const roomSize = this.io.sockets.adapter.rooms.get(userRoom)?.size || 0;
@@ -171,24 +88,14 @@ class SocketService {
       };
 
       if (roomSize > 0) {
-        onlineUsers.push(userId);
-        // Send immediately to online users
         this.io.to(userRoom).emit('notification', notificationData);
+        deliveredCount++;
       } else {
-        offlineNotifications.push({ userId, notificationData });
+        offlineCount++;
       }
     }
 
-    // Batch store offline notifications
-    if (offlineNotifications.length > 0) {
-      await Promise.allSettled(
-        offlineNotifications.map(({ userId, notificationData }) => 
-          this.storeOfflineNotification(userId, notificationData)
-        )
-      );
-    }
-
-    console.log(`🔔 Batch notification complete: ${onlineUsers.length} online, ${offlineNotifications.length} offline`);
+    console.log(`🔔 Batch notifications: ${deliveredCount} delivered, ${offlineCount} offline`);
   }
 
   // Send gig update to location room
@@ -248,3 +155,4 @@ class SocketService {
 
 // Export singleton instance
 export const socketService = new SocketService();
+
