@@ -33,11 +33,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with size limit for performance
+app.use(express.json({ limit: '10mb' }));
 
-// Parse URL-encoded bodies
-app.use(express.urlencoded({ extended: true }));
+// Parse URL-encoded bodies with size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {

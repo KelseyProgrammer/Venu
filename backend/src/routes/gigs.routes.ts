@@ -6,9 +6,6 @@ import { ApiResponse } from '../shared/types.js';
 import { socketService } from '../services/socketService.js';
 import { 
   authenticateToken, 
-  requireRole, 
-  requireResourceOwnership,
-  requirePromoterOrAdmin,
   requireGigCreationPermission,
   requireGigModificationPermission
 } from '../middleware/auth.middleware.js';
@@ -74,7 +71,7 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         
         // Batch send confirmation notifications to all artists (optimized)
         const batchNotifications = users.map(user => ({
-          userId: user._id.toString(),
+          userId: (user as any)._id.toString(),
           notification: {
             type: 'gig-confirmation-required' as const,
             title: 'Gig Confirmation Required',
@@ -92,11 +89,11 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         console.log(`🎵 Batch sent confirmation notifications to ${users.length} artists for gig ${gig._id}`);
         
         console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
-      } catch (notificationError) {
+      } catch (notificationError: any) {
         console.error('❌ ERROR: Error sending artist confirmation notifications:', notificationError);
         console.error('❌ ERROR: Notification error details:', {
-          error: notificationError.message,
-          stack: notificationError.stack,
+          error: notificationError?.message,
+          stack: notificationError?.stack,
           gigId: gig._id,
           bands: gig.bands
         });
@@ -131,25 +128,25 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
     };
 
     res.status(201).json(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error('=== GIG CREATION ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
     console.error('Full error object:', error);
     
     // Provide more specific error messages based on error type
     let errorMessage = 'Internal server error';
     
-    if (error.name === 'ValidationError') {
+    if (error?.name === 'ValidationError') {
       errorMessage = 'Validation error: ' + error.message;
-    } else if (error.name === 'CastError') {
+    } else if (error?.name === 'CastError') {
       errorMessage = 'Invalid data format: ' + error.message;
-    } else if (error.name === 'BSONError') {
+    } else if (error?.name === 'BSONError') {
       errorMessage = 'Invalid ID format: ' + error.message;
-    } else if (error.name === 'MongoError' && error.code === 11000) {
+    } else if (error?.name === 'MongoError' && error?.code === 11000) {
       errorMessage = 'Duplicate entry found';
-    } else if (error.message) {
+    } else if (error?.message) {
       errorMessage = error.message;
     }
     
@@ -174,18 +171,20 @@ router.get('/', async (req: Request, res: Response) => {
     if (location) filter.selectedLocation = location;
     if (promoter) filter.selectedPromoter = promoter;
 
-    // Get gigs with pagination
-    const gigs = await Gig.find(filter)
-      .populate('selectedLocation', 'name city state')
-      .populate('selectedPromoter', 'firstName lastName email')
-      .populate('selectedDoorPerson', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName email')
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ eventDate: 1 });
-
-    // Get total count for pagination
-    const total = await Gig.countDocuments(filter);
+    // Execute queries in parallel for better performance
+    const [gigs, total] = await Promise.all([
+      Gig.find(filter)
+        .populate('selectedLocation', 'name city state')
+        .populate('selectedPromoter', 'firstName lastName email')
+        .populate('selectedDoorPerson', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName email')
+        .skip(skip)
+        .limit(Number(limit))
+        .sort({ eventDate: 1 })
+        .lean() // Use lean() for better performance
+        .exec(), // Explicit exec() for better performance
+      Gig.countDocuments(filter).exec()
+    ]);
 
     const response: ApiResponse<any[]> = {
       success: true,
@@ -520,7 +519,7 @@ router.get('/by-artist/:email', async (req: Request, res: Response) => {
         artistStatus: artistBand?.confirmed ? 'confirmed' : 'pending',
         artistSetTime: artistBand?.setTime,
         artistPercentage: artistBand?.percentage,
-        artistGuarantee: artistBand?.guarantee || 0
+        artistGuarantee: 0 // Band guarantee not available in current schema
       };
     });
 

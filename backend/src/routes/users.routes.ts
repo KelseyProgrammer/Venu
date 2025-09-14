@@ -27,15 +27,17 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
       ];
     }
 
-    // Get users with pagination
-    const users = await User.find(filter)
-      .select('-password')
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ createdAt: -1 });
-
-    // Get total count for pagination
-    const total = await User.countDocuments(filter);
+    // Execute queries in parallel for better performance
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select('-password')
+        .skip(skip)
+        .limit(Number(limit))
+        .sort({ createdAt: -1 })
+        .lean() // Use lean() for better performance
+        .exec(), // Explicit exec() for better performance
+      User.countDocuments(filter).exec()
+    ]);
 
     const response: ApiResponse<any[]> = {
       success: true,

@@ -180,7 +180,7 @@ export function PromoterDashboard() {
               </SelectContent>
             </Select>
             <WindowManagerProvider>
-              <RealTimeNotifications />
+              <RealTimeNotifications unreadCount={0} isConnected={true} />
               <RealTimeGigUpdates locationId={selectedLocation} />
             </WindowManagerProvider>
             {/* Logout button */}

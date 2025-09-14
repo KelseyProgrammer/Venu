@@ -527,8 +527,13 @@ export function FanDashboard() {
   }, [allEvents, debouncedSearchQuery, selectedGenre])
 
   const filteredArtists = useMemo(() => {
+    if (!debouncedSearchQuery && selectedGenre === "All Genres") {
+      return allArtists // Return all if no filters for better performance
+    }
+    
     return allArtists.filter(artist => {
-      const matchesSearch = artist.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      const matchesSearch = !debouncedSearchQuery || 
+        artist.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         artist.genre.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         artist.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       

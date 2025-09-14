@@ -64,8 +64,9 @@ router.get('/', async (req: Request, res: Response) => {
         .skip(skip)
         .limit(limitNum)
         .sort(sort)
-        .lean(), // Use lean() for better performance when not modifying documents
-      Artist.countDocuments(filter)
+        .lean() // Use lean() for better performance when not modifying documents
+        .exec(), // Explicit exec() for better performance
+      Artist.countDocuments(filter).exec()
     ]);
 
     const response: ApiResponse<any[]> = {

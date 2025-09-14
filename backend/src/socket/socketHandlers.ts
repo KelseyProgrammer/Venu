@@ -396,11 +396,18 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
   const analytics = new SocketAnalytics();
   const rateLimiter = new RateLimiter();
   
-  // Initialize message batcher with callback
+  // Initialize message batcher with optimized callback
   const messageBatcher = new MessageBatcher((roomId: string, messages: any[], io: SocketIOServer) => {
-    // Broadcast batched messages efficiently
+    // Broadcast batched messages efficiently with compression
     const locationRoom = `location:${roomId}`;
-    io.to(locationRoom).emit('batch-messages', { roomId, messages });
+    const compressedMessages = messages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      userId: msg.userId,
+      userName: msg.userName
+    }));
+    io.to(locationRoom).emit('batch-messages', { roomId, messages: compressedMessages });
     analytics.trackMessage();
   });
   

@@ -108,7 +108,7 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
           // Check if the artist's email is in the bands array
           const artistEmail = getUserEmailFromUserId();
           if (artistEmail && update.gigData.bands && Array.isArray(update.gigData.bands)) {
-            const isArtistInGig = update.gigData.bands.some((band: any) => 
+            const isArtistInGig = update.gigData.bands.some((band: { email?: string }) => 
               band.email && band.email.toLowerCase() === artistEmail.toLowerCase()
             );
             if (isArtistInGig) {

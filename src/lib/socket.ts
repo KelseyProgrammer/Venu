@@ -826,7 +826,7 @@ export const socketManager = new SocketManager();
 
 // Expose socket manager to window for debugging
 if (typeof window !== 'undefined') {
-  (window as any).socketManager = socketManager;
+  (window as Window & { socketManager?: SocketManager }).socketManager = socketManager;
 }
 
 // React hook for socket connection

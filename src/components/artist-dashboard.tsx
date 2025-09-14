@@ -666,7 +666,7 @@ export function ArtistDashboard() {
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false) // Used in JSX
-  const [selectedGigForConfirmation, setSelectedGigForConfirmation] = useState<any | null>(null)
+  const [selectedGigForConfirmation, setSelectedGigForConfirmation] = useState<GigProfile | null>(null)
   
   // Confirmation handlers - TODO: Implement confirmation click handling
   // const handleConfirmationClick = useCallback((gig: Gig) => {
@@ -1022,7 +1022,7 @@ export function ArtistDashboard() {
       if (eventDate < today) {
         // PAST event: event before today
         status = "completed";
-      } else if ((gig as any).status === 'pending-confirmation') {
+      } else if ((gig as unknown as Gig & { status?: string }).status === 'pending-confirmation') {
         // PENDING CONFIRMATION: gig requires band confirmation
         status = "awaiting-confirmation";
       } else if (gig.bands.length === gig.numberOfBands) {
@@ -1080,6 +1080,7 @@ export function ArtistDashboard() {
       return acc
     }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>)
   }, [transformedGigs, getGigBonusTiers])
+
 
   // Remove unused getCurrentTier function
   // const getCurrentTier = useCallback((gig: Gig) => {

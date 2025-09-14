@@ -5,12 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, Clock, Calendar, MapPin, Users } from "lucide-react"
-import { gigApi } from "@/lib/api"
-import { Gig } from "@/lib/types"
+import { gigApi, GigProfile } from "@/lib/api"
 import { authUtils } from "@/lib/utils"
 
 interface BandConfirmationModalProps {
-  gig: Gig | null
+  gig: GigProfile | null
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
@@ -144,7 +143,7 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
 
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4" />
-              <span>Venue: {gig.selectedLocation || 'TBA'}</span>
+              <span>Venue: {gig.selectedLocation?.name || 'TBA'}</span>
             </div>
 
             <div className="flex items-center gap-1 text-sm text-muted-foreground">

@@ -184,7 +184,7 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     };
   }, [userRole, locationId, artistId, userId]);
 
-  // Listen for notifications (optimized with debouncing)
+  // Listen for notifications (optimized with debouncing and batching)
   useEffect(() => {
     let notificationTimeout: NodeJS.Timeout;
     const pendingNotifications: SocketNotification[] = [];
@@ -197,14 +197,17 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
       clearTimeout(notificationTimeout);
       notificationTimeout = setTimeout(() => {
         if (pendingNotifications.length > 0) {
-          // Process all pending notifications at once
+          // Process all pending notifications at once with better performance
           setNotifications(prev => {
-            const newNotifications = [...pendingNotifications, ...prev].slice(0, 100);
+            // Use Set to avoid duplicates and improve performance
+            const existingIds = new Set(prev.map(n => n.id));
+            const newNotifications = pendingNotifications.filter(n => !existingIds.has(n.id));
+            const combined = [...newNotifications, ...prev].slice(0, 100);
             pendingNotifications.length = 0; // Clear the queue
-            return newNotifications;
+            return combined;
           });
         }
-      }, 50); // 50ms debounce
+      }, 30); // Reduced debounce time for better responsiveness
     };
 
     onNotification(handleNotification);

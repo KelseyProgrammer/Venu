@@ -16,7 +16,7 @@ export function SocketInitializer() {
       
       // Expose io to window for debugging
       if (typeof window !== 'undefined') {
-        (window as any).io = io
+        (window as Window & { io?: typeof io }).io = io
         console.log('🔌 SocketInitializer: Socket.io exposed to window')
       }
       
@@ -28,7 +28,7 @@ export function SocketInitializer() {
         
         // Expose socket manager to window
         if (typeof window !== 'undefined') {
-          (window as any).socketManager = socketManager
+          (window as Window & { socketManager?: typeof socketManager }).socketManager = socketManager
           console.log('🔌 SocketInitializer: Socket manager exposed to window')
         }
         

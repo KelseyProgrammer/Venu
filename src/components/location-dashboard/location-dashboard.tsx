@@ -332,7 +332,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
           </div>
           <div className="flex items-center gap-2">
             <WindowManagerProvider>
-              <RealTimeNotifications />
+              <RealTimeNotifications unreadCount={0} isConnected={true} />
               <RealTimeGigUpdates locationId={location?._id || ""} />
             </WindowManagerProvider>
             {/* Logout button */}
