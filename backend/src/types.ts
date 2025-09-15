@@ -33,7 +33,7 @@ export interface Gig {
   bands: Band[]
   guarantee: number
   numberOfBands: number // New field for total expected bands
-  status?: 'draft' | 'posted' | 'live' | 'completed'
+  status?: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed'
   createdAt?: Date
   updatedAt?: Date
 }

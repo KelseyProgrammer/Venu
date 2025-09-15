@@ -11,14 +11,15 @@ interface ScheduleTabProps {
   locationId: string;
   location?: LocationProfile | null;
   gigs: GigProfile[];
+  availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
   onRefreshGigs: () => void;
 }
 
-export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
+export function ScheduleTab({ locationId, gigs, availableDates, unavailableDates, onToggleDateAvailability, onRefreshGigs }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
-  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable"
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable", "past"
 
   return (
     <div className="p-4 space-y-4">
@@ -76,6 +77,15 @@ export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAv
           <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
           Needs Bands
         </Button>
+        <Button 
+          variant={scheduleFilter === "past" ? "default" : "outline"} 
+          size="sm"
+          onClick={() => setScheduleFilter("past")}
+          className={`whitespace-nowrap ${scheduleFilter === "past" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
+        >
+          <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+          Past
+        </Button>
       </div>
 
       {/* List View Subcategory */}
@@ -95,8 +105,10 @@ export function ScheduleTab({ locationId, gigs, unavailableDates, onToggleDateAv
           gigs={gigs}
           locationId={locationId}
           onRefreshGigs={onRefreshGigs}
+          availableDates={availableDates}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
+          onFilterChange={setScheduleFilter}
         />
       )}
     </div>

@@ -38,6 +38,21 @@ interface UseUnifiedRealTimeReturn {
   };
 }
 
+// Helper function to get user email from user ID
+const getUserEmailFromUserId = (): string => {
+  if (typeof window === 'undefined') return '';
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token || token.length < 10 || !token.includes('.')) {
+      return '';
+    }
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || '';
+  } catch {
+    return '';
+  }
+};
+
 export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedRealTimeReturn => {
   const { userId, userRole, locationId, artistId } = config;
   
@@ -89,9 +104,16 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
       },
       'artist': {
         onGigUpdate: (update: SocketGigUpdate) => {
-          // Artists see updates for their bookings
-          if (update.gigData.artistId === artistId) {
-            setGigUpdates(prev => [update, ...prev].slice(0, 50));
+          // Artists see updates for gigs they're involved in
+          // Check if the artist's email is in the bands array
+          const artistEmail = getUserEmailFromUserId();
+          if (artistEmail && update.gigData.bands && Array.isArray(update.gigData.bands)) {
+            const isArtistInGig = update.gigData.bands.some((band: { email?: string }) => 
+              band.email && band.email.toLowerCase() === artistEmail.toLowerCase()
+            );
+            if (isArtistInGig) {
+              setGigUpdates(prev => [update, ...prev].slice(0, 50));
+            }
           }
         },
         onMessage: (message: SocketMessage) => {
@@ -101,8 +123,21 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
           }
         },
         onNotification: (notification: SocketNotification) => {
-          if (notification.to === artistId) {
+          console.log(`🔔 ARTIST HOOK: Received notification:`, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            to: notification.to,
+            userId,
+            artistId,
+            matches: notification.to === userId || notification.to === artistId
+          });
+          // Check if notification is for this user (either by userId or artistId)
+          if (notification.to === userId || notification.to === artistId) {
+            console.log(`✅ ARTIST HOOK: Notification accepted for user`);
             setNotifications(prev => [notification, ...prev].slice(0, 100));
+          } else {
+            console.log(`❌ ARTIST HOOK: Notification rejected - not for this user`);
           }
         }
       },
@@ -288,19 +323,13 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     try {
       const token = localStorage.getItem('authToken');
       if (!token || token.length < 10 || !token.includes('.')) {
-        console.log('🔐 Invalid token in getUserId, clearing...');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
+        console.log('🔐 Invalid token in getUserId, skipping real-time connection');
         return '';
       }
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.userId || '';
     } catch {
-      console.log('🔐 Error parsing token in getUserId, clearing...');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Error parsing token in getUserId, skipping real-time connection');
       return '';
     }
   };
@@ -310,19 +339,13 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     try {
       const token = localStorage.getItem('authToken');
       if (!token || token.length < 10 || !token.includes('.')) {
-        console.log('🔐 Invalid token in getUserRole, clearing...');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
+        console.log('🔐 Invalid token in getUserRole, skipping real-time connection');
         return '';
       }
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.role || '';
     } catch {
-      console.log('🔐 Error parsing token in getUserRole, clearing...');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Error parsing token in getUserRole, skipping real-time connection');
       return '';
     }
   };

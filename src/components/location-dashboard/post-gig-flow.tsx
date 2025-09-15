@@ -14,7 +14,6 @@ import { Band, Requirement } from "./types"
 import { useSocket, socketManager } from "@/lib/socket"
 import { authUtils } from "@/lib/utils"
 import { generateDefaultBonusTiers } from "@/lib/bonus-tiers"
-import { ImageUpload } from "@/components/ui/image-upload"
 
 interface PostGigFlowProps {
   onClose: () => void;
@@ -195,12 +194,12 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         setTime: band.setTime,
         percentage: parseFloat(band.percentage),
         email: band.email,
-        confirmed: true // Mark as confirmed when created
+        confirmed: false // Bands need to confirm before gig is posted
       })),
       guarantee: parseFloat(guarantee),
       numberOfBands: parseInt(numberOfBands) || bands.length,
       bonusTiers: generateDefaultBonusTiers(), // Add default bonus tiers
-      status: "posted" as const,
+      status: "pending-confirmation" as const,
       image: gigImage || "/images/venu-logo.png"
     };
 
@@ -264,40 +263,8 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         // Send general gig update
         socket.sendGigUpdate(createdGig._id, createdGig.selectedLocation || locationId, "created", createdGig)
         
-        // Send notifications to relevant users
-        bands.forEach(band => {
-          if (band.email) {
-            socket.sendNotification(
-              "band-user-id", // This would be the actual band's user ID
-              "gig-invitation",
-              "New Gig Invitation",
-              `You've been invited to perform at ${eventName} on ${eventDate}`,
-              { gigId: createdGig._id, gigData: createdGig }
-            )
-          }
-        })
-
-        // Notify promoter if selected
-        if (selectedPromoter && promoterEmail) {
-          socket.sendNotification(
-            "promoter-user-id", // This would be the actual promoter's user ID
-            "gig-invitation", 
-            "New Gig Assignment",
-            `You've been assigned to promote ${eventName} on ${eventDate}`,
-            { gigId: createdGig._id, gigData: createdGig }
-          )
-        }
-
-        // Notify door person if selected
-        if (selectedDoorPerson && doorPersonEmail) {
-          socket.sendNotification(
-            "door-person-user-id", // This would be the actual door person's user ID
-            "gig-invitation",
-            "New Gig Assignment", 
-            `You've been assigned as door person for ${eventName} on ${eventDate}`,
-            { gigId: createdGig._id, gigData: createdGig }
-          )
-        }
+        // Backend will handle sending confirmation notifications to artists automatically
+        console.log('📧 Backend will send confirmation notifications to artists with emails:', bands.map(band => band.email))
       }
       
       // Reset and close
@@ -320,7 +287,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       // Remove setSubmitting since we removed that state variable
       // setSubmitting(false);
     }
-  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedPromoter, selectedDoorPerson, requirements, doorPersonEmail, socket, canProceedToNextStep, gigImage, locationId, numberOfBands, promoterEmail])
+  }, [resetForm, onClose, eventName, eventDate, eventTime, eventGenre, ticketCapacity, ticketPrice, guarantee, bands, promoterPercentage, selectedDoorPerson, requirements, doorPersonEmail, socket, canProceedToNextStep, gigImage, locationId, numberOfBands, promoterEmail])
 
   // Promoter management functions - can be implemented in future iterations
 
@@ -591,12 +558,12 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
 
             {/* Gig Image Upload */}
             <div>
-              <ImageUpload
-                label="Event Image (Optional)"
-                value={gigImage}
-                onChange={setGigImage}
-                placeholder="Upload an image for this event"
-              />
+              <Label className="text-sm font-medium text-foreground">
+                Event Image (Optional)
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Image upload functionality has been removed. You can add images later.
+              </p>
             </div>
           </div>
         </Card>

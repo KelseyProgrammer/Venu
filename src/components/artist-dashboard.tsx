@@ -1,27 +1,56 @@
 "use client"
 
-import { useState, useMemo, useCallback, memo, useEffect, useTransition } from "react"
+import React, { useState, useMemo, useCallback, memo, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { 
   Search, Calendar, FileText, MessageCircle, MoreHorizontal, Filter, 
   MapPin, Star, Share2, TrendingUp, BarChart3, ArrowLeft, ArrowRight, 
-  User, DollarSign, Clock, Music, LogOut
+  User, LogOut, Clock, Music, CheckCircle
 } from "lucide-react"
 import Image from "next/image"
-import { GigDetails } from "./gig-details"
+// import { GigDetails } from "./gig-details" // Now using dynamic import
 import { getLocationDisplayName } from "@/lib/location-data"
 import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
+import { authUtils } from "@/lib/utils"
 import { RealTimeNotifications } from "./real-time-notifications"
+import { BandConfirmationModal } from "./band-confirmation-modal"
 import { RealTimeGigUpdates } from "./real-time-gig-updates"
 import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
-import { authUtils } from "@/lib/utils"
+import { ProfileManagement } from "@/components/ui/profile-management"
+import { GigProfile, gigApi } from "@/lib/api"
+import { PerformanceErrorBoundary } from "@/components/ui/error-boundary"
+
+// Types for dynamic imports
+interface GigDetailsProps {
+  gigId: string
+  onBack: () => void
+  gigData: GigProfile
+}
+
+// Dynamic imports for better code splitting
+const GigDetailsLazy = memo(function GigDetailsLazy({ gigId, onBack, gigData }: GigDetailsProps) {
+  const [Component, setComponent] = useState<React.ComponentType<GigDetailsProps> | null>(null)
+  
+  useEffect(() => {
+    import("./gig-details").then((module) => {
+      setComponent(() => module.GigDetails as unknown as React.ComponentType<GigDetailsProps>)
+    })
+  }, [])
+  
+  if (!Component) {
+    return <div className="flex items-center justify-center p-8">Loading gig details...</div>
+  }
+  
+  return <Component gigId={gigId} onBack={onBack} gigData={gigData} />
+})
+
 
 // Types for better type safety
 interface Gig {
@@ -57,12 +86,443 @@ interface Booking {
   location: string
   date: string
   time: string
-  status: "confirmed" | "completed"
+  status: "confirmed" | "pending" | "completed" | "awaiting-confirmation"
   ticketsSold: number
   totalTickets: number
   earnings: number
   image: string
+  gigId?: string
+  eventName?: string
+  genre?: string
+  artistSetTime?: string
+  artistPercentage?: number
+  artistGuarantee?: number
+  isPast?: boolean
+  confirmedBands?: number
+  expectedBands?: number
 }
+
+// Artist Event Details Modal Component
+interface ArtistEventDetailsModalProps {
+  booking: Booking | null
+  isOpen: boolean
+  onClose: () => void
+}
+
+const ArtistEventDetailsModal = memo(function ArtistEventDetailsModal({ booking, isOpen, onClose }: ArtistEventDetailsModalProps) {
+  // Memoized helper function to convert 24-hour time to 12-hour format
+  const formatTime12Hour = useCallback((time24: string): string => {
+    try {
+      const time = time24.trim()
+      
+      if (time.includes('AM') || time.includes('PM')) {
+        return time
+      }
+      
+      if (time.includes(':')) {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours, 10)
+        const minute = parseInt(minutes, 10)
+        
+        if (isNaN(hour) || isNaN(minute)) {
+          return time24
+        }
+        
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:${minutes.padStart(2, '0')} ${period}`
+      }
+      
+      const hour = parseInt(time, 10)
+      if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+        const period = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+        
+        return `${displayHour}:00 ${period}`
+      }
+      
+      return time24
+    } catch {
+      return time24
+    }
+  }, [])
+
+  // Memoized progress calculation - safe to call even if booking is null
+  const progress = useMemo(() => {
+    if (!booking) return 0
+    return (booking.ticketsSold / booking.totalTickets) * 100
+  }, [booking])
+
+  if (!booking) return null
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-foreground">
+            {booking.eventName || getLocationDisplayName(booking.location)}
+          </DialogTitle>
+          <DialogDescription>
+            Event details and booking information
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Event Header */}
+          <div className="flex items-start gap-4">
+            <Image
+              src={booking.image || "/images/BandFallBack.PNG"}
+              alt={booking.eventName || "Event"}
+              width={120}
+              height={120}
+              className="rounded-lg object-cover"
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+            />
+            
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {new Date(booking.date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{formatTime12Hour(booking.time)}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {getLocationDisplayName(booking.location)}
+                </span>
+              </div>
+              
+              {booking.genre && (
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-muted-foreground" />
+                  <Badge variant="outline" className="text-xs">
+                    {booking.genre}
+                  </Badge>
+                </div>
+              )}
+              
+              <Badge 
+                variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' || booking.status === 'awaiting-confirmation' ? 'secondary' : 'outline'}
+                className={`text-xs ${
+                  booking.status === "confirmed" 
+                    ? "bg-green-600" 
+                    : booking.status === "pending"
+                    ? "bg-yellow-600"
+                    : booking.status === "awaiting-confirmation"
+                    ? "bg-orange-600"
+                    : booking.isPast
+                    ? "bg-blue-600"
+                    : "bg-gray-600"
+                }`}
+              >
+                {booking.status === "confirmed" 
+                  ? "Confirmed" 
+                  : booking.status === "pending"
+                  ? "Needs Band"
+                  : booking.status === "awaiting-confirmation"
+                  ? "Awaiting Confirmation"
+                  : booking.status === "completed"
+                  ? "Past Show"
+                  : booking.isPast
+                  ? "Past Show"
+                  : booking.status
+                }
+              </Badge>
+            </div>
+          </div>
+
+          {/* Event Stats */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Event Statistics</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">{booking.ticketsSold}</div>
+                <div className="text-sm text-muted-foreground">Tickets Sold</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">{booking.totalTickets}</div>
+                <div className="text-sm text-muted-foreground">Total Capacity</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">${booking.artistGuarantee || 0}</div>
+                <div className="text-sm text-muted-foreground">Your Guarantee</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-foreground">${booking.earnings}</div>
+                <div className="text-sm text-muted-foreground">Your Earnings</div>
+              </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                <span>Ticket Sales Progress</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Your Performance Details */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Your Performance Details</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium text-foreground">Your Set</div>
+                  <div className="text-sm text-muted-foreground">
+                    {booking.genre || "TBD"} • {booking.artistSetTime ? formatTime12Hour(booking.artistSetTime) : "TBD"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {booking.artistPercentage || 0}%
+                  </span>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Additional Details */}
+          <Card className="p-4">
+            <h3 className="font-semibold text-lg mb-4">Additional Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Your Percentage:</span>
+                <div className="font-medium text-foreground">{booking.artistPercentage || 0}% of revenue</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Your Guarantee:</span>
+                <div className="font-medium text-foreground">${booking.artistGuarantee || 0}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Current Earnings:</span>
+                <div className="font-medium text-green-400">${booking.earnings}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Status:</span>
+                <div className="font-medium text-foreground">
+                  {booking.status === "confirmed" 
+                    ? "Confirmed" 
+                    : booking.status === "pending"
+                    ? "Needs Band"
+                    : booking.status === "completed"
+                    ? "Past Show"
+                    : booking.isPast
+                    ? "Past Show"
+                    : booking.status
+                  }
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="default" 
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+})
+
+// Simple Calendar Day Component
+const CalendarDay = memo(function CalendarDay({
+  day,
+  currentMonth,
+  currentYear,
+  today,
+  bookingOnDate,
+  availableDates,
+  unavailableDates,
+  availabilityFilter,
+  onToggleAvailability,
+  shouldShowDate = true
+}: {
+  day: number
+  currentMonth: number
+  currentYear: number
+  today: Date
+  bookingOnDate?: Booking | undefined
+  availableDates: string[]
+  unavailableDates: string[]
+  availabilityFilter: string
+  onToggleAvailability: (dateString: string) => void
+  shouldShowDate?: boolean
+}) {
+  const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const isAvailable = availableDates.includes(dateString)
+  const isUnavailable = unavailableDates.includes(dateString)
+  const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear())
+  const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()
+  const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate()
+
+  const handleClick = useCallback(() => {
+    // Only allow toggling availability for future dates that don't have bookings
+    if (!isPast && !bookingOnDate) {
+      onToggleAvailability(dateString)
+    }
+  }, [isPast, bookingOnDate, dateString, onToggleAvailability])
+
+  // Early return for non-current month days
+  if (!isCurrentMonth) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  // For schedule filters, black out dates that don't match the filter
+  if (!shouldShowDate) {
+    return <div className="h-20 bg-black/20 rounded-lg opacity-50"></div>
+  }
+
+  // For unavailable filter, only show unavailable days
+  if (availabilityFilter === "unavailable" && !isUnavailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+  
+  // For available filter, only show explicitly available days
+  if (availabilityFilter === "available" && !isAvailable) {
+    return <div className="h-20 bg-muted/20 rounded-lg"></div>
+  }
+
+  return (
+    <div 
+      onClick={handleClick}
+      className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
+        !isPast && !bookingOnDate 
+          ? 'cursor-pointer hover:shadow-md' 
+          : 'cursor-default'
+      } ${
+        isToday 
+          ? 'bg-purple-600 border-purple-600 shadow-md' 
+          : isUnavailable
+          ? availabilityFilter === "unavailable"
+            ? 'bg-red-50 border-red-300 shadow-md' 
+            : 'bg-white border-red-200'
+          : isAvailable
+          ? availabilityFilter === "available"
+            ? 'bg-green-50 border-green-300 shadow-md'
+            : 'bg-white border-green-200'
+          : bookingOnDate && bookingOnDate.status === "confirmed"
+          ? 'bg-white border-green-200' // COMPLETED: lineup is complete
+          : bookingOnDate && bookingOnDate.status === "completed"
+          ? 'bg-white border-gray-300' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "awaiting-confirmation"
+          ? 'bg-white border-orange-200' // AWAITING CONFIRMATION: needs band confirmation
+          : bookingOnDate && bookingOnDate.status === "pending"
+          ? 'bg-white border-yellow-200' // NEEDS BAND: still needs more bands
+          : isPast 
+          ? 'bg-white border-muted' 
+          : 'bg-white border-border hover:border-primary/50'
+      }`}
+    >
+      <div className={`text-sm font-medium mb-1 relative z-10 ${
+        isToday 
+          ? 'text-white' 
+          : isUnavailable
+          ? availabilityFilter === "unavailable"
+            ? 'text-red-700 font-bold'
+            : 'text-red-600'
+          : isAvailable
+          ? availabilityFilter === "available"
+            ? 'text-green-700 font-bold'
+            : 'text-green-600'
+          : bookingOnDate && bookingOnDate.status === "confirmed"
+          ? 'text-green-600' // COMPLETED: lineup is complete
+          : bookingOnDate && bookingOnDate.status === "completed"
+          ? 'text-gray-600' // PAST: event is in the past
+          : bookingOnDate && bookingOnDate.status === "awaiting-confirmation"
+          ? 'text-orange-600' // AWAITING CONFIRMATION: needs band confirmation
+          : bookingOnDate && bookingOnDate.status === "pending"
+          ? 'text-yellow-600' // NEEDS BAND: still needs more bands
+          : isPast 
+          ? 'text-muted-foreground' 
+          : 'text-gray-900 font-semibold'
+      }`}>
+        {day}
+      </div>
+      
+      {bookingOnDate && (
+        <div className="space-y-1 max-h-12 overflow-hidden">
+          <div 
+            className={`text-xs p-1 rounded truncate ${
+              bookingOnDate.status === "confirmed"
+                ? 'bg-green-200 text-green-800' // COMPLETED: lineup is complete
+                : bookingOnDate.status === "completed"
+                ? 'bg-gray-200 text-gray-800' // PAST: event is in the past
+                : bookingOnDate.status === "awaiting-confirmation"
+                ? 'bg-orange-200 text-orange-800' // AWAITING CONFIRMATION: needs band confirmation
+                : 'bg-yellow-200 text-yellow-800' // NEEDS BAND: still needs more bands
+            }`}
+          >
+            <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
+              {getLocationDisplayName(bookingOnDate.location)}
+            </div>
+            <div className="text-xs font-bold mt-0.5 truncate">
+              {bookingOnDate.status === "confirmed" 
+                ? `Complete (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
+                : bookingOnDate.status === "completed"
+                ? `Past (${bookingOnDate.confirmedBands}/${bookingOnDate.expectedBands})`
+                : bookingOnDate.status === "awaiting-confirmation"
+                ? `Confirm Required`
+                : bookingOnDate.status === "pending"
+                ? `Need ${(bookingOnDate.expectedBands || 0) - (bookingOnDate.confirmedBands || 0)} more`
+                : `Need ${(bookingOnDate.expectedBands || 0) - (bookingOnDate.confirmedBands || 0)} more`
+              }
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {!bookingOnDate && !isPast && isAvailable && (
+        <div className={`text-xs mt-1 font-medium ${
+          isToday ? 'text-white' : 'text-black'
+        }`}>
+          Available
+        </div>
+      )}
+      
+      {!bookingOnDate && !isPast && isUnavailable && (
+        <div className={`text-xs mt-2 font-medium ${
+          isToday 
+            ? 'text-white'
+            : availabilityFilter === "unavailable"
+            ? 'text-red-700 font-bold'
+            : 'text-red-600'
+        }`}>
+          Unavailable
+        </div>
+      )}
+    </div>
+  )
+})
 
 // Memoized Gig Card Component for better performance
 const GigCard = memo(function GigCard({ 
@@ -88,7 +548,7 @@ const GigCard = memo(function GigCard({
         return bandTiers ? { band, bandTiers } : null
       })
       .filter((item): item is { band: typeof gig.bands[0], bandTiers: NonNullable<typeof gigBonusTiers[number][0]> } => item !== null)
-  }, [gig.bands, gigBonusTiers, gig.id])
+  }, [gig, gigBonusTiers])
 
   return (
     <Card className="p-4 bg-card border-border">
@@ -100,7 +560,9 @@ const GigCard = memo(function GigCard({
               width={80}
               height={80}
               className="rounded-lg object-cover w-20 h-20"
-              priority={false}
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
             />
           <div className="absolute -top-1 -right-1">
             <Badge variant="secondary" className="text-xs bg-accent text-accent-foreground">
@@ -201,25 +663,127 @@ export function ArtistDashboard() {
   const [selectedGig, setSelectedGig] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
+  const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null)
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false) // Used in JSX
+  const [selectedGigForConfirmation, setSelectedGigForConfirmation] = useState<GigProfile | null>(null)
   
+  // Confirmation handlers - TODO: Implement confirmation click handling
+  // const handleConfirmationClick = useCallback((gig: Gig) => {
+  //   setSelectedGigForConfirmation(gig)
+  //   setShowConfirmationModal(true)
+  // }, [])
+
+  const handleConfirmationComplete = useCallback(() => {
+    setShowConfirmationModal(false)
+    setSelectedGigForConfirmation(null)
+    // Trigger a custom event to refresh gig data
+    window.dispatchEvent(new CustomEvent('gig-confirmation-completed', { 
+      detail: { gigId: selectedGigForConfirmation?._id } 
+    }))
+  }, [selectedGigForConfirmation])
+  
+  // Handle gig confirmation notifications
+  useEffect(() => {
+    const handleGigConfirmation = (event: CustomEvent) => {
+      const { gig } = event.detail;
+      setSelectedGigForConfirmation(gig);
+      setShowConfirmationModal(true);
+    };
+
+    const handleGigConfirmationCompleted = (event: CustomEvent) => {
+      const { gigId } = event.detail;
+      console.log('🔄 Gig confirmation completed, refreshing data for gig:', gigId);
+      // Force a re-render by updating state
+      setActiveTab(prev => prev); // This will trigger a re-render
+    };
+
+    window.addEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+    window.addEventListener('gig-confirmation-completed', handleGigConfirmationCompleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
+      window.removeEventListener('gig-confirmation-completed', handleGigConfirmationCompleted as EventListener);
+    };
+  }, []);
+
   // Socket connection for real-time features
   const { autoConnect } = useSocket()
   
-  // Artist-specific real-time features
+  // State to track if we're on the client side
+  const [isClient, setIsClient] = useState(false)
+  
+  // Artist-specific real-time features - use actual user ID when available
   const {
     notifications,
     gigUpdates,
     sendGigUpdate,
-    isConnected: realTimeConnected
-  } = useArtistRealTime({ artistId: "artist-123" })
+    isConnected: realTimeConnected,
+    markAsRead,
+    markAllAsRead
+  } = useArtistRealTime({ artistId: isClient ? authUtils.getCurrentUser()?.id || "" : "" })
   
-  // Auto-connect socket when component mounts
+  // Debug notifications
   useEffect(() => {
-    autoConnect().catch((err) => {
-      console.error('Failed to auto-connect socket:', err)
-      setError('Failed to connect to real-time services')
-    })
+    console.log(`🔔 ARTIST DASHBOARD: Notifications updated:`, {
+      count: (notifications || []).length,
+      realTimeConnected,
+      notifications: (notifications || []).map(n => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        read: n.read,
+        to: n.to
+      }))
+    });
+    console.log(`🔔 ARTIST DASHBOARD: Raw notifications array:`, notifications);
+  }, [notifications, realTimeConnected]);
+  
+  // Debug socket connection
+  useEffect(() => {
+    const userId = isClient ? authUtils.getCurrentUser()?.id : 'not-client';
+    console.log(`🔌 ARTIST DASHBOARD: Socket connection status:`, {
+      isConnected: realTimeConnected,
+      isClient,
+      userId
+    });
+    console.log(`🔌 ARTIST DASHBOARD: User details:`, {
+      userId,
+      userObject: isClient ? authUtils.getCurrentUser() : null
+    });
+  }, [realTimeConnected, isClient]);
+  
+  // Auto-connect socket when component mounts - optimized with error handling
+  useEffect(() => {
+    let isMounted = true
+    
+    const connectSocket = async () => {
+      try {
+        await autoConnect()
+        if (isMounted) {
+          setError(null) // Clear any previous errors
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Failed to auto-connect socket:', err)
+          setError('Failed to connect to real-time services')
+        }
+      }
+    }
+    
+    connectSocket()
+    
+    return () => {
+      isMounted = false
+    }
   }, [autoConnect])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // No localStorage cleanup needed anymore
+    }
+  }, [])
   
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -228,31 +792,16 @@ export function ArtistDashboard() {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   
   // Filter state for schedule views
-  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "confirmed", "completed", "upcoming"
+  const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "confirmed", "needs-band", "past"
   
   // Availability filter state (separate from booking status filters)
   const [availabilityFilter, setAvailabilityFilter] = useState("all") // "all", "unavailable", "available"
   
+  // Available dates state (dates when artist is explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+
   // Unavailable dates state (dates when artist is unavailable)
-  const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
-    // Load from localStorage or use default values
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('artist-unavailable-dates')
-      if (saved) {
-        try {
-          return JSON.parse(saved)
-        } catch {
-          // Failed to parse saved unavailable dates, using defaults
-        }
-      }
-    }
-    // Default unavailable dates for current month
-    return [
-      "2024-12-01",
-      "2024-12-08", 
-      "2024-12-25"
-    ]
-  })
+  const [unavailableDates, setUnavailableDates] = useState<string[]>([])
   
   // Earnings data - memoized for performance
   const earningsData = useMemo(() => {
@@ -268,7 +817,6 @@ export function ArtistDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Artist",
-        profileImage: "/images/SARBEZ.jpg",
         email: "artist@example.com",
         phone: "+1 (555) 123-4567",
         instagram: "@artistmusic",
@@ -285,7 +833,6 @@ export function ArtistDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Artist",
-      profileImage: currentUser?.profileImage || "/images/SARBEZ.jpg",
       email: currentUser?.email || "artist@example.com",
       phone: "+1 (555) 123-4567",
       instagram: "@artistmusic",
@@ -298,141 +845,217 @@ export function ArtistDashboard() {
     }
   }, [])
 
-  const { name: artistName, profileImage: artistProfileImage } = artistProfileData
-
-  // State to track if we're on the client side
-  const [isClient, setIsClient] = useState(false)
+  const { name: artistName } = artistProfileData
 
   // Set isClient to true after hydration
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Remove unused state variables since we're using mock data
-  // const [gigs, setGigs] = useState<Gig[]>([])
-  // const [loading, setLoading] = useState(true)
-  // const [error, setError] = useState<string | null>(null)
+  // Load availability data from localStorage on mount
+  useEffect(() => {
+    if (isClient) {
+      try {
+        const savedAvailableDates = localStorage.getItem('artist-available-dates')
+        const savedUnavailableDates = localStorage.getItem('artist-unavailable-dates')
+        
+        if (savedAvailableDates) {
+          setAvailableDates(JSON.parse(savedAvailableDates))
+        }
+        if (savedUnavailableDates) {
+          setUnavailableDates(JSON.parse(savedUnavailableDates))
+            }
+          } catch (error) {
+        console.error('Error loading availability data from localStorage:', error)
+      }
+    }
+  }, [isClient])
 
-  // Fetch real gigs from API - commented out since we're using mock data
-  // useEffect(() => {
-  //   const fetchGigs = async () => {
-  //     try {
-  //       setLoading(true)
-  //       const response = await gigApi.getGigsByArtist('current-artist-id') // Replace with actual artist ID
-  //       if (response.success && response.data) {
-  //         setGigs(response.data)
-  //       } else {
-  //         setError(response.error || 'Failed to load gigs')
-  //       }
-  //     } catch (err) {
-  //       console.error('Error fetching gigs:', err)
-  //       setError('Failed to load gigs')
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-
-  //   fetchGigs()
-  // }, [])
-
-  const mockGigs = useMemo((): Gig[] => [
-    {
-      id: 1,
-      location: "muggys", // Use standardized location key
-      address: "213 W King St, St. Augustine, FL 32084",
-      date: "Sat, Oct 12",
-      time: "8 PM doors",
-      genre: "Rock",
-      guarantee: 200,
-      ticketPrice: 25, // Price per ticket
-      tier1: { amount: 200, threshold: 30, color: "bg-yellow-500" },
-      tier2: { amount: 400, threshold: 50, color: "bg-green-500" },
-      tier3: { amount: 600, threshold: 100, color: "bg-blue-500" },
-      ticketsSold: 37,
-      totalTickets: 50,
-      rating: 4.8,
-      requirements: ["PA system", "Backline provided"],
-      image: "/images/MUGS.jpeg",
-      bands: [
-        { id: "1", name: "The Midnight Keys", genre: "Rock", setTime: "9 PM", percentage: 60, email: "keys@example.com", guarantee: 200 },
-        { id: "2", name: "Opening Act", genre: "Rock", setTime: "8 PM", percentage: 40, email: "opening@example.com", guarantee: 0 }
-      ]
+  // Debounced localStorage save function
+  const debouncedLocalStorageSave = useCallback(
+    (key: string, data: string[]) => {
+      const timeoutId = setTimeout(() => {
+        try {
+          localStorage.setItem(key, JSON.stringify(data))
+        } catch (error) {
+          console.error(`Error saving ${key} to localStorage:`, error)
+        }
+      }, 300) // Debounce by 300ms
+      
+      return () => clearTimeout(timeoutId)
     },
-    {
-      id: 2,
-      location: "sarbez", // Use standardized location key
-      address: "115 Anastasia Blvd, St. Augustine, FL 32080",
-      date: "Wed, Oct 16",
-      time: "9 PM",
-      genre: "Rock",
-      guarantee: 150,
-      ticketPrice: 20, // Price per ticket
-      tier1: { amount: 150, threshold: 25, color: "bg-yellow-500" },
-      tier2: { amount: 300, threshold: 40, color: "bg-green-500" },
-      tier3: { amount: 500, threshold: 75, color: "bg-blue-500" },
-      ticketsSold: 12,
-      totalTickets: 75,
-      rating: 4.5,
-      requirements: ["Sound system", "Early-bird pricing"],
-      image: "/images/SARBEZ.jpg",
-      bands: [
-        { id: "3", name: "Rock Band", genre: "Rock", setTime: "9 PM", percentage: 70, email: "rock@example.com", guarantee: 150 },
-        { id: "4", name: "Support Act", genre: "Rock", setTime: "8 PM", percentage: 30, email: "support@example.com", guarantee: 0 }
-      ]
-    },
-    {
-      id: 3,
-      location: "alfreds", // Use standardized location key
-      address: "222 West King Street, St. Augustine, FL 32084",
-      date: "Fri, Oct 18",
-      time: "7 PM",
-      genre: "Jazz",
-      guarantee: 300,
-      ticketPrice: 30, // Price per ticket
-      tier1: { amount: 300, threshold: 40, color: "bg-yellow-500" },
-      tier2: { amount: 500, threshold: 60, color: "bg-green-500" },
-      tier3: { amount: 800, threshold: 100, color: "bg-blue-500" },
-      ticketsSold: 0,
-      totalTickets: 100,
-      rating: 4.9,
-      requirements: ["Acoustic preferred", "PA system"],
-      image: "/images/Alfreds.jpg",
-      bands: [
-        { id: "5", name: "Jazz Ensemble", genre: "Jazz", setTime: "8 PM", percentage: 100, email: "jazz@example.com", guarantee: 300 }
-      ]
-    },
-  ], [])
+    []
+  )
 
-  const myBookings = useMemo((): Booking[] => {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+  // Check authentication on client side
+  useEffect(() => {
+    if (!isClient) return
     
-    return [
-      {
-        id: 1,
-        location: "muggys", // Use standardized location key
-        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
-        time: "8 PM doors",
-        status: "confirmed",
-        ticketsSold: 50,
-        totalTickets: 75,
-        earnings: 400,
-        image: "/images/MUGS.jpeg",
-      },
-      {
-        id: 2,
-        location: "sarbez", // Use standardized location key
-        date: `${currentYear}-${String(currentMonth - 1).padStart(2, '0')}-28`,
-        time: "7 PM",
-        status: "completed",
-        ticketsSold: 45,
-        totalTickets: 60,
-        earnings: 350,
-        image: "/images/SARBEZ.jpg",
-      },
-    ];
-  }, [])
+    const currentUser = authUtils.getCurrentUser()
+    if (!currentUser?.email) {
+      const token = authUtils.getAuthToken()
+      if (!token || token.length < 10 || !token.includes('.')) {
+        window.location.href = '/'
+        return
+      }
+    }
+  }, [isClient])
+
+  // Fetch real gigs from API
+  const [gigs, setGigs] = useState<GigProfile[]>([]);
+  const [gigsLoading, setGigsLoading] = useState(true);
+  const [gigsError, setGigsError] = useState<string | null>(null);
+
+  // Fetch gigs for the current artist
+  useEffect(() => {
+    const fetchArtistGigs = async () => {
+      if (!isClient) return;
+      
+      try {
+        setGigsLoading(true);
+        const currentUser = authUtils.getCurrentUser();
+        if (!currentUser?.email) {
+          setGigsError('No user email found');
+          return;
+        }
+
+        const response = await gigApi.getGigsByArtist(currentUser.email);
+        if (response.success && response.data) {
+          setGigs(response.data);
+        } else {
+          setGigsError(response.error || 'Failed to load gigs');
+        }
+      } catch (err) {
+        console.error('Error fetching artist gigs:', err);
+        setGigsError('Failed to load gigs');
+      } finally {
+        setGigsLoading(false);
+      }
+    };
+
+    fetchArtistGigs();
+  }, [isClient]);
+
+  // Listen for real-time gig updates and refresh data
+  useEffect(() => {
+    if (gigUpdates.length > 0) {
+      const latestUpdate = gigUpdates[0];
+      if (latestUpdate.updateType === 'created') {
+        // Refresh gigs when a new gig is created
+        const fetchArtistGigs = async () => {
+          try {
+            const currentUser = authUtils.getCurrentUser();
+            if (!currentUser?.email) return;
+
+            const response = await gigApi.getGigsByArtist(currentUser.email);
+            if (response.success && response.data) {
+              setGigs(response.data);
+            }
+          } catch (err) {
+            console.error('Error refreshing artist gigs:', err);
+          }
+        };
+
+        fetchArtistGigs();
+      }
+    }
+  }, [gigUpdates]);
+
+  // Transform real gigs data to match the expected format
+  const transformedGigs = useMemo((): Gig[] => {
+    return gigs.map((gig, index) => ({
+      id: index + 1,
+      location: gig.selectedLocation?.name || "Unknown Venue",
+      address: gig.selectedLocation?.address || "Address TBA",
+      date: new Date(gig.eventDate).toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      }),
+      time: gig.eventTime,
+      genre: gig.eventGenre,
+      guarantee: gig.guarantee,
+      ticketPrice: gig.ticketPrice,
+      tier1: { amount: gig.bonusTiers?.tier1?.amount || 0, threshold: gig.bonusTiers?.tier1?.threshold || 25, color: gig.bonusTiers?.tier1?.color || "bg-yellow-500" },
+      tier2: { amount: gig.bonusTiers?.tier2?.amount || 0, threshold: gig.bonusTiers?.tier2?.threshold || 50, color: gig.bonusTiers?.tier2?.color || "bg-green-500" },
+      tier3: { amount: gig.bonusTiers?.tier3?.amount || 0, threshold: gig.bonusTiers?.tier3?.threshold || 75, color: gig.bonusTiers?.tier3?.color || "bg-blue-500" },
+      ticketsSold: gig.ticketsSold,
+      totalTickets: gig.ticketCapacity,
+      rating: gig.rating || 0,
+      requirements: gig.requirements?.map(req => req.text) || [],
+      image: gig.image || "/images/venu-logo.png",
+      bands: gig.bands?.map((band, bandIndex) => ({
+        id: bandIndex.toString(),
+        name: band.name,
+        genre: band.genre,
+        setTime: band.setTime,
+        percentage: band.percentage,
+        email: band.email,
+        guarantee: 0 // Default guarantee for display
+      })) || []
+    }));
+  }, [gigs])
+
+  // Transform real gigs into bookings for the schedule
+  const myBookings = useMemo((): Booking[] => {
+    const currentUser = authUtils.getCurrentUser();
+    if (!currentUser?.email) return [];
+
+    return gigs.map((gig, index) => {
+      // Find the artist's band info
+      const artistBand = gig.bands?.find(band => 
+        band.email.toLowerCase() === currentUser.email.toLowerCase()
+      );
+
+      // Determine event status based on new requirements:
+      // PAST: event before today
+      // COMPLETED: bands.length === numberOfBands
+      // NEEDS BAND: bands.length < numberOfBands
+      // PENDING CONFIRMATION: gig status is pending-confirmation
+      const eventDate = new Date(gig.eventDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+      eventDate.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+      
+      let status: "confirmed" | "pending" | "completed" | "awaiting-confirmation" = "pending";
+      
+      if (eventDate < today) {
+        // PAST event: event before today
+        status = "completed";
+      } else if ((gig as unknown as Gig & { status?: string }).status === 'pending-confirmation') {
+        // PENDING CONFIRMATION: gig requires band confirmation
+        status = "awaiting-confirmation";
+      } else if (gig.bands.length === gig.numberOfBands) {
+        // COMPLETED event: number of bands equals expected bands
+        status = "confirmed";
+      } else {
+        // NEEDS BAND event: still needs more bands
+        status = "pending";
+      }
+
+      return {
+        id: index + 1,
+        location: gig.selectedLocation?.name || "Unknown Venue",
+        date: gig.eventDate,
+        time: gig.eventTime,
+        status: status,
+        ticketsSold: gig.ticketsSold,
+        totalTickets: gig.ticketCapacity,
+        earnings: gig.ticketsSold * gig.ticketPrice * (artistBand?.percentage || 0) / 100,
+        image: gig.image || "/images/venu-logo.png",
+        gigId: gig._id,
+        eventName: gig.eventName,
+        genre: gig.eventGenre,
+        artistSetTime: artistBand?.setTime || "",
+        artistPercentage: artistBand?.percentage || 0,
+        artistGuarantee: 0, // Default guarantee
+        isPast: eventDate < today,
+        // Add band count information for display
+        confirmedBands: gig.bands.length,
+        expectedBands: gig.numberOfBands
+      };
+    });
+  }, [gigs])
 
   // const calculateProgress = useCallback((sold: number, total: number) => (sold / total) * 100, [])
 
@@ -452,11 +1075,12 @@ export function ArtistDashboard() {
 
   // Memoize bonus tier calculations for each gig to prevent unnecessary recalculations
   const gigBonusTiers = useMemo(() => {
-    return mockGigs.reduce((acc, gig) => {
+    return transformedGigs.reduce((acc, gig) => {
       acc[gig.id] = getGigBonusTiers(gig)
       return acc
     }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>)
-  }, [mockGigs, getGigBonusTiers])
+  }, [transformedGigs, getGigBonusTiers])
+
 
   // Remove unused getCurrentTier function
   // const getCurrentTier = useCallback((gig: Gig) => {
@@ -473,7 +1097,81 @@ export function ArtistDashboard() {
   //   return { amount: gig.guarantee, threshold: 0, color: "bg-gray-500", name: "Guarantee" }
   // }, [gigBonusTiers])
 
-  // Calendar navigation functions - optimized with useCallback
+  // Filter bookings based on selected filter - optimized memoization
+  const filteredBookings = useMemo(() => {
+    if (scheduleFilter === "all") return myBookings
+    
+    const filtered = myBookings.filter(booking => {
+      switch (scheduleFilter) {
+        case "confirmed":
+          return booking.status === "confirmed"
+        case "needs-band":
+          return booking.status === "pending" || booking.status === "awaiting-confirmation"
+        case "past":
+          return booking.status === "completed" || booking.isPast === true
+        default:
+          return true
+      }
+    })
+    
+    return filtered
+  }, [myBookings, scheduleFilter])
+
+  // Memoize calendar data calculations
+  const calendarData = useMemo(() => {
+    const todayDate = new Date()
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    
+    // Pre-calculate booking lookup map for O(1) access
+    const bookingMap = new Map<string, Booking>()
+    filteredBookings.forEach(booking => {
+      const bookingDate = new Date(booking.date)
+      const key = `${bookingDate.getDate()}-${bookingDate.getMonth()}-${bookingDate.getFullYear()}`
+      bookingMap.set(key, booking)
+    })
+    
+    return {
+      todayDate,
+      currentMonth,
+      currentYear,
+      bookingMap,
+      daysInMonth: new Date(currentYear, currentMonth + 1, 0).getDate()
+    }
+  }, [currentDate, filteredBookings])
+
+  // Memoize calendar days generation
+  const calendarDays = useMemo(() => {
+    const firstDayOfMonth = new Date(calendarData.currentYear, calendarData.currentMonth, 1).getDay()
+    
+    // Generate 35 days to fill a 5x7 grid
+    return Array.from({ length: 35 }, (_, i) => {
+      const day = i - firstDayOfMonth + 1
+      const key = `${day}-${calendarData.currentMonth}-${calendarData.currentYear}`
+      const bookingOnDate = calendarData.bookingMap.get(key)
+      
+      // For schedule filters, only show dates that match the filter
+      let shouldShowDate = true
+      if (scheduleFilter !== "all") {
+        if (scheduleFilter === "confirmed") {
+          // COMPLETED events: bands.length === numberOfBands
+          shouldShowDate = bookingOnDate?.status === "confirmed"
+        } else if (scheduleFilter === "needs-band") {
+          // NEEDS BAND events: bands.length < numberOfBands or awaiting confirmation
+          shouldShowDate = bookingOnDate?.status === "pending" || bookingOnDate?.status === "awaiting-confirmation"
+        } else if (scheduleFilter === "past") {
+          // PAST events: event before today
+          shouldShowDate = bookingOnDate?.status === "completed"
+        }
+      }
+      
+      return {
+        day,
+        bookingOnDate: shouldShowDate ? bookingOnDate : undefined,
+        shouldShowDate
+      }
+    })
+  }, [calendarData.currentYear, calendarData.currentMonth, calendarData.bookingMap, scheduleFilter])
   const goToPreviousMonth = useCallback(() => {
     setCurrentDate(prevDate => {
       const newDate = new Date(prevDate)
@@ -494,25 +1192,50 @@ export function ArtistDashboard() {
     setCurrentDate(new Date())
   }, [])
 
-  // Toggle date availability - optimized with useCallback
+  // Simple date availability toggle with localStorage persistence
   const toggleDateAvailability = useCallback((dateString: string) => {
-    setUnavailableDates(prevDates => {
-      let newDates: string[]
-      if (prevDates.includes(dateString)) {
-        // Remove from unavailable dates (make available)
-        newDates = prevDates.filter(date => date !== dateString)
-      } else {
-        // Add to unavailable dates (make unavailable)
-        newDates = [...prevDates, dateString]
-      }
+      const isAvailable = availableDates.includes(dateString)
+      const isUnavailable = unavailableDates.includes(dateString)
       
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('artist-unavailable-dates', JSON.stringify(newDates))
+    // Batch state updates to prevent multiple re-renders
+    startTransition(() => {
+      if (!isAvailable && !isUnavailable) {
+        // Currently blank → make available
+        setAvailableDates(prevDates => {
+          const newDates = [...prevDates, dateString]
+          debouncedLocalStorageSave('artist-available-dates', newDates)
+          return newDates
+        })
+      } else if (isAvailable && !isUnavailable) {
+        // Currently available → make unavailable
+        setAvailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-available-dates', newDates)
+          return newDates
+        })
+        setUnavailableDates(prevDates => {
+          const newDates = [...prevDates, dateString]
+          debouncedLocalStorageSave('artist-unavailable-dates', newDates)
+          return newDates
+        })
+      } else if (!isAvailable && isUnavailable) {
+        // Currently unavailable → make blank
+        setUnavailableDates(prevDates => {
+          const newDates = prevDates.filter(date => date !== dateString)
+          debouncedLocalStorageSave('artist-unavailable-dates', newDates)
+          return newDates
+        })
       }
-      
-      return newDates
     })
+  }, [availableDates, unavailableDates, startTransition, debouncedLocalStorageSave])
+
+  // Function to clear all availability data
+  const clearAllAvailabilityData = useCallback(() => {
+    setAvailableDates([])
+    setUnavailableDates([])
+    localStorage.removeItem('artist-available-dates')
+    localStorage.removeItem('artist-unavailable-dates')
+    console.log('Cleared all availability data')
   }, [])
 
   // Optimized tab change handler with useTransition
@@ -534,58 +1257,131 @@ export function ArtistDashboard() {
     sendGigUpdate(gigId, "status-changed", gigData)
   }, [sendGigUpdate])
 
-  // Filter bookings based on selected filter - optimized memoization
-  const filteredBookings = useMemo(() => {
-    if (scheduleFilter === "all") return myBookings
+  // Memoized notification counts to prevent expensive filtering on every render
+  const notificationCounts = useMemo(() => {
+    const bookingRequests = (notifications || []).filter(n => n.type === 'booking-request' && !n.read).length
+    const gigConfirmations = (notifications || []).filter(n => n.type === 'gig-confirmation-required' && !n.read).length
+    const messages = (notifications || []).filter(n => n.type === 'message' && !n.read).length
+    const newGigs = gigUpdates.filter(u => u.updateType === 'created').length
     
-    return myBookings.filter(booking => {
-      switch (scheduleFilter) {
-        case "confirmed":
-          return booking.status === "confirmed"
-        case "completed":
-          return booking.status === "completed"
-        case "upcoming":
-          return booking.status === "confirmed" && new Date(booking.date) > new Date()
-        default:
-          return true
-      }
-    })
-  }, [myBookings, scheduleFilter])
-
-  if (selectedGig) {
-    const gig = mockGigs.find(g => g.id.toString() === selectedGig)
-    if (gig) {
-      // Transform the data structure to match GigDetails interface - memoized
-      const transformedGig = useMemo(() => ({
-        id: gig.id,
-        location: gig.location,
-        date: gig.date,
-        time: gig.time,
-        genre: gig.genre,
-        guarantee: gig.guarantee,
-        tiers: [
-          { threshold: gig.tier1.threshold, amount: gig.tier1.amount, label: `${gig.tier1.threshold} tickets = $${gig.tier1.amount}`, color: gig.tier1.color },
-          { threshold: gig.tier2.threshold, amount: gig.tier2.amount, label: `${gig.tier2.threshold} tickets = $${gig.tier2.amount}`, color: gig.tier2.color },
-          { threshold: gig.tier3.threshold, amount: gig.tier3.amount, label: `${gig.tier3.threshold} tickets = $${gig.tier3.amount}`, color: gig.tier3.color },
-        ],
-        ticketsSold: gig.ticketsSold,
-        totalTickets: gig.totalTickets,
-        rating: gig.rating,
-        reviews: 127, // Default value
-        checklist: gig.requirements.map((req, index) => ({
-          id: index + 1,
-          item: req,
-          completed: true,
-          type: "location" as const
-        }))
-      }), [gig])
-      
-      return <GigDetails gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
+    return {
+      bookingRequests: bookingRequests + gigConfirmations, // Include both booking requests and gig confirmations
+      gigConfirmations,
+      messages,
+      newGigs,
+      totalUpdates: gigUpdates.length
     }
+  }, [notifications, gigUpdates])
+
+  // Transform the data structure to match GigDetails interface - memoized
+  const transformedGig = useMemo((): GigProfile | null => {
+    if (!selectedGig) return null
+    const gig = transformedGigs.find(g => g.id.toString() === selectedGig)
+    if (!gig) return null
+    
+    return {
+      _id: gig.id.toString(),
+      eventName: `${getLocationDisplayName(gig.location)} - ${gig.genre} Night`,
+      eventDate: gig.date,
+      eventTime: gig.time,
+      eventGenre: gig.genre,
+      ticketCapacity: gig.totalTickets,
+      ticketPrice: gig.ticketPrice,
+      doorPersonEmail: "door@example.com",
+      bands: [],
+      guarantee: gig.guarantee,
+      numberOfBands: 1,
+      ticketsSold: gig.ticketsSold,
+      selectedLocation: {
+        _id: gig.location,
+        name: getLocationDisplayName(gig.location),
+        address: gig.address,
+        city: "St. Augustine",
+        state: "FL",
+        zipCode: "32084",
+        country: "USA",
+        capacity: gig.totalTickets,
+        description: "Great venue for live music",
+        amenities: ["PA System", "Lighting", "Stage"],
+        contactPerson: "Venue Manager",
+        contactEmail: "info@example.com",
+        contactPhone: "+1 (555) 123-4567",
+        images: [],
+        rating: 4.5,
+        tags: ["music", "venue", "live"],
+        isActive: true,
+        createdBy: "system",
+        authorizedPromoters: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      selectedPromoter: {
+        _id: "promoter-1",
+        firstName: "John",
+        lastName: "Promoter",
+        email: "john@example.com",
+        phone: "+1 (555) 987-6543",
+        role: "promoter",
+        isVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      promoterEmail: "john@example.com",
+      requirements: gig.requirements.map(req => ({ text: req, checked: true })),
+      bonusTiers: {
+        tier1: { amount: gig.tier1.amount, threshold: gig.tier1.threshold, color: gig.tier1.color },
+        tier2: { amount: gig.tier2.amount, threshold: gig.tier2.threshold, color: gig.tier2.color },
+        tier3: { amount: gig.tier3.amount, threshold: gig.tier3.threshold, color: gig.tier3.color }
+      },
+      status: "live" as const,
+      rating: gig.rating,
+      tags: [gig.genre, "live music"],
+      image: gig.image || "/images/venu-logo.png",
+      createdBy: "system",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  }, [selectedGig, transformedGigs])
+
+  // Artist stats cards - memoized for performance
+  const artistStatsCards = useMemo(() => {
+    // Calculate metrics from myBookings data
+    const totalGigs = myBookings.length
+    const upcomingGigs = myBookings.filter(booking => booking.status === "confirmed" && !booking.isPast).length
+    const totalEarnings = myBookings.reduce((sum, booking) => sum + booking.earnings, 0)
+    const bookingRate = totalGigs > 0 ? Math.round((upcomingGigs / totalGigs) * 100) : 0
+
+    return [
+      {
+        title: "Total Gigs",
+        value: totalGigs,
+        color: "text-purple-600"
+      },
+      {
+        title: "Upcoming Gigs",
+        value: upcomingGigs,
+        color: "text-green-600"
+      },
+      {
+        title: "Total Earnings",
+        value: `$${totalEarnings.toLocaleString()}`,
+        color: "text-orange-600"
+      },
+      {
+        title: "Booking Rate",
+        value: `${bookingRate}%`,
+        color: "text-blue-600"
+      }
+    ]
+  }, [myBookings])
+
+  if (selectedGig && transformedGig) {
+    return <GigDetailsLazy gigId={selectedGig} onBack={() => setSelectedGig(null)} gigData={transformedGig} />
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PerformanceErrorBoundary componentName="ArtistDashboard">
+      <div className="min-h-screen bg-background">
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mx-4 mt-4">
@@ -606,25 +1402,18 @@ export function ArtistDashboard() {
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Image 
-                src={artistProfileImage || "/images/venu-logo.png"} 
-                alt="Artist Profile" 
-                width={56} 
-                height={56} 
-                className="rounded-full object-cover w-14 h-14"
-              />
+          <div className="flex items-center gap-4">
+            <div>
+              <span className="font-serif font-bold text-xl">
+                {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
+              </span>
+              {isPending && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span>Loading...</span>
+                </div>
+              )}
             </div>
-            <span className="font-serif font-bold text-xl">
-              {isClient && artistName ? `${artistName}'s Dashboard` : 'Artist Dashboard'}
-            </span>
-            {isPending && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span>Loading...</span>
-              </div>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
@@ -636,7 +1425,13 @@ export function ArtistDashboard() {
             {/* Real-time gig updates for booking confirmations */}
             <RealTimeGigUpdates locationId="artist-dashboard" />
             {/* Real-time notifications */}
-            <RealTimeNotifications />
+            <RealTimeNotifications 
+              notifications={notifications}
+              unreadCount={(notifications || []).filter(n => !n.read).length}
+              isConnected={realTimeConnected}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
             {/* Logout button */}
             <Button 
               variant="outline" 
@@ -657,6 +1452,20 @@ export function ArtistDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Artist Stats Cards */}
+      {artistStatsCards && (
+        <div className="p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {artistStatsCards.map((card, index) => (
+              <Card key={index} className="p-4 text-center">
+                <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
+                <div className="text-sm text-muted-foreground">{card.title}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -715,16 +1524,29 @@ export function ArtistDashboard() {
                 Filter
               </Button>
               {/* Real-time new gig opportunities indicator */}
-              {gigUpdates.filter(u => u.updateType === 'created').length > 0 && (
+              {notificationCounts.newGigs > 0 && (
                 <Badge variant="default" className="bg-orange-600 text-white">
-                  {gigUpdates.filter(u => u.updateType === 'created').length} new gig{gigUpdates.filter(u => u.updateType === 'created').length !== 1 ? 's' : ''}
+                  {notificationCounts.newGigs} new gig{notificationCounts.newGigs !== 1 ? 's' : ''}
                 </Badge>
               )}
             </div>
           </div>
 
           <div className="space-y-4">
-            {mockGigs.map((gig) => (
+            {gigsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">Loading gigs...</div>
+              </div>
+            ) : gigsError ? (
+              <div className="text-center py-8">
+                <div className="text-red-600">Error loading gigs: {gigsError}</div>
+              </div>
+            ) : transformedGigs.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">No gigs found. When locations post gigs with your email, they&apos;ll appear here.</div>
+              </div>
+            ) : (
+              transformedGigs.map((gig) => (
               <GigCard
                 key={gig.id}
                 gig={gig}
@@ -732,7 +1554,8 @@ export function ArtistDashboard() {
                 onSelectGig={handleGigSelect}
                 onBookGig={handleGigBook}
               />
-            ))}
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -741,9 +1564,15 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Schedule</h2>
             {/* Real-time booking confirmations indicator */}
-            {notifications.filter(n => n.type === 'booking-request' && !n.read).length > 0 && (
+            {notificationCounts.bookingRequests > 0 && (
               <Badge variant="default" className="bg-green-600 text-white">
-                {notifications.filter(n => n.type === 'booking-request' && !n.read).length} new booking{notifications.filter(n => n.type === 'booking-request' && !n.read).length !== 1 ? 's' : ''}
+                {notificationCounts.bookingRequests} new booking{notificationCounts.bookingRequests !== 1 ? 's' : ''}
+              </Badge>
+            )}
+            {/* Gig confirmation notifications indicator */}
+            {notificationCounts.gigConfirmations > 0 && (
+              <Badge variant="default" className="bg-orange-600 text-white">
+                {notificationCounts.gigConfirmations} confirmation{notificationCounts.gigConfirmations !== 1 ? 's' : ''} needed
               </Badge>
             )}
           </div>
@@ -778,7 +1607,7 @@ export function ArtistDashboard() {
               onClick={() => setScheduleFilter("all")}
               className={`whitespace-nowrap ${scheduleFilter === "all" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}`}
             >
-              All Bookings
+              All Shows
             </Button>
             <Button 
               variant={scheduleFilter === "confirmed" ? "default" : "outline"} 
@@ -787,25 +1616,25 @@ export function ArtistDashboard() {
               className={`whitespace-nowrap ${scheduleFilter === "confirmed" ? "bg-green-600 hover:bg-green-700 text-white" : "border-green-200 text-green-700 hover:bg-green-50"}`}
             >
               <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-              Confirmed
+              Confirmed Shows
             </Button>
             <Button 
-              variant={scheduleFilter === "completed" ? "default" : "outline"} 
+              variant={scheduleFilter === "needs-band" ? "default" : "outline"} 
               size="sm"
-              onClick={() => setScheduleFilter("completed")}
-              className={`whitespace-nowrap ${scheduleFilter === "completed" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
+              onClick={() => setScheduleFilter("needs-band")}
+              className={`whitespace-nowrap ${scheduleFilter === "needs-band" ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "border-yellow-200 text-yellow-700 hover:bg-yellow-50"}`}
+            >
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+              Needs Band
+            </Button>
+            <Button 
+              variant={scheduleFilter === "past" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setScheduleFilter("past")}
+              className={`whitespace-nowrap ${scheduleFilter === "past" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-200 text-blue-700 hover:bg-blue-50"}`}
             >
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-              Completed
-            </Button>
-            <Button 
-              variant={scheduleFilter === "upcoming" ? "default" : "outline"} 
-              size="sm"
-              onClick={() => setScheduleFilter("upcoming")}
-              className={`whitespace-nowrap ${scheduleFilter === "upcoming" ? "bg-orange-600 hover:bg-orange-700 text-white" : "border-orange-200 text-orange-700 hover:bg-orange-50"}`}
-            >
-              <div className="w-2 h-2 bg-orange-500 rounded-full mr-1"></div>
-              Upcoming
+              Past
             </Button>
           </div>
 
@@ -844,27 +1673,49 @@ export function ArtistDashboard() {
           {scheduleSubcategory === "list" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg text-foreground">My Bookings</h3>
+                <h3 className="font-semibold text-lg text-foreground">My Shows</h3>
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredBookings.length} of {myBookings.length} bookings
+                  {gigsLoading ? "Loading..." : `Showing ${filteredBookings.length} of ${myBookings.length} shows`}
                 </div>
               </div>
 
+              {gigsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">Loading your shows...</div>
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground">No shows found. When locations post gigs with your email, they&apos;ll appear here.</div>
+                </div>
+              ) : (
+                <>
               {/* Color Key Legend for List View */}
               <Card className="p-4 bg-card border-border">
-                <h4 className="font-medium text-foreground mb-3">Booking Status Legend</h4>
+                    <h4 className="font-medium text-foreground mb-3">Show Status Legend</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
-                    <span className="text-muted-foreground">Confirmed</span>
+                        <span className="text-muted-foreground">Confirmed Shows</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        </div>
+                        <span className="text-muted-foreground">Needs Band</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">Awaiting Confirmation</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     </div>
-                    <span className="text-muted-foreground">Completed</span>
+                        <span className="text-muted-foreground">Past Shows</span>
                   </div>
                 </div>
               </Card>
@@ -874,12 +1725,18 @@ export function ArtistDashboard() {
                   <Card key={booking.id} className={`p-4 bg-card ${
                     booking.status === "confirmed" 
                       ? 'border-green-200 border-2' 
-                      : 'border-blue-200 border-2'
+                           : booking.status === "pending"
+                           ? 'border-yellow-200 border-2'
+                           : booking.status === "awaiting-confirmation"
+                           ? 'border-orange-200 border-2'
+                           : booking.isPast
+                           ? 'border-blue-200 border-2'
+                           : 'border-gray-200 border-2'
                   }`}>
                     <div className="flex items-start gap-4">
                       <Image
                         src={booking.image || "/images/venu-logo.png"}
-                        alt={booking.location}
+                            alt={booking.eventName || "Show"}
                         width={80}
                         height={80}
                         className="rounded-lg object-cover"
@@ -888,7 +1745,7 @@ export function ArtistDashboard() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-semibold text-foreground">{getLocationDisplayName(booking.location)}</h3>
+                                <h3 className="font-semibold text-foreground">{booking.eventName || getLocationDisplayName(booking.location)}</h3>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="w-4 h-4" />
                               {new Date(booking.date).toLocaleDateString('en-US', { 
@@ -896,13 +1753,40 @@ export function ArtistDashboard() {
                                 month: 'short', 
                                 day: 'numeric' 
                               })} • {booking.time}
+                                  {booking.artistSetTime && (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                      Set: {booking.artistSetTime}
+                                    </span>
+                                  )}
                             </div>
+                                {booking.genre && (
+                                  <div className="text-sm text-muted-foreground">
+                                    Genre: {booking.genre}
+                                  </div>
+                                )}
                           </div>
                           <Badge 
                             variant={booking.status === "confirmed" ? "default" : "secondary"}
-                            className={booking.status === "confirmed" ? "bg-green-600" : "bg-blue-600"}
-                          >
-                            {booking.status}
+                                 className={
+                                   booking.status === "confirmed" 
+                                     ? "bg-green-600" 
+                                     : booking.status === "pending"
+                                     ? "bg-yellow-600"
+                                     : booking.isPast
+                                     ? "bg-blue-600"
+                                     : "bg-gray-600"
+                                 }
+                               >
+                                 {booking.status === "confirmed" 
+                                   ? "Confirmed" 
+                                   : booking.status === "pending"
+                                   ? "Needs Band"
+                                   : booking.status === "completed"
+                                   ? "Past Show"
+                                   : booking.isPast
+                                   ? "Past Show"
+                                   : booking.status
+                                 }
                           </Badge>
                         </div>
 
@@ -911,12 +1795,27 @@ export function ArtistDashboard() {
                           {booking.status === "confirmed" ? (
                             <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              Upcoming Performance
+                                   Confirmed Show
                             </div>
-                          ) : (
+                               ) : booking.status === "awaiting-confirmation" ? (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                   Awaiting Band Confirmation
+                                 </div>
+                               ) : booking.status === "pending" ? (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                   Needs Band
+                                 </div>
+                               ) : booking.status === "completed" || booking.isPast ? (
                             <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              Performance Completed
+                                   Past Show
+                                 </div>
+                               ) : (
+                                 <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                   <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                   {booking.status}
                             </div>
                           )}
                         </div>
@@ -929,17 +1828,27 @@ export function ArtistDashboard() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Earnings:</span>
+                                <span className="text-muted-foreground">Your Earnings:</span>
                             <div className="font-medium text-green-400">${booking.earnings}</div>
+                                {booking.artistPercentage && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {booking.artistPercentage}% of revenue
+                                  </div>
+                                )}
                           </div>
                         </div>
 
                         <div className="flex gap-2 pt-2">
-                          <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="w-28 bg-purple-600 hover:bg-purple-700 text-white"
+                            onClick={() => {
+                              setSelectedBookingForModal(booking)
+                              setShowEventDetailsModal(true)
+                            }}
+                          >
                             View Details
-                          </Button>
-                          <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
-                            Manage
                           </Button>
                         </div>
                       </div>
@@ -947,6 +1856,8 @@ export function ArtistDashboard() {
                   </Card>
                 ))}
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -959,9 +1870,9 @@ export function ArtistDashboard() {
                   {availabilityFilter === "unavailable" 
                     ? `Showing ${unavailableDates.length} unavailable dates`
                     : availabilityFilter === "available"
-                    ? `Showing available dates`
+                    ? `Showing ${availableDates.length} available dates`
                     : availabilityFilter === "all"
-                    ? `Showing all dates (available and unavailable)`
+                    ? `Showing all dates (${availableDates.length} available, ${unavailableDates.length} unavailable)`
                     : `Showing ${filteredBookings.length} of ${myBookings.length} bookings`
                   }
                 </div>
@@ -1004,7 +1915,7 @@ export function ArtistDashboard() {
                     {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Click on available dates to mark them as unavailable
+                    Click on blank dates to cycle through: blank → available → unavailable → blank
                   </p>
                 </div>
                 
@@ -1018,135 +1929,21 @@ export function ArtistDashboard() {
                 
                 <div className="grid grid-cols-7 gap-1">
                   {/* Generate calendar days for current month */}
-                  {Array.from({ length: 35 }, (_, i) => {
-                    const day = i - 3; // Start from previous month to fill first week
-                    const today = new Date();
-                    const currentMonth = currentDate.getMonth();
-                    const currentYear = currentDate.getFullYear();
-                    
-                    // Check if this date has a booking (considering filter)
-                    const bookingOnDate = filteredBookings.find(booking => {
-                      const bookingDate = new Date(booking.date);
-                      return bookingDate.getDate() === day && 
-                             bookingDate.getMonth() === currentMonth && 
-                             bookingDate.getFullYear() === currentYear;
-                    });
-                    
-                    // Check if date is unavailable
-                    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const isUnavailable = unavailableDates.includes(dateString);
-                    
-                    // Check if date is in the past
-                    const isPast = day < 1 || (day < today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-                    
-                    // Check if date is today
-                    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-                    
-                    // Check if date is in current month
-                    const isCurrentMonth = day >= 1 && day <= new Date(currentYear, currentMonth + 1, 0).getDate();
-                    
-                    // For unavailable filter, only show unavailable days
-                    if (availabilityFilter === "unavailable" && !isUnavailable) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    // For available filter, only show available days (no bookings, not unavailable, not past)
-                    if (availabilityFilter === "available" && (bookingOnDate || isUnavailable || isPast)) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    if (!isCurrentMonth) {
-                      return <div key={i} className="h-20 bg-muted/20 rounded-lg"></div>;
-                    }
-                    
-                    return (
-                      <div 
-                        key={i} 
-                        onClick={() => {
-                          // Only allow toggling availability for future dates that don't have bookings
-                          if (!isPast && !bookingOnDate) {
-                            toggleDateAvailability(dateString)
-                          }
-                        }}
-                        className={`h-20 p-2 rounded-lg border transition-all duration-200 ${
-                          !isPast && !bookingOnDate 
-                            ? 'cursor-pointer hover:shadow-md' 
-                            : 'cursor-default'
-                        } ${
-                          isToday 
-                            ? 'bg-purple-600 border-purple-600 shadow-md' 
-                            : isUnavailable
-                            ? availabilityFilter === "unavailable"
-                              ? 'bg-red-50 border-red-300 shadow-md' 
-                              : 'bg-white border-red-200'
-                            : bookingOnDate && bookingOnDate.status === "confirmed"
-                            ? 'bg-white border-green-200' 
-                            : bookingOnDate && bookingOnDate.status === "completed"
-                            ? 'bg-white border-blue-200'
-                            : isPast 
-                            ? 'bg-white border-muted' 
-                            : 'bg-white border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className={`text-sm font-medium mb-1 relative z-10 ${
-                          isToday 
-                            ? 'text-white' 
-                            : isUnavailable
-                            ? availabilityFilter === "unavailable"
-                              ? 'text-red-700 font-bold'
-                              : 'text-red-600'
-                            : bookingOnDate && bookingOnDate.status === "confirmed"
-                            ? 'text-green-600' 
-                            : bookingOnDate && bookingOnDate.status === "completed"
-                            ? 'text-blue-600'
-                            : isPast 
-                            ? 'text-muted-foreground' 
-                            : 'text-gray-900 font-semibold'
-                        }`}>
-                          {day}
-                        </div>
-                        
-                        {bookingOnDate && (
-                          <div className="space-y-1 max-h-12 overflow-hidden">
-                            <div 
-                              className={`text-xs p-1 rounded truncate ${
-                                bookingOnDate.status === "confirmed"
-                                  ? 'bg-green-200 text-green-800' 
-                                  : 'bg-blue-200 text-blue-800'
-                              }`}
-                            >
-                              <div className="font-medium truncate" title={getLocationDisplayName(bookingOnDate.location)}>
-                                {getLocationDisplayName(bookingOnDate.location)}
-                              </div>
-                              <div className="text-xs font-bold mt-0.5 truncate">
-                                {bookingOnDate.status === "confirmed" ? "Confirmed" : "Completed"}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {!bookingOnDate && !isPast && !isUnavailable && (
-                          <div className={`text-xs mt-1 font-medium ${
-                            isToday ? 'text-white' : 'text-gray-600'
-                          }`}>
-                            Available
-                          </div>
-                        )}
-                        
-                        {!bookingOnDate && !isPast && isUnavailable && (
-                          <div className={`text-xs mt-2 font-medium ${
-                            isToday 
-                              ? 'text-white'
-                              : availabilityFilter === "unavailable"
-                              ? 'text-red-700 font-bold'
-                              : 'text-red-600'
-                          }`}>
-                            Unavailable
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {calendarDays.map(({ day, bookingOnDate, shouldShowDate }, i) => (
+                    <CalendarDay
+                      key={i}
+                      day={day}
+                      currentMonth={calendarData.currentMonth}
+                      currentYear={calendarData.currentYear}
+                      today={calendarData.todayDate}
+                      bookingOnDate={bookingOnDate}
+                      availableDates={availableDates}
+                      unavailableDates={unavailableDates}
+                      availabilityFilter={availabilityFilter}
+                      onToggleAvailability={toggleDateAvailability}
+                      shouldShowDate={shouldShowDate}
+                    />
+                  ))}
                 </div>
               </Card>
 
@@ -1155,7 +1952,7 @@ export function ArtistDashboard() {
                 <div className="mb-3">
                   <h4 className="text-sm font-medium text-foreground mb-2">Calendar Legend</h4>
                   <p className="text-xs text-muted-foreground">
-                    Click on available dates (white with gray border) to toggle availability
+                    Click on blank dates to cycle through: blank → available → unavailable → blank
                   </p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -1168,20 +1965,28 @@ export function ArtistDashboard() {
                     <span className="text-green-600 font-medium">Confirmed</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-200 rounded"></div>
+                    <span className="text-orange-600 font-medium">Awaiting Confirmation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+                    <span className="text-yellow-600 font-medium">Needs Band</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-blue-200 rounded"></div>
                     <span className="text-blue-600 font-medium">Completed</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-200 rounded"></div>
-                    <span className="text-red-600 font-medium">Date Unavailable</span>
+                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                    <span className="text-green-600 font-medium">Available</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                    <span className="text-muted-foreground">Past</span>
+                    <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                    <span className="text-red-600 font-medium">Unavailable</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    <span className="text-black font-medium">Available (Clickable)</span>
+                    <span className="text-gray-600 font-medium">Blank (Clickable)</span>
                   </div>
                 </div>
               </Card>
@@ -1194,9 +1999,9 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">My Applications</h2>
             {/* Real-time application updates indicator */}
-            {gigUpdates.length > 0 && (
+            {notificationCounts.totalUpdates > 0 && (
               <Badge variant="default" className="bg-purple-600 text-white">
-                {gigUpdates.length} new update{gigUpdates.length !== 1 ? 's' : ''}
+                {notificationCounts.totalUpdates} new update{notificationCounts.totalUpdates !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -1261,9 +2066,9 @@ export function ArtistDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
             {/* Real-time new messages indicator */}
-            {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
+            {notificationCounts.messages > 0 && (
               <Badge variant="default" className="bg-blue-600 text-white">
-                {notifications.filter(n => n.type === 'message' && !n.read).length} new message{notifications.filter(n => n.type === 'message' && !n.read).length !== 1 ? 's' : ''}
+                {notificationCounts.messages} new message{notificationCounts.messages !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -1278,212 +2083,21 @@ export function ArtistDashboard() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="p-4 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-xl">Artist Profile</h2>
-            <Button
-              variant="default"
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <User className="w-4 h-4 mr-1" />
-              Edit Profile
-            </Button>
-          </div>
-
-          {/* Simplified Profile Display */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Profile Header */}
-            <div className="lg:col-span-3">
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-6">
-                    <div className="relative">
-                      <Image
-                        src="/images/BandFallBack.PNG"
-                        alt="The Midnight Keys"
-                        width={120}
-                        height={120}
-                        className="rounded-lg object-cover w-30 h-30"
-                      />
-                      <div className="absolute -bottom-2 -right-2">
-                        <Badge variant="default" className="bg-green-600 text-white text-xs">
-                          Available
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="text-2xl font-bold text-foreground">The Midnight Keys</h3>
-                        <p className="text-muted-foreground">Rock • Alternative</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">4.8 (127 reviews)</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-foreground leading-relaxed">
-                        A dynamic rock band known for high-energy performances and original compositions. 
-                        Available for bookings with flexible scheduling and professional sound requirements.
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          St. Augustine, FL
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          $200-400
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          1 hour sets
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Contact Information */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Contact
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="text-foreground">keys@example.com</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                  <p className="text-foreground">(555) 123-4567</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Instagram</Label>
-                  <p className="text-foreground">@midnightkeys</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Details */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Music className="w-5 h-5" />
-                  Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Set Length</Label>
-                  <p className="text-foreground">1 hour</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Equipment</Label>
-                  <p className="text-foreground">PA system, backline provided</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Sound Requirements</Label>
-                  <p className="text-foreground">2 vocal mics, DI box for acoustic</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Availability */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Availability
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Badge variant="default" className="bg-green-600 text-white">
-                    Available
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Preferred Days</Label>
-                  <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline" className="text-xs">Friday</Badge>
-                    <Badge variant="outline" className="text-xs">Saturday</Badge>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Lead Time</Label>
-                  <p className="text-foreground">1 week</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">12</div>
-                <div className="text-sm text-muted-foreground">Gigs This Year</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">$3,200</div>
-                <div className="text-sm text-muted-foreground">Total Earnings</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">4.8</div>
-                <div className="text-sm text-muted-foreground">Average Rating</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-foreground">85%</div>
-                <div className="text-sm text-muted-foreground">Booking Rate</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Activity */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Booking confirmed for Muggy's on Oct 12</p>
-                    <p className="text-xs text-muted-foreground">2 days ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Performance completed at Sarbez</p>
-                    <p className="text-xs text-muted-foreground">1 week ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Profile updated with new photos</p>
-                    <p className="text-xs text-muted-foreground">2 weeks ago</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileManagement
+            userType="artist"
+            initialData={{
+              firstName: artistName?.split(' ')[0] || "",
+              lastName: artistName?.split(' ').slice(1).join(' ') || "",
+              email: artistProfileData.email,
+              phone: artistProfileData.phone,
+              location: "St. Augustine, FL",
+              bio: "A dynamic rock band known for high-energy performances and original compositions. Available for bookings with flexible scheduling and professional sound requirements."
+            }}
+            onSave={(data) => {
+              console.log('Profile saved:', data)
+              // In a real implementation, you would save this to the backend
+            }}
+          />
         </TabsContent>
 
         {/* More Tab */}
@@ -1546,8 +2160,94 @@ export function ArtistDashboard() {
               </Card>
             </div>
           </div>
+
+          {/* Availability Management Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-foreground">Availability Management</h3>
+            <Card className="p-4 bg-card border-border">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-foreground">Current Availability Data</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Your availability preferences are automatically saved and will persist across sessions.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-100 border border-green-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {availableDates.length} Available Date{availableDates.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-100 border border-red-200 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {unavailableDates.length} Unavailable Date{unavailableDates.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border space-y-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearAllAvailabilityData}
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    Clear All Availability Data
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      console.log('Current availability data:', {
+                        availableDates,
+                        unavailableDates,
+                        localStorage: {
+                          available: localStorage.getItem('artist-available-dates'),
+                          unavailable: localStorage.getItem('artist-unavailable-dates')
+                        }
+                      })
+                      alert(`Current Data:\nAvailable: ${availableDates.length} dates\nUnavailable: ${unavailableDates.length} dates\n\nCheck console for details.`)
+                    }}
+                    className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                  >
+                    Debug Availability Data
+                  </Button>
+                  
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    This will remove all your saved availability preferences. Use with caution.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
-    </div>
+
+      {/* Artist Event Details Modal */}
+      <ArtistEventDetailsModal
+        booking={selectedBookingForModal}
+        isOpen={showEventDetailsModal}
+        onClose={() => setShowEventDetailsModal(false)}
+      />
+
+      {/* Band Confirmation Modal */}
+      <BandConfirmationModal
+        gig={selectedGigForConfirmation}
+        isOpen={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmationComplete}
+      />
+      </div>
+    </PerformanceErrorBoundary>
   )
 }

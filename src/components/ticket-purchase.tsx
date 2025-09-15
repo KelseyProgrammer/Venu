@@ -244,7 +244,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
             alt={event.artist}
             width={400}
             height={200}
-            className="w-full h-48 object-cover rounded-lg"
+            className="object-cover rounded-lg"
           />
           <div className="absolute top-4 left-4">
             <Badge className="bg-primary text-primary-foreground">{event.genre}</Badge>

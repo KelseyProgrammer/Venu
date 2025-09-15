@@ -123,7 +123,7 @@ export const authUtils = {
   /**
    * Get current user data from localStorage
    */
-  getCurrentUser(): { id: string; firstName: string; lastName: string; email: string; role: string; profileImage?: string } | null {
+  getCurrentUser(): { id: string; firstName: string; lastName: string; email: string; role: string } | null {
     if (typeof window === 'undefined') return null;
     
     try {
@@ -143,9 +143,8 @@ export const authUtils = {
             lastName: payload.lastName || payload.name?.split(' ')[1] || '',
             email: payload.email,
             role: payload.role,
-            profileImage: payload.profileImage
           };
-        } catch (tokenError) {
+        } catch {
           console.log('🔐 Invalid token format in getCurrentUser, clearing...');
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');

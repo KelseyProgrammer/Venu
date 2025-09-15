@@ -5,7 +5,6 @@ export interface IArtist extends Document {
   name: string;
   bio: string;
   genre: string[];
-  profileImage: string;
   
   // Contact & Social Media
   email: string;
@@ -41,6 +40,7 @@ export interface IArtist extends Document {
   
   // Calendar Integration
   unavailableDates?: Date[]; // Array of unavailable dates
+  availableDates?: Date[]; // Array of explicitly available dates
   preferredBookingDays?: string[]; // Preferred days for bookings
   bookingLeadTime?: string; // e.g., "1 week", "2 weeks"
   cancellationPolicy?: string; // Cancellation policy description
@@ -75,10 +75,6 @@ const artistSchema = new Schema<IArtist>({
     required: true,
     enum: ['Jazz', 'Rock', 'Electronic', 'Folk', 'Blues', 'Pop', 'Country', 'Hip Hop', 'Classical', 'Reggae', 'Punk', 'Alternative', 'Indie', 'Metal', 'R&B', 'Soul', 'Funk', 'World', 'Experimental'],
   }],
-  profileImage: {
-    type: String,
-    default: '/images/BandFallBack.PNG',
-  },
   
   // Contact & Social Media
   email: {
@@ -197,6 +193,9 @@ const artistSchema = new Schema<IArtist>({
   
   // Calendar Integration
   unavailableDates: [{
+    type: Date,
+  }],
+  availableDates: [{
     type: Date,
   }],
   preferredBookingDays: [{

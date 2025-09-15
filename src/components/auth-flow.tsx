@@ -144,7 +144,6 @@ export function AuthFlow() {
           lastName: response.data.user.lastName,
           email: response.data.user.email,
           role: response.data.user.role,
-          profileImage: response.data.user.profileImage
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
@@ -157,6 +156,8 @@ export function AuthFlow() {
             window.location.href = "/location";
           } else if (selectedRole === "fan") {
             window.location.href = "/fan";
+          } else if (selectedRole === "promoter") {
+            window.location.href = "/promoter";
           } else {
             window.location.href = "/";
           }
@@ -191,24 +192,11 @@ export function AuthFlow() {
         availability: profileData.availability,
         priceRange: profileData.priceRange,
         // Add new fields with default values
-        portfolioImages: [],
-        portfolioVideos: [],
-        unavailableDates: [],
-        preferredBookingDays: [],
-        bookingLeadTime: '1 week',
         cancellationPolicy: '24 hours notice required',
       });
       
       if (response.success) {
-        // Update user data with profile image if available
-        const currentUserData = localStorage.getItem('user');
-        if (currentUserData) {
-          const userData = JSON.parse(currentUserData);
-          if (response.data?.profileImage) {
-            userData.profileImage = response.data.profileImage;
-            localStorage.setItem('user', JSON.stringify(userData));
-          }
-        }
+        // Profile image handling removed
         
         // Navigate to artist dashboard
         window.location.href = "/artist";
@@ -244,7 +232,6 @@ export function AuthFlow() {
           lastName: response.data.user.lastName,
           email: response.data.user.email,
           role: response.data.user.role,
-          profileImage: response.data.user.profileImage
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
@@ -256,6 +243,8 @@ export function AuthFlow() {
           window.location.href = "/location";
         } else if (role === "fan") {
           window.location.href = "/fan";
+        } else if (role === "promoter") {
+          window.location.href = "/promoter";
         } else {
           window.location.href = "/";
         }
@@ -279,7 +268,7 @@ export function AuthFlow() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
+            <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
             <span className="font-serif font-bold text-xl">venu</span>
           </div>
         </div>
@@ -700,7 +689,7 @@ export function AuthFlow() {
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-3">
-          <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg w-8 h-8" />
+          <Image src="/images/venu-logo.png" alt="Venu" width={32} height={32} className="rounded-lg" />
           <span className="font-serif font-bold text-xl">venu</span>
         </div>
       </div>

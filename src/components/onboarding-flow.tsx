@@ -4,14 +4,13 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, Shield, CheckCircle, Megaphone } from "lucide-react"
-import { ArtistProfileForm } from "./artist-profile-form"
 
 interface OnboardingFlowProps {
   onComplete: () => void
   userRole?: string
 }
 
-export function OnboardingFlow({ onComplete, userRole }: OnboardingFlowProps) {
+export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0)
 
   const onboardingSteps = [
@@ -37,24 +36,6 @@ export function OnboardingFlow({ onComplete, userRole }: OnboardingFlowProps) {
       highlight: "Built-in marketing tools",
     },
   ]
-
-  // If user is an artist and we're on the last step, show artist form
-  if (userRole === 'artist' && currentStep === onboardingSteps.length - 1) {
-    return (
-      <div className="min-h-screen bg-background">
-        <ArtistProfileForm
-          onSave={(data) => {
-            console.log('Artist profile created:', data)
-            onComplete()
-          }}
-          onCancel={() => {
-            setCurrentStep(0)
-          }}
-          showProgress={true}
-        />
-      </div>
-    )
-  }
 
   const currentStepData = onboardingSteps[currentStep]
   const IconComponent = currentStepData.icon

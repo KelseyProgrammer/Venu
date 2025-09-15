@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IGig extends Document {
+  gigId: string;
   eventName: string;
   eventDate: Date;
   eventTime: string;
@@ -23,10 +24,11 @@ export interface IGig extends Document {
     setTime: string;
     percentage: number;
     email: string;
+    confirmed: boolean;
   }>;
   guarantee: number;
   numberOfBands: number;
-  status: 'draft' | 'posted' | 'live' | 'completed';
+  status: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed';
   rating: number;
   tags: string[];
   ticketsSold: number;
@@ -42,6 +44,12 @@ export interface IGig extends Document {
 }
 
 const gigSchema = new Schema<IGig>({
+  gigId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
   eventName: {
     type: String,
     required: true,
@@ -132,7 +140,7 @@ const gigSchema = new Schema<IGig>({
     },
     confirmed: {
       type: Boolean,
-      default: true, // Bands are confirmed by default when added
+      default: false, // Bands need to confirm before gig is posted
     },
   }],
   guarantee: {
@@ -147,7 +155,7 @@ const gigSchema = new Schema<IGig>({
   },
   status: {
     type: String,
-    enum: ['draft', 'posted', 'live', 'completed'],
+    enum: ['draft', 'pending-confirmation', 'posted', 'live', 'completed'],
     default: 'draft',
   },
   rating: {
@@ -223,6 +231,17 @@ gigSchema.index({
     eventGenre: 5,
     tags: 3
   }
+});
+
+// Generate unique gigId before saving
+gigSchema.pre('save', async function(next) {
+  if (!this.gigId) {
+    // Generate a unique gigId using timestamp and random string
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.gigId = `GIG-${timestamp}-${randomString}`;
+  }
+  next();
 });
 
 export default mongoose.model<IGig>('Gig', gigSchema);

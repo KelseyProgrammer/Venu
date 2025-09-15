@@ -19,11 +19,17 @@ const connectDB = async (): Promise<void> => {
 
 
     const options = {
-      // These options help with connection stability
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+      // Performance optimized connection settings
+      maxPoolSize: 20, // Increased for better concurrency
+      minPoolSize: 5, // Maintain minimum connections
+      serverSelectionTimeoutMS: 5000, // Faster server selection
+      socketTimeoutMS: 30000, // Reduced timeout for better responsiveness
+      connectTimeoutMS: 5000, // Faster initial connection
+      maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
+      heartbeatFrequencyMS: 10000, // More frequent heartbeat checks
+      // Performance optimizations
+      retryWrites: true,
+      retryReads: true,
       // bufferMaxEntries has been removed in newer MongoDB drivers
       // Mongoose 6+ handles buffering automatically
     };

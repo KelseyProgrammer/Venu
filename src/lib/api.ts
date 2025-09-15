@@ -38,7 +38,6 @@ export interface ArtistProfile {
   name: string;
   bio: string;
   genre: string[];
-  profileImage: string;
   email: string;
   phone?: string;
   instagram?: string;
@@ -61,6 +60,7 @@ export interface ArtistProfile {
   portfolioImages?: string[];
   portfolioVideos?: string[];
   unavailableDates?: Date[];
+  availableDates?: Date[];
   preferredBookingDays?: string[];
   bookingLeadTime?: string;
   cancellationPolicy?: string;
@@ -102,7 +102,6 @@ export interface PromoterProfile {
   _id: string;
   firstName: string;
   lastName: string;
-  profileImage: string;
   email: string;
   phone?: string;
   address?: string;
@@ -137,7 +136,6 @@ export interface FanProfile {
   _id: string;
   firstName: string;
   lastName: string;
-  profileImage: string;
   email: string;
   phone?: string;
   address?: string;
@@ -186,6 +184,8 @@ export interface GigProfile {
     setTime: string;
     percentage: number;
     email: string;
+    confirmed?: boolean;
+    guarantee?: number;
   }>;
   guarantee: number;
   numberOfBands: number;
@@ -255,7 +255,7 @@ async function apiRequest<T>(
     if (!response.ok) {
       // Handle authentication errors by clearing invalid tokens
       if (response.status === 401 || response.status === 403) {
-        const errorMessage = (data as any).error || (data as any).message || `Request failed with status ${response.status}`;
+        const errorMessage = (data as { error?: string; message?: string }).error || (data as { error?: string; message?: string }).message || `Request failed with status ${response.status}`;
         
         // Clear invalid authentication data
         if (errorMessage.includes('Access token') || 
@@ -272,7 +272,7 @@ async function apiRequest<T>(
       // Return the error response instead of throwing for client errors
       return {
         success: false,
-        error: (data as any).error || (data as any).message || `Request failed with status ${response.status}`,
+        error: (data as { error?: string; message?: string }).error || (data as { error?: string; message?: string }).message || `Request failed with status ${response.status}`,
         data: undefined as T
       };
     }
@@ -329,7 +329,6 @@ export const authApi = {
     firstName?: string;
     lastName?: string;
     phone?: string;
-    profileImage?: string;
   }): Promise<ApiResponse<User>> {
     return apiRequest<User>('/auth/profile', {
       method: 'PUT',
@@ -344,7 +343,6 @@ export const artistApi = {
     name: string;
     bio: string;
     genre: string[];
-    profileImage?: string;
     email: string;
     phone?: string;
     instagram?: string;
@@ -353,9 +351,9 @@ export const artistApi = {
     website?: string;
     youtube?: string;
     tiktok?: string;
-    location: string;
-    availability: string;
-    priceRange: string;
+    location?: string;
+    availability?: string;
+    priceRange?: string;
     setLength?: string;
     equipmentNeeds?: string;
     pricing?: string;
@@ -392,6 +390,19 @@ export const artistApi = {
     return apiRequest<ArtistProfile>(`/artists/${artistId}`, {
       method: 'PUT',
       body: JSON.stringify(profileData),
+    });
+  },
+
+  async updateAvailability(
+    artistId: string,
+    availabilityData: {
+      unavailableDates?: Date[];
+      availableDates?: Date[];
+    }
+  ): Promise<ApiResponse<ArtistProfile>> {
+    return apiRequest<ArtistProfile>(`/artists/${artistId}/availability`, {
+      method: 'PUT',
+      body: JSON.stringify(availabilityData),
     });
   },
 
@@ -438,7 +449,31 @@ export const artistApi = {
   },
 
   // Legacy function names for backward compatibility
-  async createProfile(profileData: any): Promise<ApiResponse<ArtistProfile>> {
+  async createProfile(profileData: {
+    name: string;
+    bio: string;
+    genre: string[];
+    email: string;
+    phone?: string;
+    instagram?: string;
+    spotify?: string;
+    appleMusic?: string;
+    website?: string;
+    youtube?: string;
+    tiktok?: string;
+    location?: string;
+    availability?: string;
+    priceRange?: string;
+    equipment?: string[];
+    socialLinks?: string[];
+    portfolio?: string[];
+    reviews?: string;
+    rating?: number;
+    followers?: number;
+    verified?: boolean;
+    featured?: boolean;
+    cancellationPolicy?: string;
+  }): Promise<ApiResponse<ArtistProfile>> {
     return this.createArtist(profileData);
   },
 
@@ -450,27 +485,24 @@ export const artistApi = {
     return this.getArtistByUserId(userId);
   },
 
-  async updateProfile(artistId: string, profileData: any): Promise<ApiResponse<ArtistProfile>> {
+  async updateProfile(artistId: string, profileData: Partial<ArtistProfile>): Promise<ApiResponse<ArtistProfile>> {
     return this.updateArtist(artistId, profileData);
   },
 
   async deleteProfile(artistId: string): Promise<ApiResponse<null>> {
     return this.deleteArtist(artistId);
   },
-};
 
-// Upload API functions
-export const uploadApi = {
-  async uploadImage(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    return apiRequest<{ url: string; filename: string }>('/upload/image', {
-      method: 'POST',
-      body: formData,
-    });
+  // Favorite count methods
+  async getFavoriteCounts(): Promise<ApiResponse<Array<{ artistId: string; artistName: string; fanCount: number }>>> {
+    return apiRequest<Array<{ artistId: string; artistName: string; fanCount: number }>>('/artists/favorites/count');
+  },
+
+  async getArtistFavoriteCount(artistId: string): Promise<ApiResponse<{ artistId: string; fanCount: number }>> {
+    return apiRequest<{ artistId: string; fanCount: number }>(`/artists/${artistId}/favorites/count`);
   },
 };
+
 
 // Location API functions
 export const locationApi = {
@@ -638,6 +670,10 @@ export const gigApi = {
     return apiRequest<GigProfile[]>(`/gigs?location=${encodeURIComponent(locationId)}&page=${page}&limit=${limit}`);
   },
 
+  async getGigsByArtist(email: string, page = 1, limit = 10): Promise<ApiResponse<GigProfile[]>> {
+    return apiRequest<GigProfile[]>(`/gigs/by-artist/${encodeURIComponent(email)}?page=${page}&limit=${limit}`);
+  },
+
   async createGig(gigData: {
     eventName: string;
     eventDate: string;
@@ -685,6 +721,16 @@ export const gigApi = {
   async deleteGig(gigId: string): Promise<ApiResponse<null>> {
     return apiRequest<null>(`/gigs/${gigId}`, {
       method: 'DELETE',
+    });
+  },
+
+  async confirmBand(gigId: string, confirmationData: {
+    bandEmail: string;
+    confirmed: boolean;
+  }): Promise<ApiResponse<GigProfile>> {
+    return apiRequest<GigProfile>(`/gigs/${gigId}/confirm-band`, {
+      method: 'POST',
+      body: JSON.stringify(confirmationData),
     });
   },
 };

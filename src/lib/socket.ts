@@ -33,7 +33,7 @@ export interface SocketNotification {
     role: string;
   };
   to: string;
-  type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system';
+  type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
   title: string;
   message: string;
   data?: Record<string, unknown>;
@@ -319,18 +319,23 @@ class OptimizedSocketManager {
   private async createConnection(token: string): Promise<Socket<ServerToClientEvents, ClientToServerEvents>> {
     return new Promise((resolve, reject) => {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      console.log('🔌 Attempting Socket.IO connection to:', backendUrl);
-      console.log('🔐 Token provided:', !!token);
+      console.log('🔌 Attempting optimized Socket.IO connection to:', backendUrl);
       
       const socket = io(backendUrl, {
         auth: { token },
-        transports: ['websocket', 'polling'],
-        timeout: 20000,
-        forceNew: false, // Allow connection reuse
+        transports: ['websocket', 'polling'], // Prefer WebSocket for better performance
+        timeout: 10000, // Reduced timeout for faster failure detection
+        forceNew: false,
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
+        reconnectionAttempts: 3, // Reduced attempts for faster recovery
+        reconnectionDelay: 500, // Faster reconnection
+        reconnectionDelayMax: 2000,
+        upgrade: true,
+        rememberUpgrade: true,
+        // Performance optimizations
+        // Reduce connection overhead
+        autoConnect: true,
+        multiplex: true
       });
 
       // Set up connection timeout
@@ -342,6 +347,11 @@ class OptimizedSocketManager {
       socket.on('connect', () => {
         clearTimeout(connectionTimeout);
         console.log('✅ Optimized Socket.IO connected');
+        console.log('🔍 DEBUG: Socket connection details:', {
+          socketId: socket.id,
+          userId: token ? 'token-provided' : 'no-token',
+          connected: socket.connected
+        });
         resolve(socket);
       });
 
@@ -353,6 +363,16 @@ class OptimizedSocketManager {
           name: error.name,
           stack: error.stack
         });
+        
+        // Try to provide more helpful error messages
+        if (error.message.includes('websocket error')) {
+          console.log('🔄 WebSocket failed, Socket.IO will try polling transport automatically');
+        } else if (error.message.includes('Authentication token required')) {
+          console.log('🔐 Authentication issue - check if user is logged in');
+        } else if (error.message.includes('Invalid token payload')) {
+          console.log('🔐 Token format issue - check token validity');
+        }
+        
         reject(error);
       });
 
@@ -554,6 +574,7 @@ class SocketManager {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
   private isConnected = false;
   private optimizedManager = OptimizedSocketManager.getInstance();
+  private notificationListeners: Set<(notification: SocketNotification) => void> = new Set();
 
   // Initialize socket connection
   async connect(token: string): Promise<void> {
@@ -563,19 +584,13 @@ class SocketManager {
 
     // Additional validation for token format
     if (!token || token.length < 10 || !token.includes('.')) {
-      console.log('🔐 Invalid token format, clearing and skipping connection');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Invalid token format, skipping socket connection');
       return Promise.resolve();
     }
 
     const userId = this.getUserIdFromToken(token);
     if (!userId) {
-      console.log('🔐 Invalid token: no user ID found, clearing and skipping connection');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      console.log('🔐 Invalid token: no user ID found, skipping socket connection');
       return Promise.resolve();
     }
 
@@ -583,14 +598,14 @@ class SocketManager {
       const connection = await this.optimizedManager.getConnection(userId, token);
       this.socket = connection;
       this.isConnected = true;
+      console.log('✅ Socket connection established successfully');
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to connect:', error);
-      // Clear invalid token on connection failure
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
-      throw error;
+      // Don't clear auth data on connection failure - just skip socket connection
+      console.log('Socket connection failed, continuing without real-time features');
+      console.log('This is normal if the user is not authenticated or server is unavailable');
+      return Promise.resolve();
     }
   }
 
@@ -614,17 +629,17 @@ class SocketManager {
     // Check if token exists and is valid format
     if (!token || token.length < 10 || !token.includes('.')) {
       console.log('⚠️ No valid auth token found, socket connection skipped');
-      // Clear invalid token if it exists
-      if (token) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-      }
       return Promise.resolve();
     }
     
     if (!this.isConnected) {
-      return this.connect(token);
+      try {
+        await this.connect(token);
+        console.log('✅ Socket auto-connect successful');
+      } catch (error) {
+        console.log('⚠️ Socket auto-connect failed, continuing without real-time features:', error);
+        // Don't throw error - allow app to continue without real-time features
+      }
     }
     return Promise.resolve();
   }
@@ -638,6 +653,7 @@ class SocketManager {
       }
       this.socket = null;
       this.isConnected = false;
+      this.notificationListeners.clear(); // Clear all notification listeners
     }
   }
 
@@ -709,8 +725,25 @@ class SocketManager {
   }
 
   onNotification(callback: (notification: SocketNotification) => void): void {
-    if (this.socket) {
-      this.socket.on('notification', callback);
+    // Add callback to our listener set
+    this.notificationListeners.add(callback);
+    
+    // Set up the socket listener only once
+    if (this.socket && this.notificationListeners.size === 1) {
+      this.socket.on('notification', (notification) => {
+        console.log('🔔 SOCKET: Received notification:', {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          to: notification.to,
+          timestamp: notification.timestamp
+        });
+        
+        // Call all registered callbacks
+        this.notificationListeners.forEach(listener => {
+          listener(notification);
+        });
+      });
     }
   }
 
@@ -775,7 +808,14 @@ class SocketManager {
 
   // Remove specific listener
   removeListener(event: keyof ServerToClientEvents, callback: (...args: unknown[]) => void): void {
-    if (this.socket) {
+    if (event === 'notification') {
+      this.notificationListeners.delete(callback as (notification: SocketNotification) => void);
+      
+      // If no more listeners, remove the socket listener
+      if (this.notificationListeners.size === 0 && this.socket) {
+        this.socket.off('notification');
+      }
+    } else if (this.socket) {
       this.socket.off(event, callback);
     }
   }
@@ -783,6 +823,11 @@ class SocketManager {
 
 // Create singleton instance
 export const socketManager = new SocketManager();
+
+// Expose socket manager to window for debugging
+if (typeof window !== 'undefined') {
+  (window as Window & { socketManager?: SocketManager }).socketManager = socketManager;
+}
 
 // React hook for socket connection
 export const useSocket = () => {

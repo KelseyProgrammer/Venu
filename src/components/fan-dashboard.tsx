@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass, LogOut } from "lucide-react"
+import { Search, Calendar, MapPin, Star, Share2, Clock, Heart, Ticket, Download, Compass, LogOut, User } from "lucide-react"
 import Image from "next/image"
 import { TicketPurchase } from "./ticket-purchase"
 import { getLocationDisplayName } from "@/lib/location-data"
@@ -225,7 +225,6 @@ export function FanDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Music Fan",
-        profileImage: "/images/venu-logo.png",
         email: "fan@example.com",
         location: "St. Augustine, FL"
       }
@@ -235,13 +234,12 @@ export function FanDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Music Fan",
-      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
       email: currentUser?.email || "fan@example.com",
       location: "St. Augustine, FL"
     }
   }, [])
 
-  const { name: fanName, profileImage: fanProfileImage } = fanProfileData
+  const { name: fanName } = fanProfileData
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -529,8 +527,13 @@ export function FanDashboard() {
   }, [allEvents, debouncedSearchQuery, selectedGenre])
 
   const filteredArtists = useMemo(() => {
+    if (!debouncedSearchQuery && selectedGenre === "All Genres") {
+      return allArtists // Return all if no filters for better performance
+    }
+    
     return allArtists.filter(artist => {
-      const matchesSearch = artist.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      const matchesSearch = !debouncedSearchQuery || 
+        artist.artist.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         artist.genre.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         artist.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       
@@ -582,18 +585,16 @@ export function FanDashboard() {
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Image 
-                src={fanProfileImage || "/images/venu-logo.png"} 
-                alt="Fan Profile" 
-                width={64} 
-                height={64} 
-                className="rounded-full object-cover w-16 h-16"
-              />
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
             </div>
-            <h1 className="font-serif font-bold text-2xl">
-              {isClient && fanName ? `${fanName}'s Dashboard` : 'Fan Dashboard'}
-            </h1>
+            <div>
+              <h1 className="font-serif font-bold text-xl">
+                {isClient && fanName ? `${fanName}'s Dashboard` : 'Fan Dashboard'}
+              </h1>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm">
@@ -880,7 +881,7 @@ export function FanDashboard() {
                     alt={ticket.artist}
                     width={80}
                     height={80}
-                    className="w-20 h-20 object-cover rounded-lg"
+                    className="object-cover rounded-lg"
                   />
                   <div className="flex-1 space-y-2">
                     <div>

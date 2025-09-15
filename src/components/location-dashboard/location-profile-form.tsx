@@ -1,27 +1,22 @@
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ImageUpload } from "@/components/ui/image-upload"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   MapPin, 
   Phone, 
-  Mail, 
-  Users, 
   Star,
   AlertCircle,
   CheckCircle,
   Loader2,
   Image as ImageIcon,
-  Plus,
   X,
   Building,
   Globe
@@ -35,7 +30,6 @@ interface LocationProfileFormData {
   id?: string
   name: string
   description?: string
-  profileImage: string
   
   // Address Information
   address: string
@@ -99,7 +93,6 @@ export function LocationProfileForm({
   const [formData, setFormData] = useState<LocationProfileFormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    profileImage: initialData?.profileImage || '',
     address: initialData?.address || '',
     city: initialData?.city || '',
     state: initialData?.state || '',
@@ -146,7 +139,7 @@ export function LocationProfileForm({
     return Math.round((filledFields / requiredFields.length) * 100)
   }, [formData])
 
-  const handleInputChange = useCallback((field: keyof LocationProfileFormData, value: any) => {
+  const handleInputChange = useCallback((field: keyof LocationProfileFormData, value: string | number | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
   }, [])
@@ -169,12 +162,6 @@ export function LocationProfileForm({
     }))
   }, [])
 
-  const handleVenueImageAdd = useCallback((imageUrl: string) => {
-    setFormData(prev => ({
-      ...prev,
-      venueImages: [...prev.venueImages, imageUrl]
-    }))
-  }, [])
 
   const handleVenueImageRemove = useCallback((index: number) => {
     setFormData(prev => ({
@@ -273,17 +260,6 @@ export function LocationProfileForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Profile Image */}
-            <div className="space-y-2">
-              <ImageUpload
-                label="Profile Image"
-                value={formData.profileImage}
-                onChange={(value) => handleInputChange('profileImage', value)}
-                placeholder="Upload venue profile image"
-                required
-              />
-            </div>
-
             {/* Venue Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-foreground">
@@ -534,22 +510,16 @@ export function LocationProfileForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Add Image */}
-            <ImageUpload
-              label="Add Venue Image"
-              value=""
-              onChange={handleVenueImageAdd}
-              placeholder="Upload additional venue image"
-            />
-
             {/* Display Images */}
             {formData.venueImages.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {formData.venueImages.map((image, index) => (
                   <div key={index} className="relative group">
-                    <img
+                    <Image
                       src={image}
                       alt={`Venue image ${index + 1}`}
+                      width={200}
+                      height={128}
                       className="w-full h-32 object-cover rounded-lg"
                     />
                     <Button

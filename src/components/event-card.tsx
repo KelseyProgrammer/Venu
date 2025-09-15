@@ -52,7 +52,7 @@ export function EventCard({
           alt={event.artist}
           width={400}
           height={250}
-          className="w-full h-48 object-cover"
+          className="object-cover"
         />
         <Button
           variant="ghost"

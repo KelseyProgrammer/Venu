@@ -8,6 +8,7 @@ import {
   SocketGigUpdate,
   SocketNotification
 } from './types.js';
+import { socketService } from '../services/socketService.js';
 
 // Extend Socket interface to include user data
 interface AuthenticatedSocket extends Socket {
@@ -395,11 +396,18 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
   const analytics = new SocketAnalytics();
   const rateLimiter = new RateLimiter();
   
-  // Initialize message batcher with callback
+  // Initialize message batcher with optimized callback
   const messageBatcher = new MessageBatcher((roomId: string, messages: any[], io: SocketIOServer) => {
-    // Broadcast batched messages efficiently
+    // Broadcast batched messages efficiently with compression
     const locationRoom = `location:${roomId}`;
-    io.to(locationRoom).emit('batch-messages', { roomId, messages });
+    const compressedMessages = messages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      userId: msg.userId,
+      userName: msg.userName
+    }));
+    io.to(locationRoom).emit('batch-messages', { roomId, messages: compressedMessages });
     analytics.trackMessage();
   });
   
@@ -443,6 +451,12 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       const userRoom = `user:${socket.user.userId}`;
       socket.join(userRoom);
       console.log(`📱 User ${socket.user.email} joined room: ${userRoom}`);
+      console.log(`🔍 DEBUG: User details:`, {
+        userId: socket.user.userId,
+        email: socket.user.email,
+        role: socket.user.role,
+        userRoom
+      });
       
       // Send any offline messages
       const offlineMessages = messageStore.getOfflineMessages(socket.user.userId);
@@ -450,6 +464,9 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         socket.emit('offline-messages', { messages: offlineMessages });
         console.log(`📬 Sent ${offlineMessages.length} offline messages to ${socket.user.email}`);
       }
+
+      // Real-time notifications only - no offline storage
+      console.log(`📱 User ${socket.user.email} connected - real-time notifications enabled`);
     }
 
     // Handle joining location-specific rooms
@@ -656,7 +673,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       console.log(`🎵 Gig ${updateType} by ${socket.user.email} in location ${locationId}`);
     });
 
-    // Handle notifications
+    // Handle notifications (real-time only)
     socket.on('send-notification', (data: { targetUserId: string; type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system'; title: string; message: string; data?: any }) => {
       if (!socket.user) {
         socket.emit('error', { message: 'Authentication required' });
@@ -666,7 +683,7 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
       const { targetUserId, type, title, message, data: notificationData } = data;
       
       const notification: SocketNotification = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         from: {
           userId: socket.user.userId,
           email: socket.user.email,
@@ -681,11 +698,16 @@ export const setupOptimizedSocketHandlers = (io: SocketIOServer<ClientToServerEv
         read: false
       };
 
-      // Send to specific user
+      // Send to specific user if online
       const userRoom = `user:${targetUserId}`;
-      io.to(userRoom).emit('notification', notification);
+      const roomSize = io.sockets.adapter.rooms.get(userRoom)?.size || 0;
       
-      console.log(`🔔 Notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
+      if (roomSize > 0) {
+        io.to(userRoom).emit('notification', notification);
+        console.log(`🔔 Real-time notification sent from ${socket.user.email} to user ${targetUserId}: ${title}`);
+      } else {
+        console.log(`📱 User ${targetUserId} is offline, notification not delivered`);
+      }
     });
 
     // Handle typing indicators

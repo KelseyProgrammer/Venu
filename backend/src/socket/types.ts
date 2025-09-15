@@ -31,7 +31,7 @@ export interface SocketNotification {
     role: string;
   };
   to: string;
-  type: 'gig-invitation' | 'booking-request' | 'status-update' | 'message' | 'system';
+  type: 'gig-invitation' | 'gig-confirmation-required' | 'booking-request' | 'status-update' | 'message' | 'system';
   title: string;
   message: string;
   data?: Record<string, unknown>;

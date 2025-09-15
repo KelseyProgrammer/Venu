@@ -27,15 +27,17 @@ router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Respo
       ];
     }
 
-    // Get users with pagination
-    const users = await User.find(filter)
-      .select('-password')
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ createdAt: -1 });
-
-    // Get total count for pagination
-    const total = await User.countDocuments(filter);
+    // Execute queries in parallel for better performance
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select('-password')
+        .skip(skip)
+        .limit(Number(limit))
+        .sort({ createdAt: -1 })
+        .lean() // Use lean() for better performance
+        .exec(), // Explicit exec() for better performance
+      User.countDocuments(filter).exec()
+    ]);
 
     const response: ApiResponse<any[]> = {
       success: true,
@@ -144,7 +146,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     const { id } = req.params;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
-    const { firstName, lastName, phone, profileImage, isVerified } = req.body;
+    const { firstName, lastName, phone, isVerified } = req.body;
 
     // Check if user is admin or updating their own profile
     if (currentUserRole !== 'admin' && currentUserId !== id) {
@@ -156,7 +158,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     }
 
     // Only admins can update verification status
-    const updateData: any = { firstName, lastName, phone, profileImage };
+    const updateData: any = { firstName, lastName, phone };
     if (currentUserRole === 'admin' && isVerified !== undefined) {
       updateData.isVerified = isVerified;
     }

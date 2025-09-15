@@ -544,7 +544,7 @@ export function useCurrentUserLocation() {
         if (promotersResponse.success) {
           setData(prev => ({ 
             ...prev, 
-            authorizedPromoters: (promotersResponse.data || []).map((user: any) => ({
+            authorizedPromoters: (promotersResponse.data || []).map((user: { _id: string; firstName: string; lastName: string; email: string }) => ({
               id: user._id,
               name: `${user.firstName} ${user.lastName}`,
               email: user.email

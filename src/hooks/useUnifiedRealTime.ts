@@ -139,8 +139,21 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
           }
         },
         onNotification: (notification: SocketNotification) => {
-          if (notification.to === artistId) {
+          console.log(`🔔 ARTIST HOOK: Received notification:`, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            to: notification.to,
+            userId,
+            artistId,
+            matches: notification.to === userId || notification.to === artistId
+          });
+          // Check if notification is for this user (either by userId or artistId)
+          if (notification.to === userId || notification.to === artistId) {
+            console.log(`✅ ARTIST HOOK: Notification accepted for user`);
             setNotifications(prev => [notification, ...prev].slice(0, 100));
+          } else {
+            console.log(`❌ ARTIST HOOK: Notification rejected - not for this user`);
           }
         }
       },
@@ -171,15 +184,39 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     };
   }, [userRole, locationId, artistId, userId]);
 
-  // Listen for notifications
+  // Listen for notifications (optimized with debouncing and batching)
   useEffect(() => {
-    const handleNotification = eventHandlers.onNotification;
+    let notificationTimeout: NodeJS.Timeout;
+    const pendingNotifications: SocketNotification[] = [];
+    
+    const handleNotification = (notification: SocketNotification) => {
+      // Add to pending queue
+      pendingNotifications.push(notification);
+      
+      // Debounce notification processing to reduce UI updates
+      clearTimeout(notificationTimeout);
+      notificationTimeout = setTimeout(() => {
+        if (pendingNotifications.length > 0) {
+          // Process all pending notifications at once with better performance
+          setNotifications(prev => {
+            // Use Set to avoid duplicates and improve performance
+            const existingIds = new Set(prev.map(n => n.id));
+            const newNotifications = pendingNotifications.filter(n => !existingIds.has(n.id));
+            const combined = [...newNotifications, ...prev].slice(0, 100);
+            pendingNotifications.length = 0; // Clear the queue
+            return combined;
+          });
+        }
+      }, 30); // Reduced debounce time for better responsiveness
+    };
+
     onNotification(handleNotification);
 
     return () => {
+      clearTimeout(notificationTimeout);
       removeListener('notification', handleNotification as (...args: unknown[]) => void);
     };
-  }, [eventHandlers.onNotification, onNotification, removeListener]);
+  }, [onNotification, removeListener]);
 
   // Listen for gig updates
   useEffect(() => {

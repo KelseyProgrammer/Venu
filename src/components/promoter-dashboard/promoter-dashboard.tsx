@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal, LogOut } from "lucide-react"
+import { Plus, Search, Calendar, FileText, MessageCircle, MoreHorizontal, LogOut, User } from "lucide-react"
 import { OverviewTab } from "./overview-tab"
 import { DiscoverTab } from "./discover-tab"
 import { ScheduleTab } from "./schedule-tab"
@@ -25,6 +25,23 @@ export function PromoterDashboard() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
   
+  // Available dates state (dates when venues are explicitly marked as available)
+  const [availableDates, setAvailableDates] = useState<string[]>(() => {
+    // Load from localStorage or use default values
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('promoter-available-dates')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          // Failed to parse saved available dates, using defaults
+        }
+      }
+    }
+    // Start with empty array - days are blank by default
+    return []
+  })
+
   // Unavailable dates state (dates when venues are closed or unavailable)
   const [unavailableDates, setUnavailableDates] = useState<string[]>(() => {
     // Load from localStorage or use default values
@@ -38,12 +55,8 @@ export function PromoterDashboard() {
         }
       }
     }
-    // Default unavailable dates for current month
-    return [
-      "2024-12-05",
-      "2024-12-12", 
-      "2024-12-19"
-    ]
+    // Start with empty array - days are blank by default
+    return []
   })
 
   const myLocations = [
@@ -58,7 +71,6 @@ export function PromoterDashboard() {
     if (typeof window === 'undefined') {
       return {
         name: "Promoter",
-        profileImage: "/images/venu-logo.png",
         email: "promoter@venu.com",
         phone: "+1 (555) 987-6543",
         company: "VENU Promotions"
@@ -69,14 +81,13 @@ export function PromoterDashboard() {
     
     return {
       name: currentUser ? authUtils.getUserFullName() : "Promoter",
-      profileImage: currentUser?.profileImage || "/images/venu-logo.png",
       email: currentUser?.email || "promoter@venu.com",
       phone: "+1 (555) 987-6543",
       company: "VENU Promotions"
     }
   }, [])
 
-  const { name: promoterName, profileImage: promoterProfileImage } = promoterProfileData
+  const { name: promoterName } = promoterProfileData
 
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -88,21 +99,47 @@ export function PromoterDashboard() {
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
-  // Toggle date availability
+  // Toggle date availability - cycles through: blank → available → unavailable → blank
   const toggleDateAvailability = useCallback((dateString: string) => {
-    setUnavailableDates(prevDates => {
-      const newDates = prevDates.includes(dateString)
-        ? prevDates.filter(date => date !== dateString)
-        : [...prevDates, dateString]
-      
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
-      }
-      
-      return newDates
-    })
-  }, [])
+    const isAvailable = availableDates.includes(dateString)
+    const isUnavailable = unavailableDates.includes(dateString)
+    
+    if (!isAvailable && !isUnavailable) {
+      // Currently blank → make available
+      setAvailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (isAvailable && !isUnavailable) {
+      // Currently available → make unavailable
+      setAvailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-available-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+      setUnavailableDates(prevDates => {
+        const newDates = [...prevDates, dateString]
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    } else if (!isAvailable && isUnavailable) {
+      // Currently unavailable → make blank
+      setUnavailableDates(prevDates => {
+        const newDates = prevDates.filter(date => date !== dateString)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('promoter-unavailable-dates', JSON.stringify(newDates))
+        }
+        return newDates
+      })
+    }
+  }, [availableDates, unavailableDates])
 
   if (showPostGig) {
     return <PostGigFlow onClose={() => setShowPostGig(false)} />
@@ -110,63 +147,59 @@ export function PromoterDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Image 
-                  src={promoterProfileImage || "/images/venu-logo.png"} 
-                  alt="Promoter Profile" 
-                  width={64} 
-                  height={64} 
-                  className="rounded-full object-cover w-16 h-16"
-                />
+            {/* Header */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
               </div>
-              <h1 className="font-serif font-bold text-2xl text-foreground">
+            </div>
+            <div>
+              <span className="font-serif font-bold text-xl">
                 {isClient && promoterName ? `${promoterName}'s Dashboard` : 'Promoter Dashboard'}
-              </h1>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                  <SelectTrigger className="w-48 bg-background">
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
-                    {myLocations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <WindowManagerProvider>
-                <RealTimeNotifications />
-                <RealTimeGigUpdates locationId={selectedLocation} />
-              </WindowManagerProvider>
-              {/* Logout button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => authUtils.logout()}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                Logout
-              </Button>
-              <Button 
-                onClick={() => setShowPostGig(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Post Gig
-              </Button>
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm">
+              <Search className="w-5 h-5" />
+            </Button>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-48 bg-background">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {myLocations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <WindowManagerProvider>
+              <RealTimeNotifications unreadCount={0} isConnected={true} />
+              <RealTimeGigUpdates locationId={selectedLocation} />
+            </WindowManagerProvider>
+            {/* Logout button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => authUtils.logout()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
+            </Button>
+            <Button 
+              onClick={() => setShowPostGig(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Post Gig
+            </Button>
           </div>
         </div>
       </div>
@@ -241,6 +274,7 @@ export function PromoterDashboard() {
           <TabsContent value="schedule" className="mt-6">
             <ErrorBoundary>
               <ScheduleTab 
+                availableDates={availableDates}
                 unavailableDates={unavailableDates}
                 onToggleDateAvailability={toggleDateAvailability}
               />

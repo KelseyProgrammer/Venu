@@ -28,6 +28,13 @@ export const useNotifications = (): UseNotificationsReturn => {
   // Listen for notifications
   useEffect(() => {
     const handleNotification = (notification: SocketNotification) => {
+      console.log(`🔔 FRONTEND: Received notification:`, {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        to: notification.to,
+        from: notification.from
+      });
       setNotifications(prev => [notification, ...prev].slice(0, 100)); // Keep last 100 notifications
     };
 

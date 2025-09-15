@@ -3,16 +3,15 @@ import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
-import path from "path";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
 import artistsRoutes from "./routes/artists.routes.js";
-import uploadRoutes from "./routes/upload.routes.js";
 import connectDB from "./config/database.js";
 import { setupOptimizedSocketHandlers } from "./socket/socketHandlers.js";
 import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
+import { socketService } from "./services/socketService.js";
 
 dotenv.config();
 
@@ -34,11 +33,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with size limit for performance
+app.use(express.json({ limit: '10mb' }));
 
-// Parse URL-encoded bodies
-app.use(express.urlencoded({ extended: true }));
+// Parse URL-encoded bodies with size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
@@ -61,12 +60,6 @@ app.use("/api/locations", locationsRoutes);
 console.log('✅ Location routes registered');
 app.use("/api/artists", artistsRoutes);
 console.log('✅ Artist routes registered');
-app.use("/api/upload", uploadRoutes);
-console.log('✅ Upload routes registered');
-
-// Serve uploaded files at /uploads path for compatibility
-app.use("/uploads", express.static(path.join(process.cwd(), 'uploads')));
-console.log('✅ Upload file serving registered');
 console.log('🔧 All routes registered successfully');
 
 // Root endpoint
@@ -79,8 +72,7 @@ app.get("/", (_req: Request, res: Response) => {
       users: "/api/users",
       gigs: "/api/gigs",
       locations: "/api/locations",
-      artists: "/api/artists",
-      upload: "/api/upload"
+      artists: "/api/artists"
     }
   });
 });
@@ -110,6 +102,10 @@ const startServer = async () => {
     // Setup optimized Socket.IO handlers
     setupOptimizedSocketHandlers(io);
     console.log('✅ Optimized Socket.IO handlers configured');
+    
+    // Initialize socket service with the io instance
+    socketService.setIO(io);
+    console.log('✅ Socket service initialized');
     
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {

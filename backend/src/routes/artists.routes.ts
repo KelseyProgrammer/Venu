@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Artist } from '../models/Artist.js';
 import User from '../models/User.js';
+import Fan from '../models/Fan.js';
 import { ApiResponse } from '../shared/types.js';
 import { 
   authenticateToken, 
@@ -63,8 +64,9 @@ router.get('/', async (req: Request, res: Response) => {
         .skip(skip)
         .limit(limitNum)
         .sort(sort)
-        .lean(), // Use lean() for better performance when not modifying documents
-      Artist.countDocuments(filter)
+        .lean() // Use lean() for better performance when not modifying documents
+        .exec(), // Explicit exec() for better performance
+      Artist.countDocuments(filter).exec()
     ]);
 
     const response: ApiResponse<any[]> = {
@@ -258,7 +260,6 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       name,
       bio,
       genre,
-      profileImage,
       email,
       phone,
       instagram,
@@ -282,6 +283,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       portfolioImages,
       portfolioVideos,
       unavailableDates,
+      availableDates,
       preferredBookingDays,
       bookingLeadTime,
       cancellationPolicy,
@@ -320,7 +322,6 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       name,
       bio,
       genre,
-      profileImage: profileImage || '/images/BandFallBack.PNG',
       email: email || user.email,
       phone,
       instagram,
@@ -344,6 +345,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       portfolioImages: portfolioImages || [],
       portfolioVideos: portfolioVideos || [],
       unavailableDates: unavailableDates || [],
+      availableDates: availableDates || [],
       preferredBookingDays: preferredBookingDays || [],
       bookingLeadTime,
       cancellationPolicy,
@@ -380,7 +382,6 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       name,
       bio,
       genre,
-      profileImage,
       email,
       phone,
       instagram,
@@ -401,6 +402,11 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       rating,
       isActive,
       isVerified,
+      unavailableDates,
+      availableDates,
+      preferredBookingDays,
+      bookingLeadTime,
+      cancellationPolicy,
     } = req.body;
 
     // Find the artist
@@ -427,7 +433,6 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       name,
       bio,
       genre,
-      profileImage,
       email,
       phone,
       instagram,
@@ -446,6 +451,11 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       pastPerformances,
       reviews,
       rating,
+      unavailableDates,
+      availableDates,
+      preferredBookingDays,
+      bookingLeadTime,
+      cancellationPolicy,
     };
 
     if (currentUserRole === 'admin') {
@@ -468,6 +478,60 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     res.json(response);
   } catch (error) {
     console.error('Update artist error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Update artist availability dates - PROTECTED ROUTE (Owner or Admin only)
+router.put('/:id/availability', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+    const { unavailableDates, availableDates } = req.body;
+
+    // Find the artist
+    const artist = await Artist.findById(id);
+    if (!artist) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Artist not found',
+      };
+      return res.status(404).json(response);
+    }
+
+    // Check if user is admin or updating their own profile
+    if (currentUserRole !== 'admin' && artist.userId.toString() !== currentUserId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Access denied - you can only update your own artist profile',
+      };
+      return res.status(403).json(response);
+    }
+
+    // Update availability dates
+    const updatedArtist = await Artist.findByIdAndUpdate(
+      id,
+      { 
+        unavailableDates: unavailableDates || [],
+        availableDates: availableDates || []
+      },
+      { new: true, runValidators: true }
+    ).populate('userId', 'firstName lastName email isVerified');
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: updatedArtist,
+      message: 'Artist availability dates updated successfully',
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Update artist availability error:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',
@@ -603,6 +667,84 @@ router.get('/search/:query', async (req: Request, res: Response) => {
     res.json(response);
   } catch (error) {
     console.error('Search artists error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Get artist favorite counts - PUBLIC ROUTE
+router.get('/favorites/count', async (req: Request, res: Response) => {
+  try {
+    // Aggregate to count how many fans have favorited each artist
+    const favoriteCounts = await Fan.aggregate([
+      { $match: { isActive: true } },
+      { $unwind: '$favoriteArtists' },
+      {
+        $group: {
+          _id: '$favoriteArtists',
+          fanCount: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'artists',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'artist'
+        }
+      },
+      { $unwind: '$artist' },
+      {
+        $project: {
+          artistId: '$_id',
+          artistName: '$artist.name',
+          fanCount: 1
+        }
+      },
+      { $sort: { fanCount: -1 } }
+    ]);
+
+    const response: ApiResponse<any[]> = {
+      success: true,
+      data: favoriteCounts,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get artist favorite counts error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
+// Get favorite count for specific artist - PUBLIC ROUTE
+router.get('/:id/favorites/count', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Count fans who have this artist in their favorites
+    const fanCount = await Fan.countDocuments({
+      favoriteArtists: id,
+      isActive: true
+    });
+
+    const response: ApiResponse<{ artistId: string; fanCount: number }> = {
+      success: true,
+      data: {
+        artistId: id,
+        fanCount
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get artist favorite count error:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Internal server error',

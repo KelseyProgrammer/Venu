@@ -68,7 +68,7 @@ export function SplashScreen() {
               alt="Venu Done" 
               width={120} 
               height={120} 
-              className="w-[120px] h-[120px] rounded-2xl" 
+              className="rounded-2xl" 
             />
           )}
         </div>
