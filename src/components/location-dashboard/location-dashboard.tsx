@@ -19,6 +19,7 @@ import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { useCurrentUserLocation } from "@/hooks/useLocation"
 import { Card } from "@/components/ui/card"
 import { authUtils } from "@/lib/utils"
+import { useNotifications } from "@/hooks/useNotifications"
 
 
 interface LocationDashboardProps {
@@ -63,6 +64,20 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
     error, 
     refreshData 
   } = useCurrentUserLocation()
+
+  // Get current user ID for notifications
+  const actualCurrentUserId = isClient ? authUtils.getCurrentUser()?.id : undefined;
+
+  // Use notifications hook
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    isConnected: notificationsConnected,
+    error: notificationsError,
+    isLoading: notificationsLoading
+  } = useNotifications(actualCurrentUserId)
   
   // Available dates state (dates explicitly marked as available)
   const [availableDates, setAvailableDates] = useState<string[]>(() => {
@@ -332,7 +347,14 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
           </div>
           <div className="flex items-center gap-2">
             <WindowManagerProvider>
-              <RealTimeNotifications unreadCount={0} isConnected={true} />
+              <RealTimeNotifications 
+                notifications={notifications}
+                unreadCount={unreadCount}
+                isConnected={notificationsConnected}
+                error={notificationsError}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+              />
               <RealTimeGigUpdates locationId={location?._id || ""} />
             </WindowManagerProvider>
             {/* Logout button */}
@@ -419,7 +441,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="space-y-4">
-            <ChatTab locationId={location?._id || ""} currentUserId={currentUserId || "location-user"} />
+            <ChatTab locationId={location?._id || ""} currentUserId={actualCurrentUserId || "location-user"} />
           </TabsContent>
 
           {/* More Tab */}

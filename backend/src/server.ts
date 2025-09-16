@@ -8,10 +8,12 @@ import usersRoutes from "./routes/users.routes.js";
 import gigsRoutes from "./routes/gigs.routes.js";
 import locationsRoutes from "./routes/locations.routes.js";
 import artistsRoutes from "./routes/artists.routes.js";
+import notificationsRoutes from "./routes/notifications.routes.js";
 import connectDB from "./config/database.js";
 import { setupOptimizedSocketHandlers } from "./socket/socketHandlers.js";
 import { ClientToServerEvents, ServerToClientEvents } from "./socket/types.js";
 import { socketService } from "./services/socketService.js";
+import { initializeFirebase } from "./config/firebase.config.js";
 
 dotenv.config();
 
@@ -60,6 +62,8 @@ app.use("/api/locations", locationsRoutes);
 console.log('✅ Location routes registered');
 app.use("/api/artists", artistsRoutes);
 console.log('✅ Artist routes registered');
+app.use("/api/notifications", notificationsRoutes);
+console.log('✅ Notification routes registered');
 console.log('🔧 All routes registered successfully');
 
 // Root endpoint
@@ -98,6 +102,10 @@ const startServer = async () => {
   try {
     // Connect to MongoDB first
     await connectDB();
+    
+    // Initialize Firebase Admin SDK
+    initializeFirebase();
+    console.log('✅ Firebase initialization completed');
     
     // Setup optimized Socket.IO handlers
     setupOptimizedSocketHandlers(io);

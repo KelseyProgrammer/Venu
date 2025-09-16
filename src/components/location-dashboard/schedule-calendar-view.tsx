@@ -52,24 +52,39 @@ export function ScheduleCalendarView({
 
   // Transform gigs data to match the expected event format
   const myEvents = useMemo(() => {
-    return gigs.map(gig => ({
-      id: gig._id,
-      name: gig.eventName,
-      date: new Date(gig.eventDate).toISOString().split('T')[0],
-      location: gig.selectedLocation?.name || "TBA",
-      status: gig.status,
-      time: gig.eventTime,
-      genre: gig.eventGenre,
-      image: gig.image || "/images/BandFallBack.PNG",
-      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
-      expectedBands: gig.numberOfBands,
-      confirmedBands: gig.bands.length,
-      ticketsSold: gig.ticketsSold,
-      totalTickets: gig.ticketCapacity,
-      guarantee: gig.guarantee,
-      currentEarnings: gig.ticketsSold * gig.ticketPrice,
-      applications: 0 // This would come from applications data
-    }))
+    return gigs.map(gig => {
+      // Count only confirmed bands
+      const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length;
+      
+      // Determine status based on confirmed bands vs required bands
+      let eventStatus = gig.status;
+      if (gig.status === 'pending-confirmation') {
+        if (confirmedBandsCount >= gig.numberOfBands) {
+          eventStatus = 'posted'; // Lineup is full
+        } else {
+          eventStatus = 'pending'; // Still needs more bands
+        }
+      }
+      
+      return {
+        id: gig._id,
+        name: gig.eventName,
+        date: new Date(gig.eventDate).toISOString().split('T')[0],
+        location: gig.selectedLocation?.name || "TBA",
+        status: eventStatus,
+        time: gig.eventTime,
+        genre: gig.eventGenre,
+        image: gig.image || "/images/BandFallBack.PNG",
+        artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+        expectedBands: gig.numberOfBands,
+        confirmedBands: confirmedBandsCount, // Use confirmed bands count
+        ticketsSold: gig.ticketsSold,
+        totalTickets: gig.ticketCapacity,
+        guarantee: gig.guarantee,
+        currentEarnings: gig.ticketsSold * gig.ticketPrice,
+        applications: 0 // This would come from applications data
+      }
+    })
   }, [gigs])
 
   // Fallback to mock data if no gigs are available

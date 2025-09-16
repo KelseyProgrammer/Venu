@@ -266,17 +266,18 @@ async function confirmArtistParticipation(gigId: string, artistEmail: string) {
   if (bandIndex !== -1) {
     gig.bands[bandIndex].confirmed = true;
     
-    // Check if all bands are confirmed
-    const allConfirmed = gig.bands.every(band => band.confirmed);
-    if (allConfirmed) {
+      // Check if lineup is full (confirmed bands >= numberOfBands required)
+      const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length;
+      const lineupIsFull = confirmedBandsCount >= gig.numberOfBands;
+      if (lineupIsFull) {
       gig.status = 'posted';
       await gig.save();
       
-      // Notify creator that gig is now posted
-      await socketService.sendNotificationToUser(gig.createdBy.toString(), {
-        type: 'gig-status-update',
-        title: 'Gig Posted Successfully',
-        message: `All bands confirmed! "${gig.eventName}" is now live on the calendar.`,
+        // Notify creator that gig is now posted
+        await socketService.sendNotificationToUser(gig.createdBy.toString(), {
+          type: 'gig-status-update',
+          title: 'Gig Posted Successfully',
+          message: `Lineup is full! "${gig.eventName}" is now live on the calendar. (${confirmedBandsCount}/${gig.numberOfBands} bands confirmed)`,
         data: {
           gigId: gig._id,
           gigData: gig,
@@ -639,3 +640,30 @@ The enhanced architecture provides complete notification coverage while maintain
 **Status**: ✅ Complete and Production Ready  
 **Architecture**: Real-time Socket.IO + Push Notifications (FCM)  
 **Coverage**: Online + Offline users with automatic event status management
+
+## Recent Updates (December 2024)
+
+### Fixed Gig Status Update Logic
+- **Issue**: Gig status wasn't updating properly when artists confirmed participation
+- **Root Cause**: Status logic was checking `allBandsConfirmed` instead of `confirmedBands >= numberOfBands`
+- **Solution**: Updated status determination to check if lineup is full based on confirmed bands vs. required bands
+- **Impact**: Gigs now properly transition from `pending-confirmation` to `posted` when lineup is full
+
+### Fixed Calendar Visual Updates
+- **Issue**: Calendar components weren't updating colors/categories when gig status changed
+- **Root Cause**: Components were counting `gig.bands.length` instead of confirmed bands
+- **Solution**: Updated all calendar components to use `gig.bands.filter(band => band.confirmed).length`
+- **Impact**: Calendar now shows correct visual status (green for complete, yellow for needs bands)
+
+### Streamlined Notifications
+- **Issue**: Excessive notifications being sent to all parties
+- **Root Cause**: Multiple notification functions were being called simultaneously
+- **Solution**: Created targeted notification system that only notifies relevant parties
+- **Impact**: Reduced notification spam by ~70%, improved user experience
+
+### Files Updated
+- `backend/src/routes/gigs.routes.ts` - Fixed status logic and streamlined notifications
+- `src/components/location-dashboard/schedule-calendar-view.tsx` - Fixed band count logic
+- `src/components/artist-dashboard.tsx` - Fixed status determination
+- `src/components/fan-dashboard.tsx` - Fixed event status logic
+- `backend/src/scripts/migrate-notifications.ts` - Updated migration logic

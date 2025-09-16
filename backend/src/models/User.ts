@@ -8,6 +8,7 @@ export interface IUser extends Document {
   lastName: string;
   phone?: string;
   isVerified: boolean;
+  fcmToken?: string; // Firebase Cloud Messaging token for push notifications
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +48,11 @@ const userSchema = new Schema<IUser>({
   isVerified: {
     type: Boolean,
     default: false,
+  },
+  fcmToken: {
+    type: String,
+    sparse: true, // Allows multiple documents without this field
+    index: true,
   },
 }, {
   timestamps: true,

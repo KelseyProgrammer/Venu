@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSocket } from '@/lib/socket';
 import { SocketNotification, SocketGigUpdate, SocketMessage } from '@/lib/socket';
+import { useStoredNotifications } from './useStoredNotifications';
 
 interface UseUnifiedRealTimeProps {
   userId: string;
@@ -352,13 +353,70 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
 
   const userId = getUserId();
   const userRole = getUserRole();
+  const currentArtistId = artistId || userId;
+
+  // Get stored notifications for the current user
+  const {
+    notifications: storedNotifications,
+    unreadCount: storedUnreadCount,
+    isLoading: notificationsLoading,
+    markAsRead: markStoredAsRead,
+    markAllAsRead: markAllStoredAsRead,
+    refreshNotifications
+  } = useStoredNotifications(currentArtistId);
 
   const unifiedHook = useUnifiedRealTime({
     userId,
     userRole,
-    artistId: artistId || '',
+    artistId: currentArtistId,
     locationId: 'artist-dashboard' // Default location for artist dashboard
   });
 
-  return unifiedHook;
+  // Combine stored and real-time notifications
+  const allNotifications = [...unifiedHook.notifications, ...storedNotifications];
+  
+  // Remove duplicates based on notification ID
+  const uniqueNotifications = allNotifications.reduce((acc, notification) => {
+    if (!acc.find(n => n.id === notification.id)) {
+      acc.push(notification);
+    }
+    return acc;
+  }, [] as SocketNotification[]);
+
+  // Sort by timestamp (newest first)
+  const sortedNotifications = uniqueNotifications.sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  // Calculate total unread count
+  const totalUnreadCount = sortedNotifications.filter(n => !n.read).length;
+
+  // Enhanced mark as read function
+  const markAsRead = useCallback(async (notificationId: string) => {
+    // Update real-time notifications
+    unifiedHook.markAsRead(notificationId);
+
+    // Mark as read in backend if it's a stored notification
+    const isStoredNotification = storedNotifications.some(n => n.id === notificationId);
+    if (isStoredNotification) {
+      await markStoredAsRead(notificationId);
+    }
+  }, [unifiedHook.markAsRead, markStoredAsRead, storedNotifications]);
+
+  // Enhanced mark all as read function
+  const markAllAsRead = useCallback(async () => {
+    // Update real-time notifications
+    unifiedHook.markAllAsRead();
+
+    // Mark all stored notifications as read
+    await markAllStoredAsRead();
+  }, [unifiedHook.markAllAsRead, markAllStoredAsRead]);
+
+  return {
+    ...unifiedHook,
+    notifications: sortedNotifications,
+    unreadCount: totalUnreadCount,
+    markAsRead,
+    markAllAsRead,
+  };
 };
