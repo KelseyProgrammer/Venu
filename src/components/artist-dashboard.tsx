@@ -1025,8 +1025,8 @@ export function ArtistDashboard() {
       } else if ((gig as unknown as Gig & { status?: string }).status === 'pending-confirmation') {
         // PENDING CONFIRMATION: gig requires band confirmation
         status = "awaiting-confirmation";
-      } else if (gig.bands.length === gig.numberOfBands) {
-        // COMPLETED event: number of bands equals expected bands
+      } else if (gig.bands.filter(band => band.confirmed).length >= gig.numberOfBands) {
+        // COMPLETED event: confirmed bands >= expected bands
         status = "confirmed";
       } else {
         // NEEDS BAND event: still needs more bands
@@ -1051,7 +1051,7 @@ export function ArtistDashboard() {
         artistGuarantee: 0, // Default guarantee
         isPast: eventDate < today,
         // Add band count information for display
-        confirmedBands: gig.bands.length,
+        confirmedBands: gig.bands.filter(band => band.confirmed).length,
         expectedBands: gig.numberOfBands
       };
     });

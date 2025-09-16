@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '@/lib/socket';
 import { SocketNotification } from '@/lib/socket';
+import { useStoredNotifications } from './useStoredNotifications';
 
 interface UseNotificationsReturn {
   notifications: SocketNotification[];
@@ -10,12 +11,24 @@ interface UseNotificationsReturn {
   markAllAsRead: () => void;
   isConnected: boolean;
   error: string | null;
+  isLoading: boolean;
+  refreshNotifications: () => Promise<void>;
 }
 
-export const useNotifications = (): UseNotificationsReturn => {
+export const useNotifications = (userId?: string): UseNotificationsReturn => {
   const { connected, autoConnect, sendNotification: socketSendNotification, onNotification, removeListener } = useSocket();
-  const [notifications, setNotifications] = useState<SocketNotification[]>([]);
+  const [realTimeNotifications, setRealTimeNotifications] = useState<SocketNotification[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Get stored notifications
+  const {
+    notifications: storedNotifications,
+    unreadCount: storedUnreadCount,
+    isLoading,
+    markAsRead: markStoredAsRead,
+    markAllAsRead: markAllStoredAsRead,
+    refreshNotifications
+  } = useStoredNotifications(userId);
 
   // Auto-connect when hook is used
   useEffect(() => {
@@ -25,17 +38,17 @@ export const useNotifications = (): UseNotificationsReturn => {
     });
   }, [autoConnect]);
 
-  // Listen for notifications
+  // Listen for real-time notifications
   useEffect(() => {
     const handleNotification = (notification: SocketNotification) => {
-      console.log(`🔔 FRONTEND: Received notification:`, {
+      console.log(`🔔 FRONTEND: Received real-time notification:`, {
         id: notification.id,
         type: notification.type,
         title: notification.title,
         to: notification.to,
         from: notification.from
       });
-      setNotifications(prev => [notification, ...prev].slice(0, 100)); // Keep last 100 notifications
+      setRealTimeNotifications(prev => [notification, ...prev].slice(0, 50)); // Keep last 50 real-time notifications
     };
 
     onNotification(handleNotification);
@@ -45,8 +58,24 @@ export const useNotifications = (): UseNotificationsReturn => {
     };
   }, [onNotification, removeListener]);
 
-  // Calculate unread count
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Combine stored and real-time notifications
+  const allNotifications = [...realTimeNotifications, ...storedNotifications];
+  
+  // Remove duplicates based on notification ID
+  const uniqueNotifications = allNotifications.reduce((acc, notification) => {
+    if (!acc.find(n => n.id === notification.id)) {
+      acc.push(notification);
+    }
+    return acc;
+  }, [] as SocketNotification[]);
+
+  // Sort by timestamp (newest first)
+  const sortedNotifications = uniqueNotifications.sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  // Calculate total unread count
+  const totalUnreadCount = sortedNotifications.filter(n => !n.read).length;
 
   // Send notification function
   const sendNotification = useCallback((targetUserId: string, type: string, title: string, message: string, data?: Record<string, unknown>) => {
@@ -64,23 +93,34 @@ export const useNotifications = (): UseNotificationsReturn => {
     }
   }, [connected, socketSendNotification]);
 
-  // Mark notification as read
-  const markAsRead = useCallback((notificationId: string) => {
-    setNotifications(prev => 
+  // Mark notification as read (both real-time and stored)
+  const markAsRead = useCallback(async (notificationId: string) => {
+    // Update real-time notifications
+    setRealTimeNotifications(prev => 
       prev.map(notification => 
         notification.id === notificationId 
           ? { ...notification, read: true }
           : notification
       )
     );
-  }, []);
+
+    // Mark as read in backend if it's a stored notification
+    const isStoredNotification = storedNotifications.some(n => n.id === notificationId);
+    if (isStoredNotification) {
+      await markStoredAsRead(notificationId);
+    }
+  }, [markStoredAsRead, storedNotifications]);
 
   // Mark all notifications as read
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
+  const markAllAsRead = useCallback(async () => {
+    // Update real-time notifications
+    setRealTimeNotifications(prev => 
       prev.map(notification => ({ ...notification, read: true }))
     );
-  }, []);
+
+    // Mark all stored notifications as read
+    await markAllStoredAsRead();
+  }, [markAllStoredAsRead]);
 
   // Clear error when connection is restored
   useEffect(() => {
@@ -90,12 +130,14 @@ export const useNotifications = (): UseNotificationsReturn => {
   }, [connected]);
 
   return {
-    notifications,
-    unreadCount,
+    notifications: sortedNotifications,
+    unreadCount: totalUnreadCount,
     sendNotification,
     markAsRead,
     markAllAsRead,
     isConnected: connected,
-    error
+    error,
+    isLoading,
+    refreshNotifications,
   };
 };

@@ -50,7 +50,26 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
     const gig = new Gig(gigData);
     await gig.save();
 
-    // Send confirmation notifications to artists if their emails are included in bands
+    // 1. Send notification to gig creator
+    try {
+      await socketService.sendNotificationToUser(req.user!.userId, {
+        type: 'gig-created',
+        title: 'Gig Created Successfully',
+        message: `Your gig "${gig.eventName}" has been created and is awaiting band confirmation.`,
+        data: { 
+          gigId: gig._id, 
+          gigData: gig,
+          status: gig.status,
+          actionUrl: `/dashboard/gig/${gig._id}`,
+          awaitingConfirmation: gig.bands && gig.bands.length > 0
+        }
+      });
+      console.log(`🎵 Gig created notification sent to creator: ${req.user!.userId}`);
+    } catch (creatorError) {
+      console.error('❌ Error sending gig creation notification to creator:', creatorError);
+    }
+
+    // 2. Send push notifications to artists if their emails are included in bands
     if (gig.bands && gig.bands.length > 0) {
       console.log(`🔍 DEBUG: Gig has ${gig.bands.length} bands, attempting to send notifications`);
       console.log(`🔍 DEBUG: Gig bands:`, gig.bands.map(b => ({ name: b.name, email: b.email })));
@@ -69,24 +88,22 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         console.log(`🔍 DEBUG: Gig details:`, { gigId: gig._id, eventName: gig.eventName, status: gig.status });
         console.log(`🔍 DEBUG: About to send notifications to ${users.length} users`);
         
-        // Batch send confirmation notifications to all artists (optimized)
-        const batchNotifications = users.map(user => ({
-          userId: (user as any)._id.toString(),
-          notification: {
-            type: 'gig-confirmation-required' as const,
-            title: 'Gig Confirmation Required',
-            message: `Please confirm your participation in ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}`,
+        // Send push notifications to found artists (works for both online and offline users)
+        for (const user of users) {
+          await socketService.sendNotificationToUser((user as any)._id.toString(), {
+            type: 'gig-confirmation-required',
+            title: 'New Gig Invitation',
+            message: `You've been invited to perform at ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}. Please confirm your participation.`,
             data: { 
               gigId: gig._id, 
               gigData: gig,
               confirmationRequired: true,
-              actionUrl: `/artist/confirm-gig/${gig._id}`
+              actionUrl: `/artist/confirm-gig/${gig._id}`,
+              status: 'pending-confirmation'
             }
-          }
-        }));
-        
-        socketService.sendBatchNotifications(batchNotifications);
-        console.log(`🎵 Batch sent confirmation notifications to ${users.length} artists for gig ${gig._id}`);
+          });
+        }
+        console.log(`🎵 Sent gig invitation notifications to ${users.length} artists for gig ${gig._id}`);
         
         console.log(`📧 Found ${users.length} artists to notify for gig confirmation ${gig._id}`);
       } catch (notificationError: any) {
@@ -316,12 +333,13 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     // Update the band's confirmation status
     gig.bands[bandIndex].confirmed = confirmed;
     
-    // Check if all bands are now confirmed (optimized check)
-    const allBandsConfirmed = gig.bands.every(band => band.confirmed);
+    // Check if lineup is full (confirmed bands >= numberOfBands required)
+    const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length;
+    const lineupIsFull = confirmedBandsCount >= gig.numberOfBands;
     
     // Determine new status
     let newStatus = gig.status;
-    if (allBandsConfirmed && gig.status === 'pending-confirmation') {
+    if (lineupIsFull && gig.status === 'pending-confirmation') {
       newStatus = 'posted';
     }
 
@@ -340,31 +358,14 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
       { $set: updateData }
     );
 
-    // Update the local gig object to reflect the changes
-    gig.status = newStatus;
+    // Store the old status for comparison
+    const oldStatus = gig.status;
 
-    // Send notification to location/promoter about band confirmation
-    if (gig.selectedLocation) {
-      console.log(`🔔 Sending gig update to location ${gig.selectedLocation} for band confirmation:`, {
-        gigId: gig.gigId,
-        bandEmail: bandEmail,
-        confirmed: confirmed,
-        allBandsConfirmed: allBandsConfirmed,
-        newStatus: newStatus,
-        previousStatus: gig.status
-      });
-      
-      socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
-        gigId: gig.gigId,
-        updateType: 'status-changed',
-        gigData: gig,
-        updatedBy: {
-          userId: userId,
-          email: req.user!.email,
-          role: req.user!.role
-        }
-      });
-    }
+    // Update the local gig object to reflect the changes
+    gig.status = newStatus as 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed';
+
+    // Send targeted notifications based on status change
+    await sendTargetedGigNotifications(gig, newStatus, confirmed, bandEmail, userId, req.user!.email, req.user!.role, oldStatus);
 
     const response: ApiResponse<any> = {
       success: true,
@@ -544,5 +545,187 @@ router.get('/by-artist/:email', async (req: Request, res: Response) => {
     res.status(500).json(response);
   }
 });
+
+// Helper function for sending targeted gig status update notifications
+async function sendTargetedGigNotifications(
+  gig: any, 
+  newStatus: string, 
+  confirmed: boolean, 
+  bandEmail: string, 
+  userId: string,
+  userEmail: string,
+  userRole: string,
+  oldStatus?: string
+): Promise<void> {
+  try {
+    if (newStatus === 'posted' && oldStatus === 'pending-confirmation') {
+      // Gig is now posted - notify creator and location/promoter
+      console.log(`🎉 Gig ${gig._id} is now posted! Sending notifications to creator and location/promoter.`);
+      
+      // Notify gig creator
+      await socketService.sendNotificationToUser(gig.createdBy.toString(), {
+        type: 'gig-status-update',
+        title: 'Gig Posted Successfully',
+        message: `Lineup is full! "${gig.eventName}" is now live on the calendar.`,
+        data: {
+          gigId: gig._id,
+          gigData: gig,
+          status: 'posted',
+          actionUrl: `/dashboard/gig/${gig._id}`,
+          calendarUrl: `/calendar/event/${gig._id}`
+        }
+      });
+
+      // Notify location/promoter
+      if (gig.selectedLocation) {
+        socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+          gigId: gig.gigId,
+          updateType: 'status-changed',
+        gigData: gig,
+          updatedBy: {
+            userId: userId,
+            email: userEmail,
+            role: userRole
+          }
+        });
+      }
+    } else {
+      // Individual band confirmation - only notify creator and location/promoter
+      console.log(`🔔 Artist ${bandEmail} ${confirmed ? 'confirmed' : 'unconfirmed'} for gig ${gig._id}`);
+      
+      // Notify gig creator
+      await socketService.sendNotificationToUser(gig.createdBy.toString(), {
+        type: 'gig-status-update',
+        title: 'Artist Confirmation Updated',
+        message: `An artist ${confirmed ? 'confirmed' : 'unconfirmed'} participation in "${gig.eventName}".`,
+        data: {
+          gigId: gig._id,
+          gigData: gig,
+          bandEmail: bandEmail,
+          confirmed: confirmed,
+          actionUrl: `/dashboard/gig/${gig._id}`
+        }
+      });
+
+      // Notify location/promoter
+      if (gig.selectedLocation) {
+        socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+          gigId: gig.gigId,
+          updateType: 'status-changed',
+          gigData: gig,
+          updatedBy: {
+            userId: userId,
+            email: userEmail,
+            role: userRole
+          }
+        });
+      }
+    }
+  } catch (error: any) {
+    console.error(`❌ Error sending targeted gig notifications for gig ${gig._id}:`, error.message);
+  }
+}
+
+// Helper function for updating gig status with comprehensive notifications
+async function updateGigStatus(
+  gigId: string, 
+  newStatus: string, 
+  updatedBy: string
+): Promise<void> {
+  try {
+    const gig = await Gig.findById(gigId) as any;
+    if (!gig) {
+      console.error(`❌ Gig not found: ${gigId}`);
+      return;
+    }
+
+    const oldStatus = gig.status;
+    (gig as any).status = newStatus;
+    await gig.save();
+
+    // Get all stakeholders
+    const stakeholders: string[] = [];
+    
+    // Add gig creator
+    if (gig.createdBy) {
+      stakeholders.push(gig.createdBy.toString());
+    }
+
+    // Add all confirmed artists
+    for (const band of gig.bands) {
+      if (band.confirmed) {
+        const user = await User.findOne({ email: band.email.toLowerCase() });
+        if (user) {
+          stakeholders.push((user as any)._id.toString());
+        }
+      }
+    }
+
+    // Remove duplicates
+    const uniqueStakeholders = [...new Set(stakeholders)];
+
+    // Send status update notifications
+    for (const stakeholderId of uniqueStakeholders) {
+      await socketService.sendNotificationToUser(stakeholderId, {
+        type: 'gig-status-update',
+        title: 'Gig Status Updated',
+        message: `"${gig.eventName}" status changed from ${oldStatus} to ${newStatus}`,
+        data: {
+          gigId: gig._id,
+          gigData: gig,
+          oldStatus,
+          newStatus,
+          updatedBy,
+          actionUrl: `/dashboard/gig/${gig._id}`,
+          statusChange: true
+        }
+      });
+    }
+
+    console.log(`📊 Gig status updated from ${oldStatus} to ${newStatus} for gig ${gigId}`);
+  } catch (error: any) {
+    console.error(`❌ Error updating gig status for gig ${gigId}:`, error.message);
+  }
+}
+
+// Helper function for confirming artist participation with status progression
+async function confirmArtistParticipation(
+  gigId: string, 
+  artistEmail: string
+): Promise<void> {
+  try {
+    const gig = await Gig.findById(gigId);
+    if (!gig) {
+      console.error(`❌ Gig not found: ${gigId}`);
+      return;
+    }
+
+    // Update band confirmation status
+    const bandIndex = gig.bands.findIndex(band => band.email.toLowerCase() === artistEmail.toLowerCase());
+    if (bandIndex !== -1) {
+      const oldStatus = gig.status;
+      gig.bands[bandIndex].confirmed = true;
+      
+      // Check if lineup is full (confirmed bands >= numberOfBands required)
+      const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length;
+      const lineupIsFull = confirmedBandsCount >= gig.numberOfBands;
+      
+      let newStatus = gig.status;
+      if (lineupIsFull && gig.status === 'pending-confirmation') {
+        newStatus = 'posted';
+      }
+      
+      gig.status = newStatus as 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed';
+      await gig.save();
+      
+      // Send targeted notifications
+      await sendTargetedGigNotifications(gig, newStatus, true, artistEmail, '', '', '', oldStatus);
+      
+      console.log(`🎉 Artist ${artistEmail} confirmed for gig ${gigId}. Status: ${oldStatus} → ${newStatus}`);
+    }
+  } catch (error: any) {
+    console.error(`❌ Error confirming artist participation for gig ${gigId}:`, error.message);
+  }
+}
 
 export default router;

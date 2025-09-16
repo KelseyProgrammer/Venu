@@ -436,8 +436,9 @@ export function FanDashboard() {
   // Transform gigs data to match the expected event format
   const allEvents = useMemo(() => {
     return gigs.map(gig => {
-      // Determine event status based on band count
-      const needsMoreBands = gig.bands.length < gig.numberOfBands
+      // Determine event status based on confirmed band count
+      const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length
+      const needsMoreBands = confirmedBandsCount < gig.numberOfBands
       const eventStatus = needsMoreBands ? 'needs-bands' : 'complete'
       
       return {
@@ -463,7 +464,7 @@ export function FanDashboard() {
         eventStatus, // Add computed status for UI
         needsMoreBands, // Add flag for easy checking
         expectedBands: gig.numberOfBands,
-        confirmedBands: gig.bands.length,
+        confirmedBands: confirmedBandsCount,
         numberOfBands: gig.numberOfBands, // Add for event card
         bands: gig.bands, // Add for event card
         createdAt: gig.createdAt
