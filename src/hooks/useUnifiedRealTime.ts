@@ -17,6 +17,7 @@ interface UseUnifiedRealTimeReturn {
   unreadCount: number;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
+  clearAllNotifications: () => void;
   
   // Gig Updates
   gigUpdates: SocketGigUpdate[];
@@ -262,6 +263,16 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     );
   }, []);
 
+  // Clear all notifications (preserving gig notifications awaiting confirmation)
+  const clearAllNotifications = useCallback(() => {
+    setNotifications(prev => 
+      prev.filter(notification => 
+        !(notification.type === 'gig-confirmation-required' && 
+          notification.data?.status === 'pending-confirmation')
+      )
+    );
+  }, []);
+
   // Send gig update function
   const sendGigUpdate = useCallback((gigId: string, updateType: string, gigData: Record<string, unknown>) => {
     if (!connected) {
@@ -342,6 +353,7 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     unreadCount,
     markAsRead,
     markAllAsRead,
+    clearAllNotifications,
     gigUpdates,
     sendGigUpdate,
     messages,

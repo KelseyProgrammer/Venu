@@ -309,7 +309,7 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     const userId = req.user!.userId;
 
     // Find the gig with optimized query
-    const gig = await Gig.findById(id).select('bands status eventName selectedLocation');
+    const gig = await Gig.findById(id).select('bands status eventName selectedLocation numberOfBands');
     if (!gig) {
       const response: ApiResponse<null> = {
         success: false,
@@ -337,10 +337,23 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     const confirmedBandsCount = gig.bands.filter(band => band.confirmed).length;
     const lineupIsFull = confirmedBandsCount >= gig.numberOfBands;
     
+    console.log(`🔍 DEBUG: Band confirmation for gig ${id}:`, {
+      bandEmail,
+      confirmed,
+      currentStatus: gig.status,
+      confirmedBandsCount,
+      numberOfBands: gig.numberOfBands,
+      lineupIsFull,
+      allBands: gig.bands.map(b => ({ name: b.name, email: b.email, confirmed: b.confirmed }))
+    });
+    
     // Determine new status
     let newStatus = gig.status;
     if (lineupIsFull && gig.status === 'pending-confirmation') {
       newStatus = 'posted';
+      console.log(`🎉 Status changing from ${gig.status} to ${newStatus} - lineup is full!`);
+    } else {
+      console.log(`📊 Status staying as ${gig.status} - lineup not full (${confirmedBandsCount}/${gig.numberOfBands})`);
     }
 
     // Use updateOne for better performance instead of save()
@@ -351,12 +364,21 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
     // Only update status if it changed
     if (newStatus !== gig.status) {
       updateData.status = newStatus;
+      console.log(`💾 Updating gig ${id} status from ${gig.status} to ${newStatus}`);
+    } else {
+      console.log(`💾 Updating gig ${id} bands only, status unchanged (${gig.status})`);
     }
 
-    await Gig.updateOne(
+    const updateResult = await Gig.updateOne(
       { _id: id },
       { $set: updateData }
     );
+    
+    console.log(`💾 Database update result:`, {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      updateData
+    });
 
     // Store the old status for comparison
     const oldStatus = gig.status;
@@ -366,6 +388,41 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
 
     // Send targeted notifications based on status change
     await sendTargetedGigNotifications(gig, newStatus, confirmed, bandEmail, userId, req.user!.email, req.user!.role, oldStatus);
+
+    // Send confirmation notification to the artist who confirmed
+    if (confirmed) {
+      const artistUser = await User.findOne({ email: bandEmail.toLowerCase() });
+      if (artistUser) {
+        const artistUserId = (artistUser as any)._id.toString();
+        await socketService.sendNotificationToUser(artistUserId, {
+          type: 'gig-status-update',
+          title: 'Confirmation Successful',
+          message: `You have successfully confirmed your participation in "${gig.eventName}".`,
+          data: {
+            gigId: (gig as any)._id,
+            gigData: gig,
+            confirmed: true,
+            actionUrl: `/artist/dashboard`
+          }
+        });
+
+        // Also send a gig update event to trigger real-time refresh
+        if (socketService.ioInstance) {
+          socketService.ioInstance.to(`user:${artistUserId}`).emit('gig-update', {
+            gigId: (gig as any)._id.toString(),
+            locationId: (gig as any).selectedLocation?.toString() || '',
+            updateType: 'status-changed',
+            gigData: JSON.parse(JSON.stringify(gig)),
+            updatedBy: {
+              userId: userId,
+              email: req.user!.email,
+              role: req.user!.role
+            },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
 
     const response: ApiResponse<any> = {
       success: true,
@@ -578,10 +635,10 @@ async function sendTargetedGigNotifications(
 
       // Notify location/promoter
       if (gig.selectedLocation) {
-        socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+        await socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
           gigId: gig.gigId,
           updateType: 'status-changed',
-        gigData: gig,
+          gigData: gig,
           updatedBy: {
             userId: userId,
             email: userEmail,
@@ -609,7 +666,7 @@ async function sendTargetedGigNotifications(
 
       // Notify location/promoter
       if (gig.selectedLocation) {
-        socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
+        await socketService.sendGigUpdateToLocation(gig.selectedLocation.toString(), {
           gigId: gig.gigId,
           updateType: 'status-changed',
           gigData: gig,

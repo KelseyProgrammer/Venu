@@ -18,12 +18,27 @@ import { RealTimeNotifications } from "@/components/real-time-notifications"
 import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { authUtils } from "@/lib/utils"
+import { useNotifications } from "@/hooks/useNotifications"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedLocation, setSelectedLocation] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showPostGig, setShowPostGig] = useState(false)
+  
+  // Get current user ID for notifications
+  const currentUserId = authUtils.getCurrentUser()?.id;
+  
+  // Use notifications hook
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAllNotifications,
+    isConnected: notificationsConnected,
+    error: notificationsError
+  } = useNotifications(currentUserId)
   
   // Available dates state (dates when venues are explicitly marked as available)
   const [availableDates, setAvailableDates] = useState<string[]>(() => {
@@ -180,7 +195,15 @@ export function PromoterDashboard() {
               </SelectContent>
             </Select>
             <WindowManagerProvider>
-              <RealTimeNotifications unreadCount={0} isConnected={true} />
+              <RealTimeNotifications 
+                notifications={notifications}
+                unreadCount={unreadCount}
+                isConnected={notificationsConnected}
+                error={notificationsError}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+                onClearAll={clearAllNotifications}
+              />
               <RealTimeGigUpdates locationId={selectedLocation} />
             </WindowManagerProvider>
             {/* Logout button */}

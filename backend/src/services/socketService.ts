@@ -7,6 +7,11 @@ import Notification from '../models/Notification.js';
 class SocketService {
   private io: SocketIOServer<{}, ServerToClientEvents> | null = null;
 
+  // Getter for io to allow external access
+  get ioInstance() {
+    return this.io;
+  }
+
   setIO(io: SocketIOServer<{}, ServerToClientEvents>): void {
     this.io = io;
   }
@@ -189,7 +194,7 @@ class SocketService {
   }
 
   // Send gig update to location room
-  sendGigUpdateToLocation(locationId: string, gigUpdate: {
+  async sendGigUpdateToLocation(locationId: string, gigUpdate: {
     gigId: string;
     updateType: 'created' | 'updated' | 'cancelled' | 'status-changed';
     gigData: any;
@@ -198,7 +203,7 @@ class SocketService {
       email: string;
       role: string;
     };
-  }): void {
+  }): Promise<void> {
     if (!this.io) {
       console.warn('Socket.IO not initialized, cannot send gig update');
       return;

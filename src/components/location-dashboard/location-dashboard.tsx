@@ -74,10 +74,23 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    clearAllNotifications,
     isConnected: notificationsConnected,
     error: notificationsError,
     isLoading: notificationsLoading
   } = useNotifications(actualCurrentUserId)
+
+  // Debug notifications hook
+  useEffect(() => {
+    console.log('🔔 LOCATION DASHBOARD: Notifications hook state:', {
+      userId: actualCurrentUserId,
+      notificationsCount: notifications?.length || 0,
+      unreadCount,
+      isConnected: notificationsConnected,
+      error: notificationsError,
+      isLoading: notificationsLoading
+    });
+  }, [actualCurrentUserId, notifications, unreadCount, notificationsConnected, notificationsError, notificationsLoading]);
   
   // Available dates state (dates explicitly marked as available)
   const [availableDates, setAvailableDates] = useState<string[]>(() => {
@@ -354,6 +367,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
                 error={notificationsError}
                 onMarkAsRead={markAsRead}
                 onMarkAllAsRead={markAllAsRead}
+                onClearAll={clearAllNotifications}
               />
               <RealTimeGigUpdates locationId={location?._id || ""} />
             </WindowManagerProvider>

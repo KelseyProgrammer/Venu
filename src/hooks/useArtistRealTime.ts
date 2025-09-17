@@ -17,6 +17,7 @@ interface UseUnifiedRealTimeReturn {
   unreadCount: number;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
+  clearAllNotifications: () => void;
   
   // Gig Updates
   gigUpdates: SocketGigUpdate[];
@@ -362,6 +363,7 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     isLoading: notificationsLoading,
     markAsRead: markStoredAsRead,
     markAllAsRead: markAllStoredAsRead,
+    clearAllNotifications: clearAllStoredNotifications,
     refreshNotifications
   } = useStoredNotifications(currentArtistId);
 
@@ -371,6 +373,9 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     artistId: currentArtistId,
     locationId: 'artist-dashboard' // Default location for artist dashboard
   });
+
+  // Destructure the clearAllNotifications function from unifiedHook
+  const { clearAllNotifications: clearAllUnifiedNotifications } = unifiedHook;
 
   // Combine stored and real-time notifications
   const allNotifications = [...unifiedHook.notifications, ...storedNotifications];
@@ -412,11 +417,23 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
     await markAllStoredAsRead();
   }, [unifiedHook.markAllAsRead, markAllStoredAsRead]);
 
+  // Enhanced clear all notifications function
+  const clearAllNotifications = useCallback(async () => {
+    // Clear real-time notifications
+    if (clearAllUnifiedNotifications) {
+      clearAllUnifiedNotifications();
+    }
+
+    // Clear stored notifications
+    await clearAllStoredNotifications();
+  }, [clearAllUnifiedNotifications, clearAllStoredNotifications]);
+
   return {
     ...unifiedHook,
     notifications: sortedNotifications,
     unreadCount: totalUnreadCount,
     markAsRead,
     markAllAsRead,
+    clearAllNotifications,
   };
 };

@@ -189,7 +189,7 @@ export interface GigProfile {
   }>;
   guarantee: number;
   numberOfBands: number;
-  status: 'draft' | 'posted' | 'live' | 'completed';
+  status: 'draft' | 'pending-confirmation' | 'posted' | 'live' | 'completed';
   rating: number;
   tags: string[];
   ticketsSold: number;
