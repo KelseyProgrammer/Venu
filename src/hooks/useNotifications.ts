@@ -9,6 +9,7 @@ interface UseNotificationsReturn {
   sendNotification: (targetUserId: string, type: string, title: string, message: string, data?: Record<string, unknown>) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
+  clearAllNotifications: () => void;
   isConnected: boolean;
   error: string | null;
   isLoading: boolean;
@@ -27,6 +28,7 @@ export const useNotifications = (userId?: string): UseNotificationsReturn => {
     isLoading,
     markAsRead: markStoredAsRead,
     markAllAsRead: markAllStoredAsRead,
+    clearAllNotifications: clearAllStoredNotifications,
     refreshNotifications
   } = useStoredNotifications(userId);
 
@@ -122,6 +124,26 @@ export const useNotifications = (userId?: string): UseNotificationsReturn => {
     await markAllStoredAsRead();
   }, [markAllStoredAsRead]);
 
+  // Clear all notifications (both real-time and stored, preserving gig confirmations)
+  const clearAllNotifications = useCallback(async () => {
+    console.log('🗑️ useNotifications: clearAllNotifications called for userId:', userId);
+    
+    // Clear real-time notifications (but preserve gig-confirmation-required with pending-confirmation)
+    setRealTimeNotifications(prev => {
+      const filtered = prev.filter(notification => 
+        !(notification.type === 'gig-confirmation-required' && 
+          notification.data?.status === 'pending-confirmation')
+      );
+      console.log('🗑️ useNotifications: Cleared real-time notifications, remaining:', filtered.length);
+      return filtered;
+    });
+    
+    // Clear stored notifications (this will preserve gig confirmations via backend)
+    console.log('🗑️ useNotifications: Calling clearAllStoredNotifications...');
+    await clearAllStoredNotifications();
+    console.log('🗑️ useNotifications: clearAllStoredNotifications completed');
+  }, [clearAllStoredNotifications, userId]);
+
   // Clear error when connection is restored
   useEffect(() => {
     if (connected) {
@@ -135,6 +157,7 @@ export const useNotifications = (userId?: string): UseNotificationsReturn => {
     sendNotification,
     markAsRead,
     markAllAsRead,
+    clearAllNotifications,
     isConnected: connected,
     error,
     isLoading,

@@ -53,6 +53,11 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
         
         // Show success message
         alert(confirm ? 'Gig confirmed successfully!' : 'Gig confirmation removed.')
+        
+        // Dispatch a custom event to trigger data refresh in parent components
+        window.dispatchEvent(new CustomEvent('gig-confirmation-completed', { 
+          detail: { gigId: gig._id } 
+        }))
       } else {
         throw new Error(response.error || 'Failed to confirm gig')
       }

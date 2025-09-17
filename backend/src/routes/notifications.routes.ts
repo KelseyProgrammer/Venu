@@ -225,6 +225,69 @@ router.put('/read-all', authenticateToken, async (req: Request, res: Response) =
   }
 });
 
+// Clear all notifications for a user (preserving gig notifications awaiting confirmation)
+router.delete('/clear-all', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    console.log(`🗑️ Clear all notifications request received for user: ${userId}`);
+
+    // Import Notification model dynamically
+    const Notification = (await import('../models/Notification.js')).default;
+
+    // First, count how many notifications exist for this user
+    const countBefore = await Notification.countDocuments({ to: userId });
+    console.log(`🗑️ Found ${countBefore} notifications for user ${userId}`);
+
+    // Build query to exclude gig notifications that are awaiting confirmation
+    // These are notifications with type 'gig-confirmation-required' and status 'pending-confirmation'
+    const clearQuery = {
+      to: userId,
+      $or: [
+        // Exclude gig-confirmation-required notifications with pending-confirmation status
+        { type: { $ne: 'gig-confirmation-required' } },
+        { 
+          type: 'gig-confirmation-required',
+          $or: [
+            { 'data.status': { $ne: 'pending-confirmation' } },
+            { 'data.status': { $exists: false } }
+          ]
+        }
+      ]
+    };
+
+    // Count notifications that will be preserved (gig-confirmation-required with pending-confirmation)
+    const preservedCount = await Notification.countDocuments({
+      to: userId,
+      type: 'gig-confirmation-required',
+      'data.status': 'pending-confirmation'
+    });
+
+    console.log(`🗑️ Will preserve ${preservedCount} gig notifications awaiting confirmation`);
+
+    const result = await Notification.deleteMany(clearQuery);
+
+    console.log(`🗑️ Cleared ${result.deletedCount} notifications for user ${userId} (preserved ${preservedCount} awaiting confirmation)`);
+
+    const response: ApiResponse<any> = {
+      success: true,
+      data: {
+        deletedCount: result.deletedCount,
+        preservedCount: preservedCount
+      },
+      message: `${result.deletedCount} notifications cleared (${preservedCount} gig confirmations preserved)`,
+    };
+
+    res.json(response);
+  } catch (error: any) {
+    console.error('Clear all notifications error:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Internal server error',
+    };
+    res.status(500).json(response);
+  }
+});
+
 // Get user's notification preferences and FCM token status
 router.get('/preferences', authenticateToken, async (req: Request, res: Response) => {
   try {

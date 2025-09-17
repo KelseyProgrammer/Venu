@@ -674,9 +674,23 @@ export function ArtistDashboard() {
   //   setShowConfirmationModal(true)
   // }, [])
 
-  const handleConfirmationComplete = useCallback(() => {
+  const handleConfirmationComplete = useCallback(async () => {
     setShowConfirmationModal(false)
     setSelectedGigForConfirmation(null)
+    
+    // Refresh gig data immediately
+    try {
+      const currentUser = authUtils.getCurrentUser();
+      if (currentUser?.email) {
+        const response = await gigApi.getGigsByArtist(currentUser.email);
+        if (response.success && response.data) {
+          setGigs(response.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing gigs after confirmation:', err);
+    }
+    
     // Trigger a custom event to refresh gig data
     window.dispatchEvent(new CustomEvent('gig-confirmation-completed', { 
       detail: { gigId: selectedGigForConfirmation?._id } 
@@ -691,11 +705,22 @@ export function ArtistDashboard() {
       setShowConfirmationModal(true);
     };
 
-    const handleGigConfirmationCompleted = (event: CustomEvent) => {
+    const handleGigConfirmationCompleted = async (event: CustomEvent) => {
       const { gigId } = event.detail;
       console.log('🔄 Gig confirmation completed, refreshing data for gig:', gigId);
-      // Force a re-render by updating state
-      setActiveTab(prev => prev); // This will trigger a re-render
+      
+      // Refresh gig data
+      try {
+        const currentUser = authUtils.getCurrentUser();
+        if (currentUser?.email) {
+          const response = await gigApi.getGigsByArtist(currentUser.email);
+          if (response.success && response.data) {
+            setGigs(response.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error refreshing gigs after confirmation event:', err);
+      }
     };
 
     window.addEventListener('open-gig-confirmation', handleGigConfirmation as EventListener);
@@ -720,7 +745,8 @@ export function ArtistDashboard() {
     sendGigUpdate,
     isConnected: realTimeConnected,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    clearAllNotifications
   } = useArtistRealTime({ artistId: isClient ? authUtils.getCurrentUser()?.id || "" : "" })
   
   // Debug notifications
@@ -752,6 +778,31 @@ export function ArtistDashboard() {
       userObject: isClient ? authUtils.getCurrentUser() : null
     });
   }, [realTimeConnected, isClient]);
+
+  // Handle gig updates from real-time system
+  useEffect(() => {
+    if (gigUpdates && gigUpdates.length > 0) {
+      console.log('🔄 ARTIST DASHBOARD: Received gig updates, refreshing data:', gigUpdates);
+      
+      // Refresh gig data when we receive updates
+      const refreshGigs = async () => {
+        try {
+          const currentUser = authUtils.getCurrentUser();
+          if (currentUser?.email) {
+            const response = await gigApi.getGigsByArtist(currentUser.email);
+            if (response.success && response.data) {
+              setGigs(response.data);
+              console.log('✅ ARTIST DASHBOARD: Gigs refreshed after real-time update');
+            }
+          }
+        } catch (err) {
+          console.error('❌ ARTIST DASHBOARD: Error refreshing gigs after real-time update:', err);
+        }
+      };
+
+      refreshGigs();
+    }
+  }, [gigUpdates]);
   
   // Auto-connect socket when component mounts - optimized with error handling
   useEffect(() => {
@@ -1431,6 +1482,7 @@ export function ArtistDashboard() {
               isConnected={realTimeConnected}
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
+              onClearAll={clearAllNotifications}
             />
             {/* Logout button */}
             <Button 

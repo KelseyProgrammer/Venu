@@ -70,7 +70,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       case 2:
         return bands.length > 0
       case 3:
-        return guarantee.trim() && (parseFloat(promoterPercentage) || 0) + bandsTotal <= 100
+        return guarantee.trim() !== "" && !isNaN(parseFloat(guarantee)) && parseFloat(guarantee) >= 0 && (parseFloat(promoterPercentage) || 0) + bandsTotal <= 100
       case 4:
         return true // Optional step
       default:
