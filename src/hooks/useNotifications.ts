@@ -24,12 +24,11 @@ export const useNotifications = (userId?: string): UseNotificationsReturn => {
   // Get stored notifications
   const {
     notifications: storedNotifications,
-    unreadCount: storedUnreadCount,
     isLoading,
     markAsRead: markStoredAsRead,
     markAllAsRead: markAllStoredAsRead,
     clearAllNotifications: clearAllStoredNotifications,
-    refreshNotifications
+    refreshNotifications,
   } = useStoredNotifications(userId);
 
   // Auto-connect when hook is used
@@ -64,20 +63,26 @@ export const useNotifications = (userId?: string): UseNotificationsReturn => {
   const allNotifications = [...realTimeNotifications, ...storedNotifications];
   
   // Remove duplicates based on notification ID
-  const uniqueNotifications = allNotifications.reduce((acc, notification) => {
-    if (!acc.find(n => n.id === notification.id)) {
-      acc.push(notification);
-    }
-    return acc;
-  }, [] as SocketNotification[]);
+  const uniqueNotifications = allNotifications.reduce(
+    (acc: SocketNotification[], notification: SocketNotification) => {
+      if (!acc.find((n: SocketNotification) => n.id === notification.id)) {
+        acc.push(notification);
+      }
+      return acc;
+    },
+    []
+  );
 
   // Sort by timestamp (newest first)
-  const sortedNotifications = uniqueNotifications.sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  const sortedNotifications = uniqueNotifications.sort(
+    (a: SocketNotification, b: SocketNotification) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
   // Calculate total unread count
-  const totalUnreadCount = sortedNotifications.filter(n => !n.read).length;
+  const totalUnreadCount = sortedNotifications.filter(
+    (n: SocketNotification) => !n.read
+  ).length;
 
   // Send notification function
   const sendNotification = useCallback((targetUserId: string, type: string, title: string, message: string, data?: Record<string, unknown>) => {

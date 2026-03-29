@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Location from '../models/Location.js';
 import User from '../models/User.js';
+import Gig from '../models/Gig.js';
 import { ApiResponse } from '../shared/types.js';
 import { 
   authenticateToken, 
@@ -214,6 +216,25 @@ router.get('/user/:userId', authenticateToken, async (req: Request, res: Respons
       success: false,
       error: 'Internal server error',
     };
+    res.status(500).json(response);
+  }
+});
+
+// Get locations where the authenticated user is an authorized promoter
+router.get('/my-assigned', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const locations = await Location.find({
+      authorizedPromoters: new mongoose.Types.ObjectId(userId)
+    })
+      .select('_id name city state capacity')
+      .lean();
+
+    const response: ApiResponse<any[]> = { success: true, data: locations };
+    res.json(response);
+  } catch (error) {
+    console.error('Get assigned locations error:', error);
+    const response: ApiResponse<null> = { success: false, error: 'Internal server error' };
     res.status(500).json(response);
   }
 });
@@ -464,6 +485,103 @@ router.get('/:id/promoters', authenticateToken, requireResourceOwnership(Locatio
       success: false,
       error: 'Internal server error',
     };
+    res.status(500).json(response);
+  }
+});
+
+// Location analytics - aggregates gig data server-side
+router.get('/:id/analytics', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid location ID' });
+    }
+
+    const locationObjectId = new mongoose.Types.ObjectId(id);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const [result] = await Gig.aggregate([
+      { $match: { selectedLocation: locationObjectId } },
+      {
+        $facet: {
+          totalGigs: [{ $count: 'count' }],
+          upcomingGigs: [
+            { $match: { eventDate: { $gt: now }, status: { $ne: 'completed' } } },
+            { $count: 'count' }
+          ],
+          completedGigs: [
+            { $match: { status: 'completed' } },
+            { $count: 'count' }
+          ],
+          fillRate: [
+            { $match: { status: 'completed', ticketCapacity: { $gt: 0 } } },
+            {
+              $group: {
+                _id: null,
+                avg: {
+                  $avg: {
+                    $multiply: [{ $divide: ['$ticketsSold', '$ticketCapacity'] }, 100]
+                  }
+                }
+              }
+            }
+          ],
+          totalRevenue: [
+            { $match: { status: 'completed' } },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: { $multiply: ['$ticketsSold', '$ticketPrice'] } }
+              }
+            }
+          ],
+          monthlyRevenue: [
+            {
+              $match: {
+                status: 'completed',
+                eventDate: { $gte: startOfMonth, $lte: endOfMonth }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: { $multiply: ['$ticketsSold', '$ticketPrice'] } }
+              }
+            }
+          ],
+          topGenres: [
+            { $group: { _id: '$eventGenre', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+            { $project: { _id: 0, genre: '$_id', count: 1 } }
+          ],
+          averageRating: [
+            { $match: { rating: { $gt: 0 } } },
+            { $group: { _id: null, avg: { $avg: '$rating' } } }
+          ]
+        }
+      }
+    ]);
+
+    const analytics = {
+      totalGigs: result?.totalGigs?.[0]?.count ?? 0,
+      upcomingGigs: result?.upcomingGigs?.[0]?.count ?? 0,
+      completedGigs: result?.completedGigs?.[0]?.count ?? 0,
+      averageFillRate: Math.round(result?.fillRate?.[0]?.avg ?? 0),
+      totalRevenue: result?.totalRevenue?.[0]?.total ?? 0,
+      monthlyRevenue: result?.monthlyRevenue?.[0]?.total ?? 0,
+      topGenres: result?.topGenres ?? [],
+      averageRating: Math.round((result?.averageRating?.[0]?.avg ?? 0) * 10) / 10,
+    };
+
+    const response: ApiResponse<typeof analytics> = { success: true, data: analytics };
+    res.json(response);
+  } catch (error) {
+    console.error('Location analytics error:', error);
+    const response: ApiResponse<null> = { success: false, error: 'Internal server error' };
     res.status(500).json(response);
   }
 });

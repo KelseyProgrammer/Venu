@@ -62,7 +62,7 @@ export function ScheduleCalendarView({
         if (confirmedBandsCount >= gig.numberOfBands) {
           eventStatus = 'posted'; // Lineup is full
         } else {
-          eventStatus = 'pending'; // Still needs more bands
+          eventStatus = 'pending-confirmation'; // Still needs more bands
         }
       }
       
@@ -87,48 +87,7 @@ export function ScheduleCalendarView({
     })
   }, [gigs])
 
-  // Fallback to mock data if no gigs are available
-  const fallbackEvents = useMemo(() => [
-    {
-      id: 1,
-      name: "Rock Night",
-      date: "2024-12-15",
-      location: "Muggsy's",
-      status: "confirmed",
-      time: "8:00 PM",
-      genre: "Rock",
-      image: "/images/BandFallBack.PNG",
-      artist: "Rock Night",
-      expectedBands: 3,
-      confirmedBands: 3,
-      ticketsSold: 45,
-      totalTickets: 100,
-      guarantee: 500,
-      currentEarnings: 750,
-      applications: 8
-    },
-    {
-      id: 2,
-      name: "Jazz Evening",
-      date: "2024-12-20",
-      location: "Sarbez",
-      status: "pending",
-      time: "9:00 PM",
-      genre: "Jazz",
-      image: "/images/BandFallBack.PNG",
-      artist: "Jazz Evening",
-      expectedBands: 2,
-      confirmedBands: 1,
-      ticketsSold: 23,
-      totalTickets: 80,
-      guarantee: 300,
-      currentEarnings: 345,
-      applications: 5
-    }
-  ], [])
-
-  // Use real gigs data if available, otherwise fallback to mock data
-  const eventsToUse = myEvents.length > 0 ? myEvents : fallbackEvents
+  const eventsToUse = myEvents
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {

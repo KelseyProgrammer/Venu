@@ -40,16 +40,14 @@ interface UseUnifiedRealTimeReturn {
   };
 }
 
-// Helper function to get user email from user ID
+// Helper function to get user email from stored user object (avoids client-side JWT parsing)
 const getUserEmailFromUserId = (): string => {
   if (typeof window === 'undefined') return '';
   try {
-    const token = localStorage.getItem('authToken');
-    if (!token || token.length < 10 || !token.includes('.')) {
-      return '';
-    }
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.email || '';
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return '';
+    const user = JSON.parse(userStr);
+    return user.email || '';
   } catch {
     return '';
   }
@@ -219,9 +217,14 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(notification => ({ ...notification, read: true }))
     );
+  }, []);
+
+  // Clear all in-memory real-time notifications
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
   }, []);
 
   // Send gig update function
@@ -281,6 +284,7 @@ export const useUnifiedRealTime = (config: UseUnifiedRealTimeProps): UseUnifiedR
     unreadCount,
     markAsRead,
     markAllAsRead,
+    clearAllNotifications,
     gigUpdates,
     sendGigUpdate,
     messages,
@@ -303,35 +307,32 @@ interface UseArtistRealTimeReturn {
   unreadCount: number;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
-  
+  clearAllNotifications: () => void;
+
   // Gig Updates
   gigUpdates: SocketGigUpdate[];
   sendGigUpdate: (gigId: string, updateType: string, gigData: Record<string, unknown>) => void;
-  
+
   // Chat
   messages: SocketMessage[];
   sendMessage: (message: string) => void;
   typingUsers: string[];
-  
+
   // Connection
   isConnected: boolean;
   error: string | null;
 }
 
 export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): UseArtistRealTimeReturn => {
-  // Get user info from localStorage for backward compatibility
+  // Get user info from stored user object (avoids client-side JWT parsing)
   const getUserId = (): string => {
     if (typeof window === 'undefined') return '';
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token || token.length < 10 || !token.includes('.')) {
-        console.log('🔐 Invalid token in getUserId, skipping real-time connection');
-        return '';
-      }
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId || '';
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return '';
+      const user = JSON.parse(userStr);
+      return user._id || user.id || '';
     } catch {
-      console.log('🔐 Error parsing token in getUserId, skipping real-time connection');
       return '';
     }
   };
@@ -339,16 +340,12 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
   const getUserRole = (): string => {
     if (typeof window === 'undefined') return '';
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token || token.length < 10 || !token.includes('.')) {
-        console.log('🔐 Invalid token in getUserRole, skipping real-time connection');
-        return '';
-      }
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.role || '';
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return localStorage.getItem('userRole') || '';
+      const user = JSON.parse(userStr);
+      return user.role || localStorage.getItem('userRole') || '';
     } catch {
-      console.log('🔐 Error parsing token in getUserRole, skipping real-time connection');
-      return '';
+      return localStorage.getItem('userRole') || '';
     }
   };
 
@@ -359,12 +356,9 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
   // Get stored notifications for the current user
   const {
     notifications: storedNotifications,
-    unreadCount: storedUnreadCount,
-    isLoading: notificationsLoading,
     markAsRead: markStoredAsRead,
     markAllAsRead: markAllStoredAsRead,
     clearAllNotifications: clearAllStoredNotifications,
-    refreshNotifications
   } = useStoredNotifications(currentArtistId);
 
   const unifiedHook = useUnifiedRealTime({
@@ -381,20 +375,26 @@ export const useArtistRealTime = ({ artistId }: UseArtistRealTimeProps = {}): Us
   const allNotifications = [...unifiedHook.notifications, ...storedNotifications];
   
   // Remove duplicates based on notification ID
-  const uniqueNotifications = allNotifications.reduce((acc, notification) => {
-    if (!acc.find(n => n.id === notification.id)) {
-      acc.push(notification);
-    }
-    return acc;
-  }, [] as SocketNotification[]);
+  const uniqueNotifications = allNotifications.reduce(
+    (acc: SocketNotification[], notification: SocketNotification) => {
+      if (!acc.find((n: SocketNotification) => n.id === notification.id)) {
+        acc.push(notification);
+      }
+      return acc;
+    },
+    []
+  );
 
   // Sort by timestamp (newest first)
-  const sortedNotifications = uniqueNotifications.sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  const sortedNotifications = uniqueNotifications.sort(
+    (a: SocketNotification, b: SocketNotification) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
   // Calculate total unread count
-  const totalUnreadCount = sortedNotifications.filter(n => !n.read).length;
+  const totalUnreadCount = sortedNotifications.filter(
+    (n: SocketNotification) => !n.read
+  ).length;
 
   // Enhanced mark as read function
   const markAsRead = useCallback(async (notificationId: string) => {

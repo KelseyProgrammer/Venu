@@ -77,11 +77,13 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
         // Get unique email addresses from bands
         const bandEmails = [...new Set(gig.bands.map(band => band.email.toLowerCase()))];
         
-        // Find users by email addresses
-        const users = await User.find({ 
+        // Find users by email addresses — collation strength 2 = case-insensitive
+        const users = await User.find({
           email: { $in: bandEmails },
-          role: 'artist' 
-        }).select('_id email firstName lastName');
+          role: 'artist'
+        })
+        .collation({ locale: 'en', strength: 2 })
+        .select('_id email firstName lastName');
         
         console.log(`🔍 DEBUG: Looking for artists with emails:`, bandEmails);
         console.log(`🔍 DEBUG: Found ${users.length} artist users:`, users.map(u => ({ id: u._id, email: u.email, role: u.role })));
@@ -391,7 +393,7 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
 
     // Send confirmation notification to the artist who confirmed
     if (confirmed) {
-      const artistUser = await User.findOne({ email: bandEmail.toLowerCase() });
+      const artistUser = await User.findOne({ email: bandEmail.toLowerCase() }).collation({ locale: 'en', strength: 2 });
       if (artistUser) {
         const artistUserId = (artistUser as any)._id.toString();
         await socketService.sendNotificationToUser(artistUserId, {
@@ -472,6 +474,37 @@ router.get('/:id', async (req: Request, res: Response) => {
       error: 'Internal server error',
     };
     res.status(500).json(response);
+  }
+});
+
+// Record ticket sale - increments ticketsSold atomically
+router.post('/:id/tickets', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { quantity = 1 } = req.body;
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+      return res.status(400).json({ success: false, error: 'Invalid quantity' });
+    }
+
+    const gig = await Gig.findOneAndUpdate(
+      {
+        _id: id,
+        status: { $in: ['posted', 'live'] },
+        $expr: { $lte: [{ $add: ['$ticketsSold', quantity] }, '$ticketCapacity'] }
+      },
+      { $inc: { ticketsSold: quantity } },
+      { new: true, select: 'ticketsSold ticketCapacity ticketPrice eventName' }
+    );
+
+    if (!gig) {
+      return res.status(400).json({ success: false, error: 'Gig not available or sold out' });
+    }
+
+    res.json({ success: true, data: { ticketsSold: gig.ticketsSold, ticketCapacity: gig.ticketCapacity } });
+  } catch (error) {
+    console.error('Ticket sale error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -711,7 +744,7 @@ async function updateGigStatus(
     // Add all confirmed artists
     for (const band of gig.bands) {
       if (band.confirmed) {
-        const user = await User.findOne({ email: band.email.toLowerCase() });
+        const user = await User.findOne({ email: band.email.toLowerCase() }).collation({ locale: 'en', strength: 2 });
         if (user) {
           stakeholders.push((user as any)._id.toString());
         }

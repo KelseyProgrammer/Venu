@@ -102,7 +102,7 @@ export interface SocketAuth {
 // Rate limiting class
 class RateLimiter {
   private userLimits: Map<string, { count: number; resetTime: number }> = new Map();
-  private maxMessagesPerMinute = 30;
+  private maxMessagesPerMinute = 60;
   private windowMs = 60000; // 1 minute
 
   canSendMessage(userId: string): boolean {
@@ -264,13 +264,14 @@ class CircularBuffer<T> {
 
 // Enhanced Socket Manager with Connection Pooling
 class OptimizedSocketManager {
-  private static instance: OptimizedSocketManager;
+  private static instance: OptimizedSocketManager | null = null;
   private connections: Map<string, Socket<ServerToClientEvents, ClientToServerEvents>> = new Map();
   private roomSubscriptions: Map<string, Set<string>> = new Map();
   private rateLimiter = new RateLimiter();
   private messageBatcher: MessageBatcher;
   private messageStore = new MessageStore();
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private messageTimestamps: number[] = [];
 
   // Singleton pattern for connection reuse
   static getInstance(): OptimizedSocketManager {
@@ -278,6 +279,14 @@ class OptimizedSocketManager {
       OptimizedSocketManager.instance = new OptimizedSocketManager();
     }
     return OptimizedSocketManager.instance;
+  }
+
+  // Reset singleton — call before re-authenticating or on logout
+  static reset(): void {
+    if (OptimizedSocketManager.instance) {
+      OptimizedSocketManager.instance.destroy();
+      OptimizedSocketManager.instance = null;
+    }
   }
 
   constructor() {
@@ -467,6 +476,13 @@ class OptimizedSocketManager {
     this.messageBatcher.addMessage(roomId, messageData);
     
     connection.emit('send-message', { locationId: roomId, message, type });
+
+    // Track message timestamp for rate analytics
+    const now = Date.now();
+    this.messageTimestamps.push(now);
+    // Keep only the last 60 seconds
+    this.messageTimestamps = this.messageTimestamps.filter(t => now - t < 60000);
+
     return true;
   }
 
@@ -533,14 +549,12 @@ class OptimizedSocketManager {
   }
 
   private calculateMessageRate(): number {
-    // This would track messages per second over time
-    // For now, return a placeholder
-    return 0;
+    const now = Date.now();
+    return this.messageTimestamps.filter(t => now - t < 1000).length;
   }
 
   private calculateAverageLatency(): number {
-    // This would track average message latency
-    // For now, return a placeholder
+    // Latency requires round-trip measurement (ping/pong); not available without server cooperation
     return 0;
   }
 
@@ -576,21 +590,34 @@ class SocketManager {
   private optimizedManager = OptimizedSocketManager.getInstance();
   private notificationListeners: Set<(notification: SocketNotification) => void> = new Set();
 
+  // Read userId from the stored user object — avoids client-side JWT parsing
+  private getCurrentUserId(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return null;
+      const user = JSON.parse(userStr);
+      return user._id || user.id || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Initialize socket connection
   async connect(token: string): Promise<void> {
     if (typeof window === 'undefined') {
       return Promise.resolve();
     }
 
-    // Additional validation for token format
+    // Validate token format (the server will fully verify the signature)
     if (!token || token.length < 10 || !token.includes('.')) {
       console.log('🔐 Invalid token format, skipping socket connection');
       return Promise.resolve();
     }
 
-    const userId = this.getUserIdFromToken(token);
+    const userId = this.getCurrentUserId();
     if (!userId) {
-      console.log('🔐 Invalid token: no user ID found, skipping socket connection');
+      console.log('🔐 No authenticated user found, skipping socket connection');
       return Promise.resolve();
     }
 
@@ -606,15 +633,6 @@ class SocketManager {
       console.log('Socket connection failed, continuing without real-time features');
       console.log('This is normal if the user is not authenticated or server is unavailable');
       return Promise.resolve();
-    }
-  }
-
-  private getUserIdFromToken(token: string): string | null {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId || null;
-    } catch {
-      return null;
     }
   }
 
@@ -647,20 +665,21 @@ class SocketManager {
   // Disconnect socket
   disconnect(): void {
     if (this.socket) {
-      const userId = this.getUserIdFromToken(localStorage.getItem('authToken') || '');
+      const userId = this.getCurrentUserId();
       if (userId) {
         this.optimizedManager.disconnectUser(userId);
       }
       this.socket = null;
       this.isConnected = false;
-      this.notificationListeners.clear(); // Clear all notification listeners
+      this.notificationListeners.clear();
+      OptimizedSocketManager.reset();
     }
   }
 
   // Check if socket is connected
   get connected(): boolean {
     if (!this.socket) return false;
-    const userId = this.getUserIdFromToken(localStorage.getItem('authToken') || '');
+    const userId = this.getCurrentUserId();
     return userId ? this.optimizedManager.isConnected(userId) : false;
   }
 
@@ -671,18 +690,14 @@ class SocketManager {
 
   // Location room management
   async joinLocation(locationId: string): Promise<void> {
-    const token = localStorage.getItem('authToken');
-    const userId = token ? this.getUserIdFromToken(token) : null;
-    
+    const userId = this.getCurrentUserId();
     if (userId && this.connected) {
       await this.optimizedManager.joinRoom(userId, locationId);
     }
   }
 
   async leaveLocation(locationId: string): Promise<void> {
-    const token = localStorage.getItem('authToken');
-    const userId = token ? this.getUserIdFromToken(token) : null;
-    
+    const userId = this.getCurrentUserId();
     if (userId) {
       await this.optimizedManager.leaveRoom(userId, locationId);
     }
@@ -690,11 +705,8 @@ class SocketManager {
 
   // Chat functionality with rate limiting
   sendMessage(locationId: string, message: string, type: 'text' | 'system' = 'text'): boolean {
-    const token = localStorage.getItem('authToken');
-    const userId = token ? this.getUserIdFromToken(token) : null;
-    
+    const userId = this.getCurrentUserId();
     if (!userId) return false;
-    
     return this.optimizedManager.sendMessage(userId, locationId, message, type);
   }
 

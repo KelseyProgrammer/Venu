@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { SocketNotification } from '../lib/types';
+import { SocketNotification } from '../lib/socket';
 
 interface UseStoredNotificationsReturn {
   notifications: SocketNotification[];

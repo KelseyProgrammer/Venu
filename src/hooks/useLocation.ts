@@ -31,70 +31,17 @@ export function useLocation(locationId: string) {
 
   const [analytics, setAnalytics] = useState<LocationAnalytics | null>(null);
 
-  const calculateAnalytics = useCallback((gigs: GigProfile[]) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const upcomingGigs = gigs.filter(gig => new Date(gig.eventDate) > now && gig.status !== 'completed');
-    const completedGigs = gigs.filter(gig => gig.status === 'completed');
-    
-    // Calculate fill rates
-    const fillRates = completedGigs
-      .filter(gig => gig.ticketCapacity > 0)
-      .map(gig => (gig.ticketsSold / gig.ticketCapacity) * 100);
-    const averageFillRate = fillRates.length > 0 
-      ? fillRates.reduce((sum, rate) => sum + rate, 0) / fillRates.length 
-      : 0;
-
-    // Calculate revenue
-    const totalRevenue = completedGigs.reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-    const monthlyRevenue = completedGigs
-      .filter(gig => {
-        const gigDate = new Date(gig.eventDate);
-        return gigDate.getMonth() === currentMonth && gigDate.getFullYear() === currentYear;
-      })
-      .reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-
-    // Calculate top genres
-    const genreCounts: Record<string, number> = {};
-    gigs.forEach(gig => {
-      genreCounts[gig.eventGenre] = (genreCounts[gig.eventGenre] || 0) + 1;
-    });
-    const topGenres = Object.entries(genreCounts)
-      .map(([genre, count]) => ({ genre, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // Calculate average rating
-    const ratings = gigs.filter(gig => gig.rating > 0).map(gig => gig.rating);
-    const averageRating = ratings.length > 0 
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-      : 0;
-
-    setAnalytics({
-      totalGigs: gigs.length,
-      upcomingGigs: upcomingGigs.length,
-      completedGigs: completedGigs.length,
-      averageFillRate: Math.round(averageFillRate),
-      totalRevenue,
-      monthlyRevenue,
-      topGenres,
-      averageRating: Math.round(averageRating * 10) / 10,
-    });
-  }, []);
-
   const fetchLocationData = useCallback(async () => {
     if (!locationId) return;
 
     setData(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Fetch location data, gigs, and promoters in parallel for better performance
-      const [locationResponse, gigsResponse, promotersResponse] = await Promise.all([
+      const [locationResponse, gigsResponse, promotersResponse, analyticsResponse] = await Promise.all([
         locationApi.getLocationById(locationId),
-        gigApi.getGigsByLocation(locationId, 1, 100), // Get all gigs for analytics
+        gigApi.getGigsByLocation(locationId, 1, 100),
         locationApi.getAuthorizedPromoters(locationId),
+        locationApi.getLocationAnalytics(locationId),
       ]);
 
       if (locationResponse.success && gigsResponse.success && promotersResponse.success) {
@@ -110,8 +57,9 @@ export function useLocation(locationId: string) {
           error: null,
         });
 
-        // Calculate analytics from the data
-        calculateAnalytics(gigsResponse.data || []);
+        if (analyticsResponse.success && analyticsResponse.data) {
+          setAnalytics(analyticsResponse.data);
+        }
       } else {
         setData(prev => ({
           ...prev,
@@ -127,7 +75,7 @@ export function useLocation(locationId: string) {
         error: error instanceof Error ? error.message : 'Failed to fetch location data',
       }));
     }
-  }, [locationId, calculateAnalytics]);
+  }, [locationId]);
 
   const updateLocation = useCallback(async (updateData: Partial<LocationProfile>) => {
     if (!data.location) return;
@@ -152,11 +100,10 @@ export function useLocation(locationId: string) {
     try {
       const response = await locationApi.addPromoterToLocation(data.location._id, promoterId);
       if (response.success) {
-        // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ 
-            ...prev, 
+          setData(prev => ({
+            ...prev,
             authorizedPromoters: (promotersResponse.data || []).map(user => ({
               id: user._id,
               name: `${user.firstName} ${user.lastName}`,
@@ -180,11 +127,10 @@ export function useLocation(locationId: string) {
     try {
       const response = await locationApi.removePromoterFromLocation(data.location._id, promoterId);
       if (response.success) {
-        // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ 
-            ...prev, 
+          setData(prev => ({
+            ...prev,
             authorizedPromoters: (promotersResponse.data || []).map(user => ({
               id: user._id,
               name: `${user.firstName} ${user.lastName}`,
@@ -233,56 +179,9 @@ export function useLocationAnalytics(locationId: string) {
     setError(null);
 
     try {
-      const response = await gigApi.getGigsByLocation(locationId, 1, 100);
+      const response = await locationApi.getLocationAnalytics(locationId);
       if (response.success && response.data) {
-        // Calculate analytics (same logic as in useLocation)
-        const gigs = response.data;
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const upcomingGigs = gigs.filter(gig => new Date(gig.eventDate) > now && gig.status !== 'completed');
-        const completedGigs = gigs.filter(gig => gig.status === 'completed');
-        
-        const fillRates = completedGigs
-          .filter(gig => gig.ticketCapacity > 0)
-          .map(gig => (gig.ticketsSold / gig.ticketCapacity) * 100);
-        const averageFillRate = fillRates.length > 0 
-          ? fillRates.reduce((sum, rate) => sum + rate, 0) / fillRates.length 
-          : 0;
-
-        const totalRevenue = completedGigs.reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-        const monthlyRevenue = completedGigs
-          .filter(gig => {
-            const gigDate = new Date(gig.eventDate);
-            return gigDate.getMonth() === currentMonth && gigDate.getFullYear() === currentYear;
-          })
-          .reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-
-        const genreCounts: Record<string, number> = {};
-        gigs.forEach(gig => {
-          genreCounts[gig.eventGenre] = (genreCounts[gig.eventGenre] || 0) + 1;
-        });
-        const topGenres = Object.entries(genreCounts)
-          .map(([genre, count]) => ({ genre, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
-
-        const ratings = gigs.filter(gig => gig.rating > 0).map(gig => gig.rating);
-        const averageRating = ratings.length > 0 
-          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-          : 0;
-
-        setAnalytics({
-          totalGigs: gigs.length,
-          upcomingGigs: upcomingGigs.length,
-          completedGigs: completedGigs.length,
-          averageFillRate: Math.round(averageFillRate),
-          totalRevenue,
-          monthlyRevenue,
-          topGenres,
-          averageRating: Math.round(averageRating * 10) / 10,
-        });
+        setAnalytics(response.data);
       } else {
         setError(response.error || 'Failed to fetch analytics data');
       }
@@ -318,64 +217,10 @@ export function useCurrentUserLocation() {
 
   const [analytics, setAnalytics] = useState<LocationAnalytics | null>(null);
 
-  const calculateAnalytics = useCallback((gigs: GigProfile[]) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const upcomingGigs = gigs.filter(gig => new Date(gig.eventDate) > now && gig.status !== 'completed');
-    const completedGigs = gigs.filter(gig => gig.status === 'completed');
-    
-    // Calculate fill rates
-    const fillRates = completedGigs
-      .filter(gig => gig.ticketCapacity > 0)
-      .map(gig => (gig.ticketsSold / gig.ticketCapacity) * 100);
-    const averageFillRate = fillRates.length > 0 
-      ? fillRates.reduce((sum, rate) => sum + rate, 0) / fillRates.length 
-      : 0;
-
-    // Calculate revenue
-    const totalRevenue = completedGigs.reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-    const monthlyRevenue = completedGigs
-      .filter(gig => {
-        const gigDate = new Date(gig.eventDate);
-        return gigDate.getMonth() === currentMonth && gigDate.getFullYear() === currentYear;
-      })
-      .reduce((sum, gig) => sum + (gig.ticketsSold * gig.ticketPrice), 0);
-
-    // Calculate top genres
-    const genreCounts: Record<string, number> = {};
-    gigs.forEach(gig => {
-      genreCounts[gig.eventGenre] = (genreCounts[gig.eventGenre] || 0) + 1;
-    });
-    const topGenres = Object.entries(genreCounts)
-      .map(([genre, count]) => ({ genre, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // Calculate average rating
-    const ratings = gigs.filter(gig => gig.rating > 0).map(gig => gig.rating);
-    const averageRating = ratings.length > 0 
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-      : 0;
-
-    setAnalytics({
-      totalGigs: gigs.length,
-      upcomingGigs: upcomingGigs.length,
-      completedGigs: completedGigs.length,
-      averageFillRate: Math.round(averageFillRate),
-      totalRevenue,
-      monthlyRevenue,
-      topGenres,
-      averageRating: Math.round(averageRating * 10) / 10,
-    });
-  }, []);
-
   const fetchCurrentUserLocation = useCallback(async () => {
     setData(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Check if user is authenticated first
       if (!apiUtils.isAuthenticated()) {
         setData(prev => ({
           ...prev,
@@ -385,16 +230,13 @@ export function useCurrentUserLocation() {
         return;
       }
 
-      // First get the current user profile
       const userResponse = await authApi.getProfile();
       if (!userResponse.success || !userResponse.data) {
-        // If authentication fails, clear token and show error
-        if (userResponse.error?.includes('Access token') || 
-            userResponse.error?.includes('Unauthorized') || 
+        if (userResponse.error?.includes('Access token') ||
+            userResponse.error?.includes('Unauthorized') ||
             userResponse.error?.includes('Invalid token') ||
             userResponse.error?.includes('User not found')) {
           apiUtils.removeAuthToken();
-          // Also clear user data from localStorage
           localStorage.removeItem('user');
           localStorage.removeItem('userRole');
         }
@@ -407,8 +249,7 @@ export function useCurrentUserLocation() {
       }
 
       const user = userResponse.data;
-      
-      // Check if user has location role
+
       if (user.role !== 'location') {
         setData(prev => ({
           ...prev,
@@ -418,10 +259,8 @@ export function useCurrentUserLocation() {
         return;
       }
 
-      // Get the user's location
       const locationResponse = await locationApi.getLocationByUserId(user._id || user.id || "");
       if (!locationResponse.success) {
-        // Check if it's a 404 error (location not found)
         if (locationResponse.error?.includes('Location not found') || locationResponse.error?.includes('404')) {
           setData(prev => ({
             ...prev,
@@ -430,7 +269,6 @@ export function useCurrentUserLocation() {
           }));
           return;
         }
-        // For other errors, show the actual error
         setData(prev => ({
           ...prev,
           loading: false,
@@ -450,10 +288,10 @@ export function useCurrentUserLocation() {
 
       const location = locationResponse.data;
 
-      // Fetch gigs and promoters in parallel
-      const [gigsResponse, promotersResponse] = await Promise.all([
+      const [gigsResponse, promotersResponse, analyticsResponse] = await Promise.all([
         gigApi.getGigsByLocation(location._id, 1, 100),
         locationApi.getAuthorizedPromoters(location._id),
+        locationApi.getLocationAnalytics(location._id),
       ]);
 
       if (gigsResponse.success && promotersResponse.success) {
@@ -469,8 +307,9 @@ export function useCurrentUserLocation() {
           error: null,
         });
 
-        // Calculate analytics from the data
-        calculateAnalytics(gigsResponse.data || []);
+        if (analyticsResponse.success && analyticsResponse.data) {
+          setAnalytics(analyticsResponse.data);
+        }
       } else {
         setData(prev => ({
           ...prev,
@@ -486,7 +325,7 @@ export function useCurrentUserLocation() {
         error: error instanceof Error ? error.message : 'Failed to fetch location data',
       }));
     }
-  }, [calculateAnalytics]);
+  }, []);
 
   const updateLocation = useCallback(async (updateData: Partial<LocationProfile>) => {
     if (!data.location) return;
@@ -511,11 +350,10 @@ export function useCurrentUserLocation() {
     try {
       const response = await locationApi.addPromoterToLocation(data.location._id, promoterId);
       if (response.success) {
-        // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ 
-            ...prev, 
+          setData(prev => ({
+            ...prev,
             authorizedPromoters: (promotersResponse.data || []).map(user => ({
               id: user._id,
               name: `${user.firstName} ${user.lastName}`,
@@ -539,11 +377,10 @@ export function useCurrentUserLocation() {
     try {
       const response = await locationApi.removePromoterFromLocation(data.location._id, promoterId);
       if (response.success) {
-        // Refresh promoters list
         const promotersResponse = await locationApi.getAuthorizedPromoters(data.location._id);
         if (promotersResponse.success) {
-          setData(prev => ({ 
-            ...prev, 
+          setData(prev => ({
+            ...prev,
             authorizedPromoters: (promotersResponse.data || []).map((user: { _id: string; firstName: string; lastName: string; email: string }) => ({
               id: user._id,
               name: `${user.firstName} ${user.lastName}`,
@@ -566,12 +403,10 @@ export function useCurrentUserLocation() {
   }, [fetchCurrentUserLocation]);
 
   useEffect(() => {
-    // Only fetch if we have a valid token
     const token = localStorage.getItem('authToken');
     if (token) {
       fetchCurrentUserLocation();
     } else {
-      // Clear any existing data and set error
       setData({
         location: null,
         gigs: [],
@@ -590,7 +425,7 @@ export function useCurrentUserLocation() {
     };
 
     window.addEventListener('gig-created', handleGigCreated);
-    
+
     return () => {
       window.removeEventListener('gig-created', handleGigCreated);
     };

@@ -8,17 +8,14 @@ import { usePromoterRealTime } from "@/hooks/usePromoterRealTime"
 
 interface ChatTabProps {
   selectedLocation: string;
+  currentUserId: string;
+  locationName?: string | undefined;
 }
 
-export function ChatTab({ selectedLocation }: ChatTabProps) {
-  const myLocations = [
-    { id: "muggys", name: "Muggsy's" },
-    { id: "sarbez", name: "Sarbez" },
-    { id: "alfreds", name: "Alfred's" }
-  ]
-  const { isConnected, error } = usePromoterRealTime({ 
-    promoterId: "promoter-123", 
-    selectedLocation 
+export function ChatTab({ selectedLocation, currentUserId, locationName }: ChatTabProps) {
+  const { isConnected, error } = usePromoterRealTime({
+    promoterId: currentUserId,
+    selectedLocation
   })
 
   return (
@@ -27,7 +24,7 @@ export function ChatTab({ selectedLocation }: ChatTabProps) {
         <h2 className="font-serif font-bold text-xl">Venue Chat</h2>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-            {selectedLocation === "all" ? "All Venues" : myLocations.find(v => v.id === selectedLocation)?.name}
+            {selectedLocation === "all" ? "All Venues" : (locationName || selectedLocation)}
           </Badge>
           {!isConnected && (
             <Badge variant="destructive" className="text-xs">
@@ -50,9 +47,9 @@ export function ChatTab({ selectedLocation }: ChatTabProps) {
             </div>
           </Card>
         ) : (
-          <RealTimeChat 
-            locationId={selectedLocation} 
-            currentUserId="promoter-123"
+          <RealTimeChat
+            locationId={selectedLocation}
+            currentUserId={currentUserId}
             className="h-96"
           />
         )}
