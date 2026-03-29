@@ -1,53 +1,64 @@
 "use client"
 
-import { useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Filter, Users, Star, Building2, Wifi, WifiOff } from "lucide-react"
-import Image from "next/image"
+import { Filter, Building2, Wifi, WifiOff, Calendar, Users } from "lucide-react"
 import { usePromoterRealTime } from "@/hooks/usePromoterRealTime"
+import { gigApi, GigProfile } from "@/lib/api"
 
-export function ApplicationsTab() {
-  const artistApplications = useMemo(() => [
-    {
-      id: 1,
-      artist: "The Midnight Keys",
-      genre: "Rock",
-      rating: 4.8,
-      followers: "2.3K",
-      bio: "High-energy rock band with a modern twist. Known for electrifying live performances and original compositions.",
-      image: "/images/BandFallBack.PNG"
-    },
-    {
-      id: 2,
-      artist: "Jazz Collective",
-      genre: "Jazz",
-      rating: 4.6,
-      followers: "1.8K",
-      bio: "Smooth jazz ensemble bringing classic standards and contemporary arrangements to intimate venues.",
-      image: "/images/BandFallBack.PNG"
-    },
-    {
-      id: 3,
-      artist: "Acoustic Dreams",
-      genre: "Folk",
-      rating: 4.7,
-      followers: "3.1K",
-      bio: "Intimate acoustic performances featuring original folk songs and beautiful harmonies.",
-      image: "/images/BandFallBack.PNG"
-    }
-  ], [])
-  const { gigUpdates, isConnected, error } = usePromoterRealTime({ 
-    promoterId: "promoter-123", 
-    selectedLocation: "all" 
+interface ApplicationsTabProps {
+  promoterId: string;
+}
+
+export function ApplicationsTab({ promoterId }: ApplicationsTabProps) {
+  const [gigs, setGigs] = useState<GigProfile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  const { gigUpdates, isConnected, error } = usePromoterRealTime({
+    promoterId,
+    selectedLocation: "all"
   })
+
+  useEffect(() => {
+    if (!promoterId) return
+    setLoading(true)
+    gigApi.getGigsByCreator(promoterId).then(res => {
+      if (res.success && res.data) setGigs(res.data)
+    }).finally(() => setLoading(false))
+  }, [promoterId])
+
+  // Re-fetch when real-time gig updates arrive
+  useEffect(() => {
+    if (gigUpdates.length === 0 || !promoterId) return
+    gigApi.getGigsByCreator(promoterId).then(res => {
+      if (res.success && res.data) setGigs(res.data)
+    })
+  }, [gigUpdates, promoterId])
+
+  const filteredGigs = statusFilter === "all"
+    ? gigs
+    : gigs.filter(g => g.status === statusFilter)
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      draft: { label: "Draft", className: "bg-gray-100 text-gray-700 border-gray-200" },
+      "pending-confirmation": { label: "Pending", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+      posted: { label: "Posted", className: "bg-blue-100 text-blue-700 border-blue-200" },
+      live: { label: "Live", className: "bg-green-100 text-green-700 border-green-200" },
+      completed: { label: "Completed", className: "bg-purple-100 text-purple-700 border-purple-200" },
+    }
+    const s = map[status] ?? { label: status, className: "" }
+    return <Badge variant="outline" className={`text-xs ${s.className}`}>{s.label}</Badge>
+  }
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif font-bold text-xl">Artist Applications</h2>
+        <h2 className="font-serif font-bold text-xl">My Gigs</h2>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
             {isConnected ? (
@@ -56,25 +67,26 @@ export function ApplicationsTab() {
               <WifiOff className="w-4 h-4 text-red-500" />
             )}
             <span className="text-xs text-muted-foreground">
-              {isConnected ? 'Live' : 'Offline'}
+              {isConnected ? "Live" : "Offline"}
             </span>
           </div>
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <Select>
-            <SelectTrigger className="w-32 bg-background">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40 bg-background">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Applications</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="declined">Declined</SelectItem>
+              <SelectItem value="all">All Gigs</SelectItem>
+              <SelectItem value="pending-confirmation">Pending</SelectItem>
+              <SelectItem value="posted">Posted</SelectItem>
+              <SelectItem value="live">Live</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Real-time Updates Section */}
+      {/* Real-time Updates */}
       {gigUpdates.length > 0 && (
         <Card className="p-4 bg-blue-50 border-blue-200">
           <div className="flex items-center gap-2 mb-2">
@@ -84,10 +96,10 @@ export function ApplicationsTab() {
           <div className="space-y-2">
             {gigUpdates.slice(0, 3).map((update, index) => (
               <div key={index} className="text-sm text-blue-700">
-                <span className="font-medium">{update.updatedBy?.email || 'Unknown'}</span>
-                {' '}updated application status for{' '}
+                <span className="font-medium">{update.updatedBy?.email || "Unknown"}</span>
+                {" "}updated{" "}
                 <span className="font-medium">
-                  {String((update.gigData as Record<string, unknown>)?.name || 'gig')}
+                  {String((update.gigData as Record<string, unknown>)?.eventName || "a gig")}
                 </span>
               </div>
             ))}
@@ -95,59 +107,70 @@ export function ApplicationsTab() {
         </Card>
       )}
 
-      {/* Error Display */}
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">
           <p className="text-sm text-red-600">{error}</p>
         </Card>
       )}
 
-      <div className="space-y-4">
-        {artistApplications.map((artist) => (
-          <Card key={artist.id} className="p-4 bg-card border-border">
-            <div className="flex gap-4">
-              <Image
-                src={artist.image || "/images/BandFallBack.PNG"}
-                alt={artist.artist}
-                width={60}
-                height={60}
-                className="rounded-lg object-cover w-15 h-15"
-              />
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">Loading gigs…</div>
+      ) : filteredGigs.length === 0 ? (
+        <Card className="p-8 text-center bg-card border-border">
+          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="font-semibold text-foreground mb-2">No gigs found</h3>
+          <p className="text-sm text-muted-foreground">
+            {statusFilter === "all" ? "Post a gig to get started." : `No gigs with status "${statusFilter}".`}
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredGigs.map((gig) => {
+            const confirmedBands = gig.bands?.filter(b => b.confirmed).length ?? 0
+            const totalBands = gig.bands?.length ?? 0
+            const location = typeof gig.selectedLocation === "object" && gig.selectedLocation !== null
+              ? (gig.selectedLocation as { name?: string }).name
+              : undefined
 
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-foreground">{artist.artist}</h3>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-foreground">{artist.rating}</span>
+            return (
+              <Card key={gig._id} className="p-4 bg-card border-border">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{gig.eventName}</h3>
+                      {statusBadge(gig.status)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                      {location && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          {location}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(gig.eventDate).toLocaleDateString()}
+                      </span>
+                      {totalBands > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {confirmedBands}/{totalBands} confirmed
+                        </span>
+                      )}
+                    </div>
+                    {gig.eventGenre && (
+                      <Badge variant="outline" className="text-xs">{gig.eventGenre}</Badge>
+                    )}
                   </div>
-                </div>
-
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <Badge variant="outline" className="text-xs">
-                    {artist.genre}
-                  </Badge>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {artist.followers}
-                  </span>
-                </div>
-
-                <p className="text-sm text-muted-foreground line-clamp-2">{artist.bio}</p>
-
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-24 bg-transparent">
-                    Decline
-                  </Button>
-                  <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
-                    Accept
+                  <Button variant="outline" size="sm" className="shrink-0">
+                    View
                   </Button>
                 </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

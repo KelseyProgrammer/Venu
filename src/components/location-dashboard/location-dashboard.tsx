@@ -41,7 +41,7 @@ interface AnalyticsCard {
   color: string;
 }
 
-export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
+export function LocationDashboard({ currentUserId: _currentUserId }: LocationDashboardProps) {
   const [activeTab, setActiveTab] = useState("discover")
   const [showPostGig, setShowPostGig] = useState(false)
   const [showLocationCreation, setShowLocationCreation] = useState(false)
@@ -450,7 +450,7 @@ export function LocationDashboard({ currentUserId }: LocationDashboardProps) {
 
           {/* Applications Tab */}
           <TabsContent value="applications" className="space-y-4">
-            <ApplicationsTab />
+            <ApplicationsTab gigs={gigs} />
           </TabsContent>
 
           {/* Chat Tab */}

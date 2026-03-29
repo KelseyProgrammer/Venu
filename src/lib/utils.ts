@@ -132,26 +132,8 @@ export const authUtils = {
         return JSON.parse(userData);
       }
       
-      // Fallback: try to get from token - but only if token is valid
-      const token = this.getAuthToken();
-      if (token && token.length >= 10 && token.includes('.')) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          return {
-            id: payload.sub || payload.userId,
-            firstName: payload.firstName || payload.name?.split(' ')[0] || 'User',
-            lastName: payload.lastName || payload.name?.split(' ')[1] || '',
-            email: payload.email,
-            role: payload.role,
-          };
-        } catch {
-          console.log('🔐 Invalid token format in getCurrentUser, clearing...');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          localStorage.removeItem('userRole');
-          return null;
-        }
-      }
+      // No stored user found — do not parse JWT client-side; the server validates it
+
       
       return null;
     } catch (error) {

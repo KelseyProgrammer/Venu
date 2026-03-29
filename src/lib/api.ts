@@ -232,8 +232,14 @@ async function apiRequest<T>(
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
+  // Abort controller: respect a caller-provided signal, or apply a 30s timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const signal = options.signal ?? controller.signal;
+
   const config: RequestInit = {
     ...options,
+    signal,
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -242,7 +248,8 @@ async function apiRequest<T>(
 
   try {
     const response = await fetch(url, config);
-    
+    clearTimeout(timeoutId);
+
     // Handle non-JSON responses
     let data: unknown;
     const contentType = response.headers.get('content-type');
@@ -256,10 +263,10 @@ async function apiRequest<T>(
       // Handle authentication errors by clearing invalid tokens
       if (response.status === 401 || response.status === 403) {
         const errorMessage = (data as { error?: string; message?: string }).error || (data as { error?: string; message?: string }).message || `Request failed with status ${response.status}`;
-        
+
         // Clear invalid authentication data
-        if (errorMessage.includes('Access token') || 
-            errorMessage.includes('Unauthorized') || 
+        if (errorMessage.includes('Access token') ||
+            errorMessage.includes('Unauthorized') ||
             errorMessage.includes('Invalid token') ||
             errorMessage.includes('User not found')) {
           localStorage.removeItem('authToken');
@@ -268,7 +275,7 @@ async function apiRequest<T>(
           console.log('🔐 Cleared invalid authentication data');
         }
       }
-      
+
       // Return the error response instead of throwing for client errors
       return {
         success: false,
@@ -279,8 +286,17 @@ async function apiRequest<T>(
 
     return data as ApiResponse<T>;
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('API request failed:', error);
-    
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'Request timed out',
+        data: undefined as T
+      };
+    }
+
     // Handle different types of errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return {
@@ -289,7 +305,7 @@ async function apiRequest<T>(
         data: undefined as T
       };
     }
-    
+
     // For other errors, still throw to maintain existing behavior
     throw error;
   }
@@ -626,6 +642,23 @@ export const locationApi = {
 
   async getAuthorizedPromoters(locationId: string): Promise<ApiResponse<User[]>> {
     return apiRequest<User[]>(`/locations/${locationId}/promoters`);
+  },
+
+  async getAssignedLocations(): Promise<ApiResponse<Array<{ _id: string; name: string; city: string; state: string; capacity: number }>>> {
+    return apiRequest('/locations/my-assigned');
+  },
+
+  async getLocationAnalytics(locationId: string): Promise<ApiResponse<{
+    totalGigs: number;
+    upcomingGigs: number;
+    completedGigs: number;
+    averageFillRate: number;
+    totalRevenue: number;
+    monthlyRevenue: number;
+    topGenres: Array<{ genre: string; count: number }>;
+    averageRating: number;
+  }>> {
+    return apiRequest(`/locations/${encodeURIComponent(locationId)}/analytics`);
   },
 };
 

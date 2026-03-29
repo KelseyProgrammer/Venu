@@ -19,6 +19,7 @@ import { RealTimeGigUpdates } from "@/components/real-time-gig-updates"
 import { WindowManagerProvider } from "@/contexts/WindowManagerContext"
 import { authUtils } from "@/lib/utils"
 import { useNotifications } from "@/hooks/useNotifications"
+import { locationApi } from "@/lib/api"
 
 export function PromoterDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -74,11 +75,16 @@ export function PromoterDashboard() {
     return []
   })
 
-  const myLocations = [
-    { id: "muggys", name: "Muggsy's" },
-    { id: "sarbez", name: "Sarbez" },
-    { id: "alfreds", name: "Alfred's" }
-  ]
+  const [myLocations, setMyLocations] = useState<Array<{ id: string; name: string }>>([])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    locationApi.getAssignedLocations().then(res => {
+      if (res.success && res.data) {
+        setMyLocations(res.data.map(loc => ({ id: loc._id, name: loc.name })))
+      }
+    })
+  }, [currentUserId])
 
   // Promoter profile data - memoized for performance
   const promoterProfileData = useMemo(() => {
@@ -307,14 +313,18 @@ export function PromoterDashboard() {
           {/* Applications Tab */}
           <TabsContent value="applications" className="mt-6">
             <ErrorBoundary>
-              <ApplicationsTab />
+              <ApplicationsTab promoterId={currentUserId || ""} />
             </ErrorBoundary>
           </TabsContent>
 
           {/* Chat Tab */}
           <TabsContent value="chat" className="mt-6">
             <ErrorBoundary>
-              <ChatTab selectedLocation={selectedLocation} />
+              <ChatTab
+                selectedLocation={selectedLocation}
+                currentUserId={currentUserId || ""}
+                locationName={myLocations.find(l => l.id === selectedLocation)?.name}
+              />
             </ErrorBoundary>
           </TabsContent>
 
