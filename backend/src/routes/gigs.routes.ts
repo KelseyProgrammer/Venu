@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
+import QRCode from 'qrcode';
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
+import { Ticket } from '../models/Ticket.js';
 import { ApiResponse } from '../shared/types.js';
 import { socketService } from '../services/socketService.js';
-import { 
-  authenticateToken, 
+import {
+  authenticateToken,
   requireGigCreationPermission,
   requireGigModificationPermission
 } from '../middleware/auth.middleware.js';
@@ -482,6 +485,7 @@ router.post('/:id/tickets', authenticateToken, async (req: Request, res: Respons
   try {
     const { id } = req.params;
     const { quantity = 1 } = req.body;
+    const userId = (req as any).user?.userId;
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
       return res.status(400).json({ success: false, error: 'Invalid quantity' });
@@ -494,16 +498,57 @@ router.post('/:id/tickets', authenticateToken, async (req: Request, res: Respons
         $expr: { $lte: [{ $add: ['$ticketsSold', quantity] }, '$ticketCapacity'] }
       },
       { $inc: { ticketsSold: quantity } },
-      { new: true, select: 'ticketsSold ticketCapacity ticketPrice eventName' }
+      { new: true, select: 'ticketsSold ticketCapacity ticketPrice eventName eventDate eventTime' }
     );
 
     if (!gig) {
       return res.status(400).json({ success: false, error: 'Gig not available or sold out' });
     }
 
-    res.json({ success: true, data: { ticketsSold: gig.ticketsSold, ticketCapacity: gig.ticketCapacity } });
+    const qrToken = crypto.randomUUID();
+    const totalPrice = (gig.ticketPrice || 0) * quantity;
+    const qrPayload = JSON.stringify({ token: qrToken, gigId: id, qty: quantity });
+    const qrCode = await QRCode.toDataURL(qrPayload, { width: 240, margin: 1 });
+
+    const ticket = await Ticket.create({
+      gigId: gig._id,
+      fanUserId: new mongoose.Types.ObjectId(userId),
+      quantity,
+      totalPrice,
+      qrCode,
+      qrToken,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ticketId: ticket._id,
+        qrCode,
+        qrToken,
+        quantity,
+        totalPrice,
+        eventName: gig.eventName,
+        ticketsSold: gig.ticketsSold,
+        ticketCapacity: gig.ticketCapacity,
+      },
+    });
   } catch (error) {
     console.error('Ticket sale error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Get current user's tickets
+router.get('/my/tickets', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.userId;
+    const tickets = await Ticket.find({ fanUserId: userId })
+      .populate('gigId', 'eventName eventDate eventTime ticketPrice selectedLocation')
+      .sort({ purchasedAt: -1 });
+
+    res.json({ success: true, data: tickets });
+  } catch (error) {
+    console.error('Get tickets error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

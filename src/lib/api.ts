@@ -888,6 +888,30 @@ export const fanApi = {
   },
 };
 
+export interface PurchasedTicket {
+  ticketId: string;
+  qrCode: string;
+  qrToken: string;
+  quantity: number;
+  totalPrice: number;
+  eventName: string;
+  ticketsSold: number;
+  ticketCapacity: number;
+}
+
+export const ticketApi = {
+  async purchaseTicket(gigId: string, quantity: number): Promise<ApiResponse<PurchasedTicket>> {
+    return apiRequest<PurchasedTicket>(`/gigs/${gigId}/tickets`, {
+      method: 'POST',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  async getMyTickets(): Promise<ApiResponse<any[]>> {
+    return apiRequest<any[]>('/gigs/my/tickets');
+  },
+};
+
 // Utility functions with enhanced validation and error handling
 export const apiUtils = {
   setAuthToken(token: string): void {

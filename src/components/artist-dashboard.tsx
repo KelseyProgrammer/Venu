@@ -22,7 +22,7 @@ import { RealTimeChat } from "./real-time-chat"
 import { useSocket } from "@/lib/socket"
 import { useArtistRealTime } from "@/hooks/useArtistRealTime"
 import { ProfileManagement } from "@/components/ui/profile-management"
-import { GigProfile, gigApi } from "@/lib/api"
+import { GigProfile, gigApi, authApi } from "@/lib/api"
 import { PerformanceErrorBoundary } from "@/components/ui/error-boundary"
 
 // Sub-components
@@ -594,7 +594,13 @@ export function ArtistDashboard() {
                 location: "St. Augustine, FL",
                 bio: "A dynamic rock band known for high-energy performances and original compositions.",
               }}
-              onSave={(data) => console.log("Profile saved:", data)}
+              onSave={async (data) => {
+                await authApi.updateProfile({
+                  firstName: data.firstName,
+                  lastName: data.lastName,
+                  phone: data.phone,
+                })
+              }}
             />
           </TabsContent>
 
