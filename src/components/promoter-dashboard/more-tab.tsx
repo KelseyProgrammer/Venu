@@ -9,8 +9,13 @@ import { Progress } from "@/components/ui/progress"
 import { BarChart3, Building2, TrendingUp, Users, DollarSign, Plus, User } from "lucide-react"
 import Image from "next/image"
 import { ProfileManagement } from "@/components/ui/profile-management"
+import { authApi } from "@/lib/api"
+import { authUtils } from "@/lib/utils"
 
 export function MoreTab() {
+  const currentUser = typeof window !== "undefined" ? authUtils.getCurrentUser() : null
+  const firstName = currentUser ? authUtils.getUserFullName().split(" ")[0] : "John"
+  const lastName = currentUser ? authUtils.getUserFullName().split(" ").slice(1).join(" ") : "Doe"
   const [moreSubcategory, setMoreSubcategory] = useState("analytics")
   const [newDoorPersonName, setNewDoorPersonName] = useState("")
   const [newDoorPersonEmail, setNewDoorPersonEmail] = useState("")
@@ -115,17 +120,20 @@ export function MoreTab() {
         <ProfileManagement
           userType="promoter"
           initialData={{
-            firstName: "John",
-            lastName: "Doe",
-            email: "promoter@venu.com",
+            firstName,
+            lastName,
+            email: currentUser?.email || "promoter@venu.com",
             phone: "+1 (555) 987-6543",
             company: "VENU Promotions",
             location: "St. Augustine, FL",
             bio: "Experienced promoter with a passion for live music and community events."
           }}
-          onSave={(data) => {
-            console.log('Profile saved:', data)
-            // In a real implementation, you would save this to the backend
+          onSave={async (data) => {
+            await authApi.updateProfile({
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone,
+            })
           }}
         />
       )}

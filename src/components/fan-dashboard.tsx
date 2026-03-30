@@ -18,6 +18,7 @@ import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 import { useGigs } from "@/hooks/useGigs"
 import { authUtils } from "@/lib/utils"
+import { artistApi, locationApi, ticketApi, ArtistProfile, LocationProfile } from "@/lib/api"
 
 // Remove unused interface and component
 // interface ArtistCardProps {
@@ -205,7 +206,23 @@ export function FanDashboard() {
 
   // Fetch real gigs from backend
   const { gigs, loading: gigsLoading, error: gigsError, refreshGigs } = useGigs()
-  
+
+  const [artists, setArtists] = useState<ArtistProfile[]>([])
+  const [locations, setLocations] = useState<LocationProfile[]>([])
+  const [myTickets, setMyTickets] = useState<any[]>([])
+
+  useEffect(() => {
+    artistApi.getAllArtists({ limit: 50 }).then(res => {
+      if (res.success && res.data) setArtists(res.data)
+    }).catch(() => {})
+    locationApi.getAllLocations({ limit: 50 }).then(res => {
+      if (res.success && res.data) setLocations(res.data)
+    }).catch(() => {})
+    ticketApi.getMyTickets().then(res => {
+      if (res.success && res.data) setMyTickets(res.data)
+    }).catch(() => {})
+  }, [])
+
   // Mock favorite artists - in a real app, this would come from user preferences
   const favoriteArtists = useMemo(() => [
     "artist1", // The Blue Notes
@@ -269,169 +286,35 @@ export function FanDashboard() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Memoized artist data for search
-  const allArtists = useMemo(() => [
-    {
-      id: "artist1",
-      artist: "The Blue Notes",
-      genre: "Jazz",
-      rating: 4.7,
-      followers: "3.2K",
-      bio: "Local jazz ensemble specializing in smooth jazz and contemporary arrangements. Regular performers at downtown venues.",
-      image: "/images/BandFallBack.PNG",
-      location: "Downtown",
-      instagram: "@thebluenotesjazz",
-      spotify: "https://open.spotify.com/artist/thebluenotes",
-      appleMusic: "https://music.apple.com/artist/the-blue-notes/123456789",
-    },
-    {
-      id: "artist2",
-      artist: "Urban Beats",
-      genre: "Hip-Hop",
-      rating: 4.5,
-      followers: "4.8K",
-      bio: "Dynamic hip-hop collective bringing fresh beats and powerful lyrics. Known for high-energy performances.",
-      image: "/images/BandFallBack.PNG",
-      location: "East Side",
-      instagram: "@urbanbeatscrew",
-      spotify: "https://open.spotify.com/artist/urbanbeats",
-      appleMusic: "https://music.apple.com/artist/urban-beats/987654321",
-    },
-    {
-      id: "artist3",
-      artist: "The Acoustic Trio",
-      genre: "Folk",
-      rating: 4.9,
-      followers: "2.1K",
-      bio: "Intimate acoustic performances with beautiful harmonies. Perfect for smaller venues and intimate settings.",
-      image: "/images/BandFallBack.PNG",
-      location: "West End",
-      instagram: "@acoustictrio",
-      spotify: "https://open.spotify.com/artist/acoustictrio",
-      appleMusic: "https://music.apple.com/artist/the-acoustic-trio/456789123",
-    },
-    {
-      id: "artist4",
-      artist: "Electric Storm",
-      genre: "Electronic",
-      rating: 4.6,
-      followers: "6.7K",
-      bio: "Electronic music producers and DJs creating immersive soundscapes. Perfect for late-night events.",
-      image: "/images/BandFallBack.PNG",
-      location: "Midtown",
-      instagram: "@electricstormmusic",
-      spotify: "https://open.spotify.com/artist/electricstorm",
-      appleMusic: "https://music.apple.com/artist/electric-storm/789123456",
-    },
-    {
-      id: "artist5",
-      artist: "The Soul Collective",
-      genre: "R&B",
-      rating: 4.8,
-      followers: "5.4K",
-      bio: "Soulful R&B group with powerful vocals and smooth instrumentals. Brings the house down every performance.",
-      image: "/images/BandFallBack.PNG",
-      location: "South Side",
-      instagram: "@soulcollective",
-      spotify: "https://open.spotify.com/artist/soulcollective",
-      appleMusic: "https://music.apple.com/artist/the-soul-collective/321654987",
-    },
-    {
-      id: "artist6",
-      artist: "The Midnight Keys",
-      genre: "Jazz",
-      rating: 4.8,
-      followers: "2.1K",
-      bio: "Smooth jazz quartet with over 10 years of experience performing at prestigious locations across the country.",
-      image: "/images/BandFallBack.PNG",
-      location: "Downtown",
-      instagram: "@midnightkeysjazz",
-      spotify: "https://open.spotify.com/artist/midnightkeys",
-      appleMusic: "https://music.apple.com/artist/the-midnight-keys/111222333",
-    },
-    {
-      id: "artist7",
-      artist: "Electric Pulse",
-      genre: "Electronic",
-      rating: 4.6,
-      followers: "5.3K",
-      bio: "High-energy electronic duo specializing in house and techno. Known for creating immersive dance experiences.",
-      image: "/images/BandFallBack.PNG",
-      location: "Midtown",
-      instagram: "@electricpulse",
-      spotify: "https://open.spotify.com/artist/electricpulse",
-      appleMusic: "https://music.apple.com/artist/electric-pulse/444555666",
-    },
-  ], [])
+  // Map real artists from API to the shape ArtistListing expects
+  const allArtists = useMemo(() => artists.map(a => ({
+    id: a._id,
+    artist: a.name,
+    genre: Array.isArray(a.genre) ? a.genre[0] || "" : a.genre,
+    rating: a.rating,
+    followers: a.followers || "0",
+    bio: a.bio,
+    image: a.portfolioImages?.[0] || "/images/BandFallBack.PNG",
+    location: a.location,
+    instagram: a.instagram,
+    spotify: a.spotify,
+    appleMusic: a.appleMusic,
+  })), [artists])
 
-  // Memoized location data for search
-  const allLocations = useMemo(() => [
-    {
-      id: "loc1",
-      name: "Muggsy's Bar",
-      address: "213 W King St, St. Augustine, FL 32084",
-      capacity: "75",
-      genres: ["Jazz", "Blues", "Rock"],
-      rating: 4.6,
-      description: "Intimate downtown bar known for live jazz and craft cocktails. Perfect for acoustic performances.",
-      image: "/images/MUGS.jpeg",
-      amenities: ["Full Bar", "Outdoor Seating", "Parking"],
-      phone: "(904) 555-0123",
-      instagram: "@muggysbar",
-    },
-    {
-      id: "loc2", 
-      name: "Sarbez",
-      address: "115 Anastasia Blvd, St. Augustine, FL 32080",
-      capacity: "100",
-      genres: ["Electronic", "Hip-Hop", "Alternative"],
-      rating: 4.4,
-      description: "Vibrant venue with eclectic atmosphere, known for electronic music and late-night events.",
-      image: "/images/SARBEZ.jpg",
-      amenities: ["Dance Floor", "Light Show", "Food Menu"],
-      phone: "(904) 555-0456",
-      instagram: "@sarbez",
-    },
-    {
-      id: "loc3",
-      name: "Alfred's",
-      address: "222 West King Street, St. Augustine, FL 32084",
-      capacity: "50",
-      genres: ["Folk", "Acoustic", "Jazz"],
-      rating: 4.8,
-      description: "Cozy cellar setting perfect for intimate acoustic performances and folk music.",
-      image: "/images/Alfreds.jpg",
-      amenities: ["Intimate Setting", "Wine Selection", "Historic Building"],
-      phone: "(904) 555-0789",
-      instagram: "@alfredsstaugustine",
-    },
-    {
-      id: "loc4",
-      name: "The Underground",
-      address: "Downtown District, St. Augustine, FL",
-      capacity: "80",
-      genres: ["Rock", "Metal", "Alternative"],
-      rating: 4.5,
-      description: "Underground venue perfect for high-energy rock performances and alternative music.",
-      image: "/images/MUGS.jpeg",
-      amenities: ["Full Stage", "Sound System", "Bar"],
-      phone: "(904) 555-0321",
-      instagram: "@undergroundstaug",
-    },
-    {
-      id: "loc5",
-      name: "Riverfront Blues",
-      address: "Waterfront District, St. Augustine, FL",
-      capacity: "120",
-      genres: ["Blues", "Jazz", "Soul"],
-      rating: 4.7,
-      description: "Beautiful waterfront venue with stunning views, perfect for blues and soul performances.",
-      image: "/images/SARBEZ.jpg",
-      amenities: ["Waterfront Views", "Outdoor Stage", "Full Kitchen"],
-      phone: "(904) 555-0654",
-      instagram: "@riverfrontblues",
-    },
-  ], [])
+  // Map real locations from API to the shape the search listing expects
+  const allLocations = useMemo(() => locations.map(l => ({
+    id: l._id,
+    name: l.name,
+    address: l.address || `${l.city}, ${l.state}`,
+    capacity: String(l.capacity),
+    genres: l.tags || [],
+    rating: l.rating,
+    description: l.description || "",
+    image: l.images?.[0] || "/images/venu-logo.png",
+    amenities: l.amenities || [],
+    phone: l.contactPhone,
+    instagram: "",
+  })), [locations])
 
   // Transform gigs data to match the expected event format
   const allEvents = useMemo(() => {
@@ -471,33 +354,6 @@ export function FanDashboard() {
       }
     })
   }, [gigs])
-
-  const myTickets = useMemo(() => [
-    {
-      id: 1,
-      artist: "The Midnight Keys",
-      location: "Muggsy's Bar",
-      date: "Sat, Oct 12",
-      time: "8 PM doors",
-      ticketType: "General Admission",
-      price: 25,
-      status: "confirmed",
-      qrCode: "ticket-123",
-      image: "/images/MUGS.jpeg",
-    },
-    {
-      id: 2,
-      artist: "Electric Pulse",
-      location: "Sarbez",
-      date: "Wed, Oct 16",
-      time: "9 PM",
-      ticketType: "General Admission",
-      price: 20,
-      status: "confirmed",
-      qrCode: "ticket-456",
-      image: "/images/SARBEZ.jpg",
-    },
-  ], [])
 
   const toggleFavorite = useCallback((eventId: string) => {
     setFavoriteEvents(prevFavorites => {
@@ -874,57 +730,67 @@ export function FanDashboard() {
         {/* My Tickets Tab */}
         <TabsContent value="my-tickets" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {myTickets.map((ticket) => (
-              <Card key={ticket.id} className="p-6">
-                <div className="flex items-start gap-4">
-                  <Image
-                    src={ticket.image}
-                    alt={ticket.artist}
-                    width={80}
-                    height={80}
-                    className="object-cover rounded-lg"
-                  />
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <h3 className="font-semibold text-lg text-foreground">{ticket.artist}</h3>
-                      <p className="text-sm text-muted-foreground">{ticket.location}</p>
+            {myTickets.length === 0 && (
+              <p className="text-muted-foreground text-sm col-span-2">No tickets yet. Buy tickets to see them here.</p>
+            )}
+            {myTickets.map((ticket) => {
+              const gig = ticket.gigId || {}
+              const eventDate = gig.eventDate
+                ? new Date(gig.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                : "—"
+              const isValid = ticket.status === 'valid'
+              return (
+                <Card key={ticket._id} className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center shrink-0">
+                      <Ticket className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {ticket.date}
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <h3 className="font-semibold text-lg text-foreground">{gig.eventName || "Event"}</h3>
+                        <p className="text-sm text-muted-foreground">{gig.selectedLocation?.name || "Venue TBA"}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {ticket.time}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {eventDate}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {gig.eventTime || "—"}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{ticket.ticketType}</p>
-                        <p className="text-sm text-muted-foreground">${ticket.price}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">General Admission × {ticket.quantity}</p>
+                          <p className="text-sm text-muted-foreground">${ticket.totalPrice}</p>
+                        </div>
+                        <Badge variant={isValid ? 'default' : 'secondary'} className={isValid ? 'bg-purple-600 text-white' : ''}>
+                          {ticket.status}
+                        </Badge>
                       </div>
-                      <Badge variant={ticket.status === 'confirmed' ? 'default' : 'secondary'} className={ticket.status === 'confirmed' ? 'bg-purple-600 text-white' : ''}>
-                        {ticket.status}
-                      </Badge>
                     </div>
                   </div>
-                </div>
-                
-                <div className="mt-4 flex items-center gap-2">
-                  <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                  <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                  {ticket.qrCode && (
+                    <div className="mt-4 flex justify-center">
+                      <div className="bg-white p-3 rounded-lg inline-block">
+                        <Image src={ticket.qrCode} alt="QR Code" width={100} height={100} unoptimized />
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                    <Button variant="default" size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
           </div>
         </TabsContent>
 

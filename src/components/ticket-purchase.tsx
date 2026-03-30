@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download } from "lucide-react"
+import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { timeUtils } from "@/lib/utils"
+import { ticketApi, PurchasedTicket } from "@/lib/api"
 
 interface TicketPurchaseProps {
   eventId: string
@@ -30,6 +31,9 @@ interface TicketPurchaseProps {
 
 export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
   const [purchaseStep, setPurchaseStep] = useState<"details" | "payment" | "ticket">("details")
+  const [isLoading, setIsLoading] = useState(false)
+  const [purchaseError, setPurchaseError] = useState<string | null>(null)
+  const [purchasedTicket, setPurchasedTicket] = useState<PurchasedTicket | null>(null)
 
   // Use passed event data or fall back to default
   const event = eventData || {
@@ -54,8 +58,23 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
     image: event.image
   }
 
-  const mockQRCode =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMwMDAwMDAiLz4KICA8cmVjdCB4PSIyMCIgeT0iMjAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTYwIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE0MCIgZmlsbD0iIzAwMDAwMCIvPgo8L3N2Zz4K"
+  const handleCompletePurchase = async () => {
+    setIsLoading(true)
+    setPurchaseError(null)
+    try {
+      const res = await ticketApi.purchaseTicket(event.id, 1)
+      if (res.success && res.data) {
+        setPurchasedTicket(res.data)
+        setPurchaseStep("ticket")
+      } else {
+        setPurchaseError(res.error || "Purchase failed. Please try again.")
+      }
+    } catch {
+      setPurchaseError("Unable to complete purchase. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (purchaseStep === "payment") {
     return (
@@ -129,12 +148,17 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
             </div>
           </Card>
 
+          {purchaseError && (
+            <p className="text-sm text-red-500 text-center">{purchaseError}</p>
+          )}
           <Button
             variant="purple"
-            onClick={() => setPurchaseStep("ticket")}
+            onClick={handleCompletePurchase}
+            disabled={isLoading}
             className="w-full h-12"
           >
-            Complete Purchase
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {isLoading ? "Processing..." : "Complete Purchase"}
           </Button>
         </div>
       </div>
@@ -181,13 +205,24 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
 
               {/* QR Code */}
               <div className="bg-white p-6 rounded-lg mx-auto w-fit">
-                <Image
-                  src={mockQRCode || "/images/venu-logo.png"}
-                  alt="QR Ticket Code"
-                  width={120}
-                  height={120}
-                  className="mx-auto w-30 h-30"
-                />
+                {purchasedTicket?.qrCode ? (
+                  <Image
+                    src={purchasedTicket.qrCode}
+                    alt="QR Ticket Code"
+                    width={180}
+                    height={180}
+                    className="mx-auto"
+                    unoptimized
+                  />
+                ) : (
+                  <Image
+                    src="/images/venu-logo.png"
+                    alt="QR Ticket Code"
+                    width={120}
+                    height={120}
+                    className="mx-auto"
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
