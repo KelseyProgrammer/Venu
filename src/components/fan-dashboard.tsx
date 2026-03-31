@@ -210,6 +210,7 @@ export function FanDashboard() {
 
   const [artists, setArtists] = useState<ArtistProfile[]>([])
   const [locations, setLocations] = useState<LocationProfile[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [myTickets, setMyTickets] = useState<any[]>([])
 
   useEffect(() => {

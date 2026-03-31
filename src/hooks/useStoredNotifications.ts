@@ -50,9 +50,9 @@ export const useStoredNotifications = (userId?: string): UseStoredNotificationsR
       } else {
         throw new Error(data.error || 'Failed to fetch notifications');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching stored notifications:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }

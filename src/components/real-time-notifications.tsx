@@ -212,7 +212,7 @@ export function RealTimeNotifications({
               <div className="p-6 text-center text-muted-foreground">
                 <Bell className="w-8 h-8 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No notifications yet</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">You'll see updates here when they arrive</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">You&apos;ll see updates here when they arrive</p>
               </div>
             ) : (
               <div className="divide-y divide-border">

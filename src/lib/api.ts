@@ -934,7 +934,9 @@ export const ticketApi = {
     });
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getMyTickets(): Promise<ApiResponse<any[]>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return apiRequest<any[]>('/gigs/my/tickets');
   },
 };

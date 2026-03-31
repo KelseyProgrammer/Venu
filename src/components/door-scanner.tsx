@@ -58,7 +58,7 @@ export function DoorScanner({ gigId }: DoorScannerProps) {
           message: `Entry approved — ${res.data.quantity} ticket${res.data.quantity > 1 ? 's' : ''}`,
         })
       } else {
-        const code = (res as any).code
+        const code = (res as { code?: string }).code
         setLastScan({
           fanName: '',
           quantity: 0,
@@ -111,8 +111,9 @@ export function DoorScanner({ gigId }: DoorScannerProps) {
           startScanLoop()
         }
       }
-    } catch (err: any) {
-      setCameraError(err.name === 'NotAllowedError'
+    } catch (err: unknown) {
+      const e = err as { name?: string }
+      setCameraError(e.name === 'NotAllowedError'
         ? 'Camera permission denied. Please allow camera access and try again.'
         : 'Could not access camera. Make sure no other app is using it.')
     }
