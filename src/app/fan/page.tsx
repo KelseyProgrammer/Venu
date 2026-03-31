@@ -2,11 +2,11 @@ import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
-// Lazy load the fan dashboard for better performance
-const FanDashboard = dynamic(() => import('@/components/fan-dashboard').then(mod => ({ default: mod.FanDashboard })), {
-  loading: () => <LoadingSpinner />,
-  ssr: false
-})
+// Lazy load — also handles auth redirect internally
+const FanDashboard = dynamic(
+  () => import('@/components/fan-dashboard').then(mod => ({ default: mod.FanDashboard })),
+  { loading: () => <LoadingSpinner />, ssr: false }
+)
 
 export default function FanPage() {
   return (
@@ -14,4 +14,4 @@ export default function FanPage() {
       <FanDashboard />
     </Suspense>
   )
-} 
+}

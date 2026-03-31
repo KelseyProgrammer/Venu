@@ -1,5 +1,11 @@
-import { DoorScanner } from "@/components/door-scanner"
+import { Suspense } from 'react'
+import { DoorScannerLoader } from '@/components/door-scanner-loader'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 export default function DoorPage() {
-  return <DoorScanner />
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <DoorScannerLoader />
+    </Suspense>
+  )
 }

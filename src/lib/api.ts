@@ -779,6 +779,20 @@ export const gigApi = {
       body: JSON.stringify({ bandEmail }),
     });
   },
+
+  async createPaymentIntent(gigId: string, quantity: number): Promise<ApiResponse<{ clientSecret: string }>> {
+    return apiRequest<{ clientSecret: string }>(`/gigs/${gigId}/payment-intent`, {
+      method: 'POST',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  async scanTicket(gigId: string, qrToken: string): Promise<ApiResponse<{ fanName: string; quantity: number; eventName: string }>> {
+    return apiRequest(`/gigs/${gigId}/scan-ticket`, {
+      method: 'POST',
+      body: JSON.stringify({ qrToken }),
+    });
+  },
 };
 
 // Promoter API functions

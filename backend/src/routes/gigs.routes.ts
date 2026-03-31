@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
+import Stripe from 'stripe';
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
 import { Artist } from '../models/Artist.js';
@@ -13,6 +14,10 @@ import {
   requireGigCreationPermission,
   requireGigModificationPermission
 } from '../middleware/auth.middleware.js';
+
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 const router = Router();
 
@@ -585,6 +590,51 @@ router.post('/:id/remove-band', authenticateToken, requireGigModificationPermiss
   }
 });
 
+// Create a Stripe PaymentIntent for a ticket purchase
+router.post('/:id/payment-intent', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
+
+    const { id } = req.params;
+    const { quantity = 1 } = req.body;
+
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+      return res.status(400).json({ success: false, error: 'Invalid quantity' });
+    }
+
+    const gig = await Gig.findOne(
+      { _id: id, status: { $in: ['posted', 'live'] } },
+    ).select('ticketPrice ticketCapacity ticketsSold eventName');
+
+    if (!gig) {
+      return res.status(404).json({ success: false, error: 'Gig not found or not available' });
+    }
+
+    const available = gig.ticketCapacity - gig.ticketsSold;
+    if (available < quantity) {
+      return res.status(400).json({ success: false, error: 'Not enough tickets available' });
+    }
+
+    const SERVICE_FEE_CENTS = 250; // $2.50
+    const ticketPriceCents = Math.round((gig.ticketPrice || 0) * 100);
+    const totalCents = (ticketPriceCents + SERVICE_FEE_CENTS) * quantity;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalCents,
+      currency: 'usd',
+      metadata: { gigId: id, quantity: String(quantity), userId: req.user!.userId },
+      description: `${quantity}x ticket(s) for ${gig.eventName}`,
+    });
+
+    res.json({ success: true, data: { clientSecret: paymentIntent.client_secret } });
+  } catch (error) {
+    console.error('Payment intent error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Record ticket sale - increments ticketsSold atomically
 router.post('/:id/tickets', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -654,6 +704,69 @@ router.get('/my/tickets', authenticateToken, async (req: Request, res: Response)
     res.json({ success: true, data: tickets });
   } catch (error) {
     console.error('Get tickets error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Validate and check in a ticket at the door
+router.post('/:id/scan-ticket', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { qrToken } = req.body;
+    const scannerEmail = req.user!.email;
+
+    if (!qrToken) {
+      return res.status(400).json({ success: false, error: 'qrToken is required' });
+    }
+
+    // Verify the scanner is the designated door person for this gig
+    const gig = await Gig.findById(id).select('doorPersonEmail eventName');
+    if (!gig) {
+      return res.status(404).json({ success: false, error: 'Gig not found' });
+    }
+    if (gig.doorPersonEmail && gig.doorPersonEmail.toLowerCase() !== scannerEmail.toLowerCase()) {
+      return res.status(403).json({ success: false, error: 'You are not the designated door person for this gig' });
+    }
+
+    // Parse and validate the QR payload
+    let parsedToken: { token: string; gigId: string; qty: number };
+    try {
+      parsedToken = JSON.parse(qrToken);
+    } catch {
+      return res.status(400).json({ success: false, error: 'Invalid QR code format' });
+    }
+
+    if (parsedToken.gigId !== id) {
+      return res.status(400).json({ success: false, error: 'Ticket is for a different event' });
+    }
+
+    // Find and atomically mark the ticket as used
+    const ticket = await Ticket.findOneAndUpdate(
+      { qrToken: parsedToken.token, gigId: id, status: 'valid' },
+      { $set: { status: 'used' } },
+      { new: true }
+    ).populate('fanUserId', 'firstName lastName email');
+
+    if (!ticket) {
+      // Check if it was already used
+      const existing = await Ticket.findOne({ qrToken: parsedToken.token });
+      if (existing?.status === 'used') {
+        return res.status(409).json({ success: false, error: 'Ticket already scanned', code: 'already_used' });
+      }
+      return res.status(404).json({ success: false, error: 'Ticket not found or invalid', code: 'not_found' });
+    }
+
+    const fan = ticket.fanUserId as any;
+    res.json({
+      success: true,
+      data: {
+        fanName: fan ? `${fan.firstName} ${fan.lastName}`.trim() : 'Guest',
+        quantity: ticket.quantity,
+        eventName: gig.eventName,
+      },
+    });
+  } catch (error) {
+    console.error('Scan ticket error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
