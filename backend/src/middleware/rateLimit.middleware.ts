@@ -41,7 +41,6 @@ export const createRateLimit = (options: RateLimitOptions) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const key = req.ip || 'unknown';
     const now = Date.now();
-    const windowStart = now - windowMs;
 
     // Initialize or get existing entry
     if (!store[key] || store[key].resetTime < now) {
@@ -85,7 +84,7 @@ export const createRateLimit = (options: RateLimitOptions) => {
       return originalJson.call(this, body);
     };
 
-    next();
+    return next();
   };
 };
 

@@ -18,7 +18,7 @@ export const validate = (schema: ZodSchema) => {
       req.query = {};
       req.params = {};
 
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         const response: ApiResponse<null> = {
@@ -44,7 +44,7 @@ export const validateBody = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       req.body = schema.parse(req.body);
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         const response: ApiResponse<null> = {
@@ -69,7 +69,7 @@ export const validateQuery = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       req.query = schema.parse(req.query);
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         const response: ApiResponse<null> = {
@@ -94,7 +94,7 @@ export const validateParams = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       req.params = schema.parse(req.params);
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         const response: ApiResponse<null> = {

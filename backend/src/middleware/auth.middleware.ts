@@ -49,7 +49,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     }
     
     req.user = decoded;
-    next();
+    return next();
   } catch (error) {
     console.error('JWT verification failed:', error);
     const response: ApiResponse<null> = {
@@ -78,7 +78,7 @@ export const requireRole = (roles: string[]) => {
       return res.status(403).json(response);
     }
 
-    next();
+    return next();
   };
 };
 
@@ -157,7 +157,7 @@ export const requireResourceOwnership = (resourceModel: any, resourceIdParam: st
 
       // Attach resource to request for use in route handlers
       req.resource = resource;
-      next();
+      return next();
     } catch (error) {
       console.error('Resource ownership validation error:', error);
       const response: ApiResponse<null> = {

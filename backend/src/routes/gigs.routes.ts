@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
+import { Artist } from '../models/Artist.js';
 import { Ticket } from '../models/Ticket.js';
 import { ApiResponse } from '../shared/types.js';
 import { socketService } from '../services/socketService.js';
@@ -477,6 +478,110 @@ router.get('/:id', async (req: Request, res: Response) => {
       error: 'Internal server error',
     };
     res.status(500).json(response);
+  }
+});
+
+// Artist applies to be in a gig's lineup
+router.post('/:id/apply', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.userId;
+
+    const artist = await Artist.findOne({ userId: new mongoose.Types.ObjectId(userId) })
+      .select('name genre email');
+    if (!artist) {
+      return res.status(404).json({ success: false, error: 'Artist profile not found' });
+    }
+
+    const gig = await Gig.findById(id).select('bands numberOfBands status eventName createdBy');
+    if (!gig) {
+      return res.status(404).json({ success: false, error: 'Gig not found' });
+    }
+
+    if (!['pending-confirmation', 'posted'].includes(gig.status)) {
+      return res.status(400).json({ success: false, error: 'Gig is not open for applications' });
+    }
+
+    const alreadyApplied = gig.bands.some(b => b.email.toLowerCase() === artist.email.toLowerCase());
+    if (alreadyApplied) {
+      return res.status(400).json({ success: false, error: 'You have already applied to this gig' });
+    }
+
+    const openSlots = gig.numberOfBands - gig.bands.filter(b => b.confirmed).length;
+    if (openSlots <= 0) {
+      return res.status(400).json({ success: false, error: 'This gig lineup is full' });
+    }
+
+    const genre = Array.isArray(artist.genre) ? artist.genre[0] || 'Various' : artist.genre;
+    await Gig.updateOne(
+      { _id: id },
+      {
+        $push: {
+          bands: {
+            name: artist.name,
+            genre,
+            setTime: 'TBD',
+            percentage: 0,
+            email: artist.email,
+            confirmed: false,
+          },
+        },
+      }
+    );
+
+    // Notify the gig creator
+    await socketService.sendNotificationToUser(gig.createdBy.toString(), {
+      type: 'booking-request',
+      title: 'New Gig Application',
+      message: `${artist.name} has applied to perform at "${gig.eventName}".`,
+      data: { gigId: (gig as any)._id, artistName: artist.name, artistEmail: artist.email },
+    });
+
+    res.json({ success: true, message: 'Application submitted successfully' });
+  } catch (error) {
+    console.error('Gig apply error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Remove a band from a gig (venue rejects application or removes an invited artist)
+router.post('/:id/remove-band', authenticateToken, requireGigModificationPermission, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { bandEmail } = req.body;
+
+    if (!bandEmail) {
+      return res.status(400).json({ success: false, error: 'bandEmail is required' });
+    }
+
+    const gig = await Gig.findById(id).select('bands eventName createdBy');
+    if (!gig) {
+      return res.status(404).json({ success: false, error: 'Gig not found' });
+    }
+
+    const bandIndex = gig.bands.findIndex(b => b.email.toLowerCase() === bandEmail.toLowerCase());
+    if (bandIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Band not found in this gig' });
+    }
+
+    const removedBand = gig.bands[bandIndex];
+    await Gig.updateOne({ _id: id }, { $pull: { bands: { email: new RegExp(`^${bandEmail}$`, 'i') } } });
+
+    // Notify the artist that their application was not accepted
+    const artistUser = await User.findOne({ email: bandEmail.toLowerCase() }).collation({ locale: 'en', strength: 2 });
+    if (artistUser) {
+      await socketService.sendNotificationToUser((artistUser as any)._id.toString(), {
+        type: 'gig-status-update',
+        title: 'Gig Application Update',
+        message: `Your application to "${gig.eventName}" was not accepted.`,
+        data: { gigId: (gig as any)._id },
+      });
+    }
+
+    res.json({ success: true, message: `${removedBand.name} removed from gig` });
+  } catch (error) {
+    console.error('Remove band error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

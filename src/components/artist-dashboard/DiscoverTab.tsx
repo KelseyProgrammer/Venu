@@ -15,7 +15,7 @@ interface DiscoverTabProps {
   gigsError: string | null
   newGigsCount: number
   onSelectGig: (gigId: string) => void
-  onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
+  onBookGig: (gigId: string, gigData: Record<string, unknown>) => Promise<void>
 }
 
 export const DiscoverTab = memo(function DiscoverTab({

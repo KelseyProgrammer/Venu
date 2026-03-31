@@ -63,7 +63,6 @@ export function ArtistDashboard() {
   const {
     notifications,
     gigUpdates,
-    sendGigUpdate,
     isConnected: realTimeConnected,
     markAsRead,
     markAllAsRead,
@@ -423,8 +422,17 @@ export function ArtistDashboard() {
   )
 
   const handleGigBook = useCallback(
-    (gigId: string, gigData: Record<string, unknown>) => sendGigUpdate(gigId, "status-changed", gigData),
-    [sendGigUpdate]
+    async (gigId: string) => {
+      try {
+        const res = await gigApi.applyToGig(gigId)
+        if (!res.success) {
+          setError(res.error || "Failed to submit application")
+        }
+      } catch {
+        setError("Failed to submit application")
+      }
+    },
+    []
   )
 
   const handleViewDetails = useCallback((booking: Booking) => {

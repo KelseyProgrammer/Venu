@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useMemo } from "react"
+import { memo, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,7 @@ interface GigCardProps {
   gig: Gig
   gigBonusTiers: Record<number, ReturnType<typeof calculateEventBonusTiers>>
   onSelectGig: (gigId: string) => void
-  onBookGig: (gigId: string, gigData: Record<string, unknown>) => void
+  onBookGig: (gigId: string, gigData: Record<string, unknown>) => Promise<void>
 }
 
 export const GigCard = memo(function GigCard({
@@ -24,6 +24,8 @@ export const GigCard = memo(function GigCard({
   onSelectGig,
   onBookGig,
 }: GigCardProps) {
+  const [applied, setApplied] = useState(false)
+  const [applying, setApplying] = useState(false)
   const progress = useMemo(
     () => (gig.ticketsSold / gig.totalTickets) * 100,
     [gig.ticketsSold, gig.totalTickets]
@@ -133,17 +135,15 @@ export const GigCard = memo(function GigCard({
               variant="default"
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => {
-                onSelectGig(gig.id.toString())
-                onBookGig(gig.id.toString(), {
-                  name: getLocationDisplayName(gig.location),
-                  status: "booking-requested",
-                  date: gig.date,
-                  time: gig.time,
-                })
+              disabled={applied || applying}
+              onClick={async () => {
+                setApplying(true)
+                await onBookGig(gig.id.toString(), {})
+                setApplying(false)
+                setApplied(true)
               }}
             >
-              Book Now
+              {applied ? "Applied!" : applying ? "Applying..." : "Book Now"}
             </Button>
           </div>
         </div>

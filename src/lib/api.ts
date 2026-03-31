@@ -766,6 +766,19 @@ export const gigApi = {
       body: JSON.stringify(confirmationData),
     });
   },
+
+  async applyToGig(gigId: string): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/gigs/${gigId}/apply`, {
+      method: 'POST',
+    });
+  },
+
+  async removeBand(gigId: string, bandEmail: string): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/gigs/${gigId}/remove-band`, {
+      method: 'POST',
+      body: JSON.stringify({ bandEmail }),
+    });
+  },
 };
 
 // Promoter API functions
