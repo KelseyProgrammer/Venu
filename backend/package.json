@@ -7,13 +7,13 @@
   "scripts": {
     "dev": "PORT=3001 nodemon -e ts,js --watch src --exec \"tsx src/server.ts\"",
     "build": "tsc -p tsconfig.json",
-    "start": "PORT=3001 node dist/server.js",
+    "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "postinstall": "npm run type-check",
+    "postinstall": "",
     "validate": "npm run type-check && npm run lint && npm run build",
     "migrate:notifications": "tsx src/scripts/migrate-notifications.ts",
     "migrate:fcm-tokens": "tsx src/scripts/manage-fcm-tokens.ts"
