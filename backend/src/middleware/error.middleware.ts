@@ -89,7 +89,7 @@ export const errorHandler = (
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   // Log the error
   logError(error, req);
@@ -163,7 +163,7 @@ export const errorHandler = (
     ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
   };
 
-  res.status(500).json(response);
+  return res.status(500).json(response);
 };
 
 // Async error wrapper to catch async errors
@@ -174,7 +174,7 @@ export const asyncHandler = (fn: Function) => {
 };
 
 // 404 handler for undefined routes
-export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
+export const notFoundHandler = (req: Request, res: Response, _next: NextFunction) => {
   const response: ApiResponse<null> = {
     success: false,
     error: `Route ${req.method} ${req.path} not found`

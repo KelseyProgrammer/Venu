@@ -450,7 +450,7 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
 
           {/* Applications Tab */}
           <TabsContent value="applications" className="space-y-4">
-            <ApplicationsTab gigs={gigs} />
+            <ApplicationsTab gigs={gigs} onRefresh={refreshData} />
           </TabsContent>
 
           {/* Chat Tab */}
