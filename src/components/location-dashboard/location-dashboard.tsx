@@ -105,12 +105,7 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
         }
       }
     }
-    // Default available dates for current month
-    return [
-      "2024-12-10",
-      "2024-12-17", 
-      "2024-12-24"
-    ]
+    return []
   })
 
   // Unavailable dates state (dates when venue is closed or unavailable)
@@ -126,13 +121,17 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
         }
       }
     }
-    // Default unavailable dates for current month
-    return [
-      "2024-12-05",
-      "2024-12-12", 
-      "2024-12-19"
-    ]
+    return []
   })
+
+  // Count gigs with unconfirmed bands, for Applications tab badge
+  const pendingApplicationsCount = useMemo(() =>
+    gigs.filter(g =>
+      (g.status === "pending-confirmation" || g.status === "posted") &&
+      g.bands?.some(b => !b.confirmed)
+    ).length,
+    [gigs]
+  )
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])
 
@@ -419,6 +418,11 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
             <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Applications
+              {pendingApplicationsCount > 0 && (
+                <span className="ml-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none px-1.5 py-0.5">
+                  {pendingApplicationsCount}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="chat" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />

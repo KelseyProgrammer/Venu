@@ -4,11 +4,23 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download, Loader2 } from "lucide-react"
+import { ChevronLeft, Calendar, MapPin, CreditCard, CheckCircle, Share2, Download, Loader2, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { loadStripe } from "@stripe/stripe-js"
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js"
 import { getLocationDisplayName } from "@/lib/location-data"
 import { timeUtils } from "@/lib/utils"
-import { ticketApi, PurchasedTicket } from "@/lib/api"
+import { ticketApi, gigApi, PurchasedTicket } from "@/lib/api"
+
+// Stripe is loaded lazily so the bundle doesn't grow until the payment step
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null
 
 interface TicketPurchaseProps {
   eventId: string
@@ -29,18 +41,85 @@ interface TicketPurchaseProps {
   }
 }
 
+// ── Inner form rendered inside <Elements> ────────────────────────────────────
+function CheckoutForm({
+  gigId,
+  onSuccess,
+  onError,
+}: {
+  gigId: string
+  onSuccess: (ticket: PurchasedTicket) => void
+  onError: (msg: string) => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements) return
+
+    setIsSubmitting(true)
+    try {
+      // 1. Confirm the card payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+      })
+
+      if (error) {
+        onError(error.message ?? "Payment failed. Please try again.")
+        return
+      }
+
+      if (paymentIntent?.status === "succeeded") {
+        // 2. Issue the ticket on our backend
+        const res = await ticketApi.purchaseTicket(gigId, 1)
+        if (res.success && res.data) {
+          onSuccess(res.data)
+        } else {
+          onError(res.error ?? "Payment succeeded but ticket issuance failed. Contact support.")
+        }
+      } else {
+        onError("Payment was not completed. Please try again.")
+      }
+    } catch {
+      onError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {isSubmitting ? (
+        <Button disabled className="w-full h-12 bg-purple-600 text-white">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          Processing...
+        </Button>
+      ) : (
+        <Button type="submit" disabled={!stripe} className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white">
+          Pay Now
+        </Button>
+      )}
+    </form>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
   const [purchaseStep, setPurchaseStep] = useState<"details" | "payment" | "ticket">("details")
-  const [isLoading, setIsLoading] = useState(false)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [loadingIntent, setLoadingIntent] = useState(false)
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
   const [purchasedTicket, setPurchasedTicket] = useState<PurchasedTicket | null>(null)
 
-  // Use passed event data or fall back to default
   const event = eventData || {
     id: "1",
     artist: "The Midnight Keys",
-    location: "sarbez", // Use standardized location key
-          address: "115 Anastasia Blvd, St. Augustine, FL 32080",
+    location: "sarbez",
+    address: "115 Anastasia Blvd, St. Augustine, FL 32080",
     date: "Sat, Oct 12",
     time: "8 PM doors",
     genre: "Jazz",
@@ -51,32 +130,35 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
     image: "/images/SARBEZ.jpg",
   }
 
-      // Get location details from standardized data
-    const locationInfo = {
-          name: getLocationDisplayName(event.location),
-      address: event.address,
-    image: event.image
+  const locationInfo = {
+    name: getLocationDisplayName(event.location),
+    address: event.address,
+    image: event.image,
   }
 
-  const handleCompletePurchase = async () => {
-    setIsLoading(true)
+  // When moving to the payment step, create the PaymentIntent
+  const handleProceedToPayment = async () => {
+    setLoadingIntent(true)
     setPurchaseError(null)
     try {
-      const res = await ticketApi.purchaseTicket(event.id, 1)
-      if (res.success && res.data) {
-        setPurchasedTicket(res.data)
-        setPurchaseStep("ticket")
+      const res = await gigApi.createPaymentIntent(event.id, 1)
+      if (res.success && res.data?.clientSecret) {
+        setClientSecret(res.data.clientSecret)
+        setPurchaseStep("payment")
       } else {
-        setPurchaseError(res.error || "Purchase failed. Please try again.")
+        setPurchaseError(res.error ?? "Could not start payment. Please try again.")
       }
     } catch {
-      setPurchaseError("Unable to complete purchase. Please try again.")
+      setPurchaseError("Unable to connect. Please try again.")
     } finally {
-      setIsLoading(false)
+      setLoadingIntent(false)
     }
   }
 
+  // ── Payment step ──────────────────────────────────────────────────────────
   if (purchaseStep === "payment") {
+    const stripeNotConfigured = !stripePromise
+
     return (
       <div className="min-h-screen bg-background">
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
@@ -90,6 +172,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
         </div>
 
         <div className="p-4 space-y-6 max-w-sm mx-auto">
+          {/* Order summary */}
           <Card className="p-6 bg-card border-border">
             <div className="space-y-4">
               <div className="text-center">
@@ -98,7 +181,6 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
                   {locationInfo.name} • {event.date}
                 </p>
               </div>
-
               <div className="border-t border-border pt-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Ticket price</span>
@@ -118,53 +200,77 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
             </div>
           </Card>
 
+          {/* Payment form */}
           <Card className="p-6 bg-card border-border">
             <div className="flex items-center gap-2 mb-4">
               <CreditCard className="w-5 h-5 text-primary" />
-              <span className="font-medium text-foreground">Payment Method</span>
+              <span className="font-medium text-foreground">Payment Details</span>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 border border-border rounded-lg bg-accent/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-6 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                      VISA
-                    </div>
-                    <span className="text-sm text-foreground">•••• 4242</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Change
-                  </Button>
+            {stripeNotConfigured ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-yellow-700">
+                    Stripe is not yet configured. Add your{" "}
+                    <code className="font-mono">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> to{" "}
+                    <code className="font-mono">.env.local</code> to enable real payments.
+                  </p>
                 </div>
+                <Button
+                  className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={async () => {
+                    // Fallback: issue ticket without payment (dev/demo mode)
+                    setPurchaseError(null)
+                    try {
+                      const res = await ticketApi.purchaseTicket(event.id, 1)
+                      if (res.success && res.data) {
+                        setPurchasedTicket(res.data)
+                        setPurchaseStep("ticket")
+                      } else {
+                        setPurchaseError(res.error ?? "Purchase failed.")
+                      }
+                    } catch {
+                      setPurchaseError("Unable to complete purchase.")
+                    }
+                  }}
+                >
+                  Complete Purchase (Demo)
+                </Button>
               </div>
+            ) : clientSecret ? (
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <CheckoutForm
+                  gigId={event.id}
+                  onSuccess={(ticket) => {
+                    setPurchasedTicket(ticket)
+                    setPurchaseStep("ticket")
+                  }}
+                  onError={setPurchaseError}
+                />
+              </Elements>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+              </div>
+            )}
 
-              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-xs text-muted-foreground">
-                  Your payment is processed securely through Stripe. You&apos;ll receive your QR ticket immediately after
-                  purchase.
-                </p>
-              </div>
+            {purchaseError && (
+              <p className="text-sm text-red-500 mt-3 text-center">{purchaseError}</p>
+            )}
+
+            <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                Payments processed securely by Stripe. You&apos;ll receive your QR ticket immediately after purchase.
+              </p>
             </div>
           </Card>
-
-          {purchaseError && (
-            <p className="text-sm text-red-500 text-center">{purchaseError}</p>
-          )}
-          <Button
-            variant="purple"
-            onClick={handleCompletePurchase}
-            disabled={isLoading}
-            className="w-full h-12"
-          >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            {isLoading ? "Processing..." : "Complete Purchase"}
-          </Button>
         </div>
       </div>
     )
   }
 
+  // ── Ticket confirmation step ───────────────────────────────────────────────
   if (purchaseStep === "ticket") {
     return (
       <div className="min-h-screen bg-background">
@@ -203,7 +309,6 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
                 </div>
               </div>
 
-              {/* QR Code */}
               <div className="bg-white p-6 rounded-lg mx-auto w-fit">
                 {purchasedTicket?.qrCode ? (
                   <Image
@@ -226,7 +331,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Check in opens in 2h 15m</p>
+                <p className="text-sm font-medium text-foreground">Check in opens 30 min before doors</p>
                 <p className="text-xs text-muted-foreground">
                   Show this QR code at the door for entry. Screenshot or save to your photos for backup.
                 </p>
@@ -248,9 +353,9 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
           <Card className="p-4 bg-accent/10 border-accent/20">
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 text-accent" />
-                              <span className="font-medium text-foreground">Location Address</span>
+              <span className="font-medium text-foreground">Location Address</span>
             </div>
-                          <p className="text-sm text-muted-foreground">{locationInfo.address}</p>
+            <p className="text-sm text-muted-foreground">{locationInfo.address}</p>
             <Button variant="ghost" size="sm" className="mt-2 text-accent">
               Get Directions
             </Button>
@@ -260,6 +365,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
     )
   }
 
+  // ── Event details step (default) ──────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
@@ -290,7 +396,7 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
           <div className="space-y-4">
             <div>
               <h2 className="font-serif font-bold text-2xl text-foreground mb-2">{event.artist}</h2>
-                              <p className="text-lg text-muted-foreground mb-3">{locationInfo.name}</p>
+              <p className="text-lg text-muted-foreground mb-3">{locationInfo.name}</p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
@@ -302,7 +408,6 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
                 {locationInfo.address}
               </div>
             </div>
-
             <p className="text-sm text-muted-foreground leading-relaxed">{event.description}</p>
           </div>
         </Card>
@@ -325,12 +430,20 @@ export function TicketPurchase({ onBack, eventData }: TicketPurchaseProps) {
               </div>
             </div>
 
+            {purchaseError && (
+              <p className="text-sm text-red-500 text-center">{purchaseError}</p>
+            )}
+
             <Button
-              variant="purple"
-              onClick={() => setPurchaseStep("payment")}
-              className="w-full h-12"
+              className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={handleProceedToPayment}
+              disabled={loadingIntent}
             >
-              Buy Ticket - ${event.ticketPrice + 2.5}
+              {loadingIntent ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Preparing payment...</>
+              ) : (
+                `Buy Ticket — $${event.ticketPrice + 2.5}`
+              )}
             </Button>
           </div>
         </Card>

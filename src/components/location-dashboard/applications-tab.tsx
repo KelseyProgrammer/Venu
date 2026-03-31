@@ -17,7 +17,10 @@ export function ApplicationsTab({ gigs, onRefresh }: ApplicationsTabProps) {
   const [pending, setPending] = useState<Record<string, boolean>>({})
 
   const pendingGigs = useMemo(() =>
-    gigs.filter(g => g.status === "pending-confirmation" || g.status === "posted"),
+    gigs.filter(g =>
+      (g.status === "pending-confirmation" || g.status === "posted") &&
+      g.bands?.some(b => !b.confirmed)
+    ),
     [gigs]
   )
 

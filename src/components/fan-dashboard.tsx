@@ -200,9 +200,10 @@ export function FanDashboard() {
   const [showTicketPurchase, setShowTicketPurchase] = useState(false)
   const [favoriteEvents, setFavoriteEvents] = useState<Set<string>>(new Set())
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres")
+  const [isClient, setIsClient] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
-  // Mock user ID - in a real app, this would come from authentication
-  const userId = "fan-user-123"
+  const userId = isClient ? (authUtils.getCurrentUser()?.id ?? "") : ""
 
   // Fetch real gigs from backend
   const { gigs, loading: gigsLoading, error: gigsError, refreshGigs } = useGigs()
@@ -258,12 +259,13 @@ export function FanDashboard() {
 
   const { name: fanName } = fanProfileData
 
-  // State to track if we're on the client side
-  const [isClient, setIsClient] = useState(false)
-
-  // Set isClient to true after hydration
   useEffect(() => {
     setIsClient(true)
+    if (!authUtils.isAuthenticated()) {
+      window.location.href = '/?redirect=/fan'
+    } else {
+      setAuthChecked(true)
+    }
   }, [])
 
   // Initialize real-time functionality
@@ -355,6 +357,15 @@ export function FanDashboard() {
     })
   }, [gigs])
 
+  const handleBuyTickets = useCallback((eventId: string) => {
+    if (!authUtils.isAuthenticated()) {
+      window.location.href = "/?redirect=/fan&action=buy-ticket"
+      return
+    }
+    setSelectedEvent(eventId)
+    setShowTicketPurchase(true)
+  }, [])
+
   const toggleFavorite = useCallback((eventId: string) => {
     setFavoriteEvents(prevFavorites => {
       const newFavorites = new Set(prevFavorites)
@@ -412,6 +423,9 @@ export function FanDashboard() {
       return matchesSearch && matchesGenre
     })
   }, [allLocations, debouncedSearchQuery, selectedGenre])
+
+  // Don't render until auth is confirmed (prevents flash for unauthenticated users)
+  if (!authChecked) return null
 
   if (showTicketPurchase && selectedEvent) {
     const event = allEvents.find(e => e.id === selectedEvent)
@@ -535,10 +549,7 @@ export function FanDashboard() {
             events={filteredEvents}
             favoriteEvents={favoriteEvents}
             onToggleFavorite={toggleFavorite}
-            onBuyTickets={(eventId) => {
-              setSelectedEvent(eventId)
-              setShowTicketPurchase(true)
-            }}
+            onBuyTickets={handleBuyTickets}
             userId={userId}
           />
           ) : (
@@ -675,10 +686,7 @@ export function FanDashboard() {
                       events={filteredEvents}
                       favoriteEvents={favoriteEvents}
                       onToggleFavorite={toggleFavorite}
-                      onBuyTickets={(eventId) => {
-                        setSelectedEvent(eventId)
-                        setShowTicketPurchase(true)
-                      }}
+                      onBuyTickets={handleBuyTickets}
                       userId={userId}
                     />
                   </div>
@@ -821,10 +829,7 @@ export function FanDashboard() {
               events={allEvents.filter(event => favoriteEvents.has(event.id))}
               favoriteEvents={favoriteEvents}
               onToggleFavorite={toggleFavorite}
-              onBuyTickets={(eventId) => {
-                setSelectedEvent(eventId)
-                setShowTicketPurchase(true)
-              }}
+              onBuyTickets={handleBuyTickets}
               userId={userId}
               showDescription={false}
               buttonVariant="purple"
