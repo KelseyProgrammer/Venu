@@ -80,7 +80,12 @@ export function ArtistDashboard() {
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
-  useEffect(() => { setIsClient(true) }, [])
+  useEffect(() => {
+    setIsClient(true)
+    if (!authUtils.isAuthenticated()) {
+      window.location.href = '/?redirect=/artist'
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true

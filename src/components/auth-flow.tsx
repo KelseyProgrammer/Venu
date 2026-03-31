@@ -40,6 +40,19 @@ export function AuthFlow() {
     priceRange: ""
   })
 
+  const navigateAfterAuth = (role: string) => {
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get('redirect')
+    if (redirect && redirect.startsWith('/')) {
+      window.location.href = redirect
+      return
+    }
+    const destinations: Record<string, string> = {
+      artist: '/artist', location: '/location', fan: '/fan', promoter: '/promoter',
+    }
+    window.location.href = destinations[role] ?? '/'
+  }
+
   const roles = [
     {
       id: "artist" as const,
@@ -147,20 +160,10 @@ export function AuthFlow() {
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // If it's an artist, show profile setup
         if (selectedRole === 'artist') {
           setShowProfileSetup(true);
         } else {
-          // For other roles, navigate directly to their dashboard
-          if (selectedRole === "location") {
-            window.location.href = "/location";
-          } else if (selectedRole === "fan") {
-            window.location.href = "/fan";
-          } else if (selectedRole === "promoter") {
-            window.location.href = "/promoter";
-          } else {
-            window.location.href = "/";
-          }
+          navigateAfterAuth(selectedRole);
         }
       } else {
         setError(response.error || 'Registration failed');
@@ -235,19 +238,7 @@ export function AuthFlow() {
         };
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // Navigate based on user role
-        const role = response.data.user.role;
-        if (role === "artist") {
-          window.location.href = "/artist";
-        } else if (role === "location") {
-          window.location.href = "/location";
-        } else if (role === "fan") {
-          window.location.href = "/fan";
-        } else if (role === "promoter") {
-          window.location.href = "/promoter";
-        } else {
-          window.location.href = "/";
-        }
+        navigateAfterAuth(response.data.user.role);
       } else {
         setError(response.error || 'Login failed');
       }
@@ -564,108 +555,6 @@ export function AuthFlow() {
               </div>
             )}
 
-            {selectedRole === "fan" && (
-              <div className="space-y-6">
-                <div>
-                  <Label className="text-foreground">Favorite Genres</Label>
-                  <Select onValueChange={(value) => addItem(value, genres, setGenres)}>
-                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
-                      <SelectValue placeholder="Select your favorite genres" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {genreOptions.map((genre) => (
-                        <SelectItem key={genre} value={genre}>
-                          {genre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {genres.map((genre) => (
-                      <Badge key={genre} variant="secondary" className="bg-accent text-accent-foreground">
-                        {genre}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-1 h-4 w-4 p-0"
-                          onClick={() => removeItem(genre, genres, setGenres)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-foreground">Preferred Locations</Label>
-                  <Select onValueChange={(value) => addItem(value, regions, setRegions)}>
-                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
-                      <SelectValue placeholder="Select preferred areas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {regionOptions.map((region) => (
-                        <SelectItem key={region} value={region}>
-                          {region}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {regions.map((region) => (
-                      <Badge key={region} variant="secondary" className="bg-accent text-accent-foreground">
-                        {region}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-1 h-4 w-4 p-0"
-                          onClick={() => removeItem(region, regions, setRegions)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="budget" className="text-foreground">
-                    Typical Ticket Budget
-                  </Label>
-                  <Select>
-                    <SelectTrigger className="mt-2 bg-input border-border text-foreground">
-                      <SelectValue placeholder="Select your typical budget range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0-25">$0 - $25</SelectItem>
-                      <SelectItem value="25-50">$25 - $50</SelectItem>
-                      <SelectItem value="50-100">$50 - $100</SelectItem>
-                      <SelectItem value="100+">$100+</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="notifications" className="text-foreground">
-                    Notification Preferences
-                  </Label>
-                  <div className="mt-2 space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="email-notifications" className="rounded border-border" />
-                      <Label htmlFor="email-notifications" className="text-sm text-foreground">
-                        Email notifications for new events
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="push-notifications" className="rounded border-border" />
-                      <Label htmlFor="push-notifications" className="text-sm text-foreground">
-                        Push notifications for favorite artists
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <Button
               onClick={handleCompleteProfile}

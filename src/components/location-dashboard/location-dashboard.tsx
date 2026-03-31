@@ -49,9 +49,11 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
 
-  // Set isClient to true after hydration
   useEffect(() => {
     setIsClient(true)
+    if (!authUtils.isAuthenticated()) {
+      window.location.href = '/?redirect=/location'
+    }
   }, [])
   
   // Use the custom hook to fetch current user's location data
