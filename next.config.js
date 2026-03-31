@@ -20,10 +20,11 @@ const nextConfig = {
   //   root: path.join(__dirname, ".."),
   // },
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:3001/api/:path*", // Fixed port to match backend
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
