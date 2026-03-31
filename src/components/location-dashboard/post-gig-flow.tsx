@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock } from "lucide-react"
+import { Plus, Users, DollarSign, ArrowLeft, ArrowRight, Check, Calendar, Clock, CheckCircle, Copy, ExternalLink } from "lucide-react"
 import { TIME_OPTIONS, GENRE_OPTIONS, getTimeLabel, GIG_STEPS } from "@/lib/constants"
 import { Band, Requirement } from "./types"
 import { useSocket, socketManager } from "@/lib/socket"
@@ -22,6 +22,8 @@ interface PostGigFlowProps {
 
 export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [createdGigId, setCreatedGigId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const socket = useSocket()
   
   // Note: Saved promoters and door persons functionality can be added in future iterations
@@ -186,7 +188,7 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
       promoterEmail,
       promoterPercentage: parseFloat(promoterPercentage),
       selectedDoorPerson: selectedDoorPerson === "self" ? undefined : selectedDoorPerson,
-      doorPersonEmail: doorPersonEmail || "self@venu.com", // Default email if not provided
+      doorPersonEmail: doorPersonEmail || "",
       requirements: requirements.filter(req => req.text.trim() !== ""),
       bands: bands.map(band => ({
         name: band.name,
@@ -267,15 +269,13 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
         console.log('📧 Backend will send confirmation notifications to artists with emails:', bands.map(band => band.email))
       }
       
-      // Reset and close
-      resetForm()
-      onClose()
-      
+      // Show success screen with door scanner link
+      setCreatedGigId(createdGig._id)
+
       // Force refresh of gigs data to show the new gig in schedule
       if (typeof window !== 'undefined') {
-        // Dispatch a custom event to trigger refresh
-        window.dispatchEvent(new CustomEvent('gig-created', { 
-          detail: { gigId: createdGig._id } 
+        window.dispatchEvent(new CustomEvent('gig-created', {
+          detail: { gigId: createdGig._id }
         }))
       }
     } catch (error) {
@@ -299,6 +299,55 @@ export function PostGigFlow({ onClose, locationId }: PostGigFlowProps) {
   }, [setSelectedPromoter, setPromoterPercentage])
 
   // Door person management functions - can be implemented in future iterations
+
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (createdGigId) {
+    const doorLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/door?gigId=${createdGigId}`
+    const handleCopy = () => {
+      navigator.clipboard.writeText(doorLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="p-8 max-w-sm w-full space-y-6 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+          <div>
+            <h2 className="font-serif font-bold text-2xl text-foreground mb-2">Gig Created!</h2>
+            <p className="text-sm text-muted-foreground">Your event is live. Share the door scanner link with your door person.</p>
+          </div>
+
+          {doorPersonEmail && (
+            <div className="p-3 bg-muted rounded-lg text-left text-sm">
+              <p className="text-muted-foreground">Door person: <span className="font-medium text-foreground">{doorPersonEmail}</span></p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Door Scanner Link</p>
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <p className="text-xs text-foreground font-mono truncate flex-1">{doorLink}</p>
+              <Button size="sm" variant="ghost" className="shrink-0 h-7 px-2" onClick={handleCopy}>
+                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+              </Button>
+              <a href={doorLink} target="_blank" rel="noreferrer">
+                <Button size="sm" variant="ghost" className="shrink-0 h-7 px-2">
+                  <ExternalLink className="w-3 h-3" />
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          <Button
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => { resetForm(); setCreatedGigId(null); onClose() }}
+          >
+            Done
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">

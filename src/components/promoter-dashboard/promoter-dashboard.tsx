@@ -113,9 +113,11 @@ export function PromoterDashboard() {
   // State to track if we're on the client side
   const [isClient, setIsClient] = useState(false)
 
-  // Set isClient to true after hydration
   useEffect(() => {
     setIsClient(true)
+    if (!authUtils.isAuthenticated()) {
+      window.location.href = '/?redirect=/promoter'
+    }
   }, [])
 
   const handleTabChange = useCallback((value: string) => setActiveTab(value), [])

@@ -174,7 +174,7 @@ export function PostGigFlow({ onClose }: PostGigFlowProps) {
       ticketCapacity: parseInt(ticketCapacity),
       ticketPrice: parseFloat(ticketPrice),
       selectedDoorPerson: selectedDoorPerson === "self" ? undefined : selectedDoorPerson,
-      doorPersonEmail: doorPersonEmail || "self@venu.com", // Default email if not provided
+      doorPersonEmail: doorPersonEmail || "",
       requirements: requirements.filter(req => req.text.trim() !== ""),
       bands: bands.map(band => ({
         name: band.name,
