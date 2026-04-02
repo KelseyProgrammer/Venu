@@ -438,7 +438,7 @@ export function LocationDashboard({ currentUserId: _currentUserId }: LocationDas
 
           {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-4">
-            <DiscoverTab />
+            <DiscoverTab gigs={gigs} />
           </TabsContent>
 
           {/* Schedule Tab */}

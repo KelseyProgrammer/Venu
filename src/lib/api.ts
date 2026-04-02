@@ -773,6 +773,13 @@ export const gigApi = {
     });
   },
 
+  async inviteArtist(gigId: string, artistEmail: string): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/gigs/${gigId}/invite-artist`, {
+      method: 'POST',
+      body: JSON.stringify({ artistEmail }),
+    });
+  },
+
   async removeBand(gigId: string, bandEmail: string): Promise<ApiResponse<{ message: string }>> {
     return apiRequest<{ message: string }>(`/gigs/${gigId}/remove-band`, {
       method: 'POST',

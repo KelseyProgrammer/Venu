@@ -14,6 +14,14 @@ import {
   requireGigCreationPermission,
   requireGigModificationPermission
 } from '../middleware/auth.middleware.js';
+import {
+  sendArtistApplicationEmail,
+  sendArtistInvitedEmail,
+  sendArtistConfirmedEmail,
+  sendTicketConfirmationEmail,
+} from '../services/emailService.js';
+
+const APP_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -417,6 +425,11 @@ router.post('/:id/confirm-band', authenticateToken, async (req: Request, res: Re
           }
         });
 
+        // Send confirmation email to artist
+        const gigDate = new Date((gig as any).eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const venueName = (gig as any).selectedLocation?.name || 'the venue';
+        sendArtistConfirmedEmail(bandEmail, gig.eventName, venueName, gigDate, APP_URL).catch(() => {});
+
         // Also send a gig update event to trigger real-time refresh
         if (socketService.ioInstance) {
           socketService.ioInstance.to(`user:${artistUserId}`).emit('gig-update', {
@@ -534,17 +547,86 @@ router.post('/:id/apply', authenticateToken, async (req: Request, res: Response)
       }
     );
 
-    // Notify the gig creator
+    // Notify the gig creator (socket + email)
     await socketService.sendNotificationToUser(gig.createdBy.toString(), {
       type: 'booking-request',
       title: 'New Gig Application',
       message: `${artist.name} has applied to perform at "${gig.eventName}".`,
       data: { gigId: (gig as any)._id, artistName: artist.name, artistEmail: artist.email },
     });
+    const creatorUser = await User.findById(gig.createdBy).select('email').lean();
+    if (creatorUser?.email) {
+      sendArtistApplicationEmail(creatorUser.email, artist.name, gig.eventName, APP_URL).catch(() => {});
+    }
 
     res.json({ success: true, message: 'Application submitted successfully' });
   } catch (error) {
     console.error('Gig apply error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Invite an artist to an existing gig (location/promoter-initiated)
+router.post('/:id/invite-artist', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { artistEmail } = req.body;
+    const userId = req.user!.userId;
+
+    if (!artistEmail) {
+      return res.status(400).json({ success: false, error: 'artistEmail is required' });
+    }
+
+    const gig = await Gig.findById(id).select('bands numberOfBands status eventName eventDate selectedLocation createdBy');
+    if (!gig) return res.status(404).json({ success: false, error: 'Gig not found' });
+
+    if (gig.createdBy.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the gig creator can invite artists' });
+    }
+
+    if (!['pending-confirmation', 'posted'].includes(gig.status)) {
+      return res.status(400).json({ success: false, error: 'Gig is not open for invitations' });
+    }
+
+    const alreadyInvited = gig.bands.some(b => b.email.toLowerCase() === artistEmail.toLowerCase());
+    if (alreadyInvited) {
+      return res.status(400).json({ success: false, error: 'Artist has already been invited to this gig' });
+    }
+
+    const openSlots = gig.numberOfBands - gig.bands.filter(b => b.confirmed).length;
+    if (openSlots <= 0) {
+      return res.status(400).json({ success: false, error: 'This gig lineup is full' });
+    }
+
+    // Look up artist profile
+    const artist = await Artist.findOne({ email: artistEmail.toLowerCase() }).select('name genre email');
+    if (!artist) return res.status(404).json({ success: false, error: 'Artist not found' });
+
+    const genre = Array.isArray(artist.genre) ? artist.genre[0] || 'Various' : artist.genre;
+    await Gig.updateOne(
+      { _id: id },
+      { $push: { bands: { name: artist.name, genre, setTime: 'TBD', percentage: 0, email: artist.email, confirmed: false } } }
+    );
+
+    // Notify artist via socket
+    const artistUser = await User.findOne({ email: artistEmail.toLowerCase() }).select('_id email firstName').lean();
+    if (artistUser) {
+      await socketService.sendNotificationToUser((artistUser as any)._id.toString(), {
+        type: 'gig-confirmation-required',
+        title: "You've Been Invited to Perform",
+        message: `You've been invited to perform at "${gig.eventName}".`,
+        data: { gigId: (gig as any)._id, gigData: gig },
+      });
+
+      // Send invite email
+      const gigDate = new Date((gig as any).eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const venueName = (gig as any).selectedLocation?.name || 'the venue';
+      sendArtistInvitedEmail(artistUser.email, gig.eventName, venueName, gigDate, APP_URL).catch(() => {});
+    }
+
+    res.json({ success: true, message: 'Artist invited successfully' });
+  } catch (error) {
+    console.error('Invite artist error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
@@ -673,6 +755,22 @@ router.post('/:id/tickets', authenticateToken, async (req: Request, res: Respons
       qrCode,
       qrToken,
     });
+
+    // Send confirmation email to fan (fire and forget)
+    const fanUser = await User.findById(userId).select('email firstName').lean();
+    if (fanUser?.email) {
+      const gigDate = new Date((gig as any).eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      sendTicketConfirmationEmail(
+        fanUser.email,
+        fanUser.firstName || '',
+        gig.eventName,
+        'VENU Event',
+        gigDate,
+        quantity,
+        totalPrice,
+        APP_URL
+      ).catch(() => {});
+    }
 
     res.json({
       success: true,

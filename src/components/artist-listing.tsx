@@ -443,11 +443,13 @@ function ArtistCard({ artist, onSelect, favoriteCount }: ArtistCardProps) {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
-              View Details
-            </Button>
-            <Button variant="default" size="sm" className="w-20 bg-purple-600 hover:bg-purple-700 text-white">
-              Book
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={(e) => { e.stopPropagation(); handleSelect() }}
+            >
+              Invite to Gig
             </Button>
           </div>
         </div>
