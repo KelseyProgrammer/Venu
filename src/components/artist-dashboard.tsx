@@ -14,7 +14,6 @@ import {
   LogOut,
 } from "lucide-react"
 import { authUtils } from "@/lib/utils"
-import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
 import { RealTimeNotifications } from "./real-time-notifications"
 import { BandConfirmationModal } from "./band-confirmation-modal"
 import { RealTimeGigUpdates } from "./real-time-gig-updates"
@@ -69,10 +68,14 @@ export function ArtistDashboard() {
     clearAllNotifications,
   } = useArtistRealTime({ artistId: isClient ? authUtils.getCurrentUser()?.id || "" : "" })
 
-  // Gig data
+  // Gig data (artist's own gigs)
   const [gigs, setGigs] = useState<GigProfile[]>([])
   const [gigsLoading, setGigsLoading] = useState(true)
-  const [gigsError, setGigsError] = useState<string | null>(null)
+
+  // Open gigs (discover feed)
+  const [openGigs, setOpenGigs] = useState<GigProfile[]>([])
+  const [openGigsLoading, setOpenGigsLoading] = useState(true)
+  const [openGigsError, setOpenGigsError] = useState<string | null>(null)
 
   // Availability (shared between ScheduleTab and MoreTab)
   const [availableDates, setAvailableDates] = useState<string[]>([])
@@ -127,17 +130,42 @@ export function ArtistDashboard() {
       try {
         setGigsLoading(true)
         const user = authUtils.getCurrentUser()
-        if (!user?.email) { setGigsError("No user email found"); return }
+        if (!user?.email) { setGigsLoading(false); return }
         const res = await gigApi.getGigsByArtist(user.email)
         if (res.success && res.data) setGigs(res.data)
-        else setGigsError(res.error || "Failed to load gigs")
       } catch {
-        setGigsError("Failed to load gigs")
+        // silently fail — schedule tab will show empty
       } finally {
         setGigsLoading(false)
       }
     }
     fetchGigs()
+  }, [isClient])
+
+  useEffect(() => {
+    if (!isClient) return
+    const fetchOpenGigs = async () => {
+      try {
+        setOpenGigsLoading(true)
+        const user = authUtils.getCurrentUser()
+        const res = await gigApi.getAllGigs({ status: 'posted', limit: 50 })
+        if (res.success && res.data) {
+          // Filter out gigs the artist is already part of
+          const myEmail = user?.email?.toLowerCase()
+          const filtered = res.data.filter(g =>
+            !myEmail || !g.bands.some(b => b.email.toLowerCase() === myEmail)
+          )
+          setOpenGigs(filtered)
+        } else {
+          setOpenGigsError(res.error || "Failed to load open gigs")
+        }
+      } catch {
+        setOpenGigsError("Failed to load open gigs")
+      } finally {
+        setOpenGigsLoading(false)
+      }
+    }
+    fetchOpenGigs()
   }, [isClient])
 
   useEffect(() => {
@@ -292,16 +320,6 @@ export function ArtistDashboard() {
     })
   }, [gigs])
 
-  const gigBonusTiers = useMemo(() =>
-    transformedGigs.reduce((acc, gig) => {
-      if (gig.bands.length > 0) {
-        acc[gig.id] = calculateEventBonusTiers(gig.bands, gig.ticketPrice, gig.totalTickets, gig.ticketsSold)
-      }
-      return acc
-    }, {} as Record<number, ReturnType<typeof calculateEventBonusTiers>>),
-    [transformedGigs]
-  )
-
   const notificationCounts = useMemo(() => {
     const n = notifications || []
     return {
@@ -421,20 +439,17 @@ export function ArtistDashboard() {
     []
   )
 
-  const handleGigSelect = useCallback(
-    (gigId: string) => startTransition(() => setSelectedGig(gigId)),
-    []
-  )
-
-  const handleGigBook = useCallback(
-    async (gigId: string) => {
+  const handleApplyToOpenGig = useCallback(
+    async (gigId: string): Promise<{ success: boolean; error?: string }> => {
       try {
         const res = await gigApi.applyToGig(gigId)
-        if (!res.success) {
-          setError(res.error || "Failed to submit application")
+        if (res.success) {
+          // Remove from open gigs feed so it doesn't show again
+          setOpenGigs(prev => prev.filter(g => g._id !== gigId))
         }
+        return res.error ? { success: res.success, error: res.error } : { success: res.success }
       } catch {
-        setError("Failed to submit application")
+        return { success: false, error: "Failed to submit application" }
       }
     },
     []
@@ -562,13 +577,10 @@ export function ArtistDashboard() {
 
           <TabsContent value="discover">
             <DiscoverTab
-              transformedGigs={transformedGigs}
-              gigBonusTiers={gigBonusTiers}
-              gigsLoading={gigsLoading}
-              gigsError={gigsError}
-              newGigsCount={notificationCounts.newGigs}
-              onSelectGig={handleGigSelect}
-              onBookGig={handleGigBook}
+              openGigs={openGigs}
+              openGigsLoading={openGigsLoading}
+              openGigsError={openGigsError}
+              onApply={handleApplyToOpenGig}
             />
           </TabsContent>
 

@@ -793,6 +793,7 @@ export const gigApi = {
       body: JSON.stringify({ qrToken }),
     });
   },
+
 };
 
 // Promoter API functions

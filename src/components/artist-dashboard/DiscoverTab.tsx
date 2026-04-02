@@ -1,73 +1,51 @@
 "use client"
 
 import { memo } from "react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MapPin } from "lucide-react"
-import { calculateEventBonusTiers } from "@/lib/bonus-tiers"
-import { GigCard } from "./GigCard"
-import type { Gig } from "./types"
+import { OpenGigCard } from "./OpenGigCard"
+import type { GigProfile } from "@/lib/api"
 
 interface DiscoverTabProps {
-  transformedGigs: Gig[]
-  gigBonusTiers: Record<number, ReturnType<typeof calculateEventBonusTiers>>
-  gigsLoading: boolean
-  gigsError: string | null
-  newGigsCount: number
-  onSelectGig: (gigId: string) => void
-  onBookGig: (gigId: string, gigData: Record<string, unknown>) => Promise<void>
+  openGigs: GigProfile[]
+  openGigsLoading: boolean
+  openGigsError: string | null
+  onApply: (gigId: string) => Promise<{ success: boolean; error?: string }>
 }
 
 export const DiscoverTab = memo(function DiscoverTab({
-  transformedGigs,
-  gigBonusTiers,
-  gigsLoading,
-  gigsError,
-  newGigsCount,
-  onSelectGig,
-  onBookGig,
+  openGigs,
+  openGigsLoading,
+  openGigsError,
+  onApply,
 }: DiscoverTabProps) {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif font-bold text-xl">Trending locations near you</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <MapPin className="w-4 h-4 mr-1" />
-            Filter
-          </Button>
-          {newGigsCount > 0 && (
-            <Badge variant="default" className="bg-orange-600 text-white">
-              {newGigsCount} new gig{newGigsCount !== 1 ? "s" : ""}
-            </Badge>
-          )}
-        </div>
+        <h2 className="font-serif font-bold text-xl">Open Gigs</h2>
+        <Button variant="ghost" size="sm" className="text-muted-foreground">
+          <MapPin className="w-4 h-4 mr-1" />
+          Filter
+        </Button>
       </div>
 
       <div className="space-y-4">
-        {gigsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading gigs...</div>
+        {openGigsLoading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            Loading gigs...
           </div>
-        ) : gigsError ? (
-          <div className="text-center py-8">
-            <div className="text-red-600">Error loading gigs: {gigsError}</div>
+        ) : openGigsError ? (
+          <div className="text-center py-8 text-red-600">
+            Error loading gigs: {openGigsError}
           </div>
-        ) : transformedGigs.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-muted-foreground">
-              No gigs found. When locations post gigs with your email, they&apos;ll appear here.
-            </div>
+        ) : openGigs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No open gigs right now.</p>
+            <p className="text-xs mt-1 opacity-70">Check back soon — when venues post gigs with open slots they&apos;ll appear here.</p>
           </div>
         ) : (
-          transformedGigs.map((gig) => (
-            <GigCard
-              key={gig.id}
-              gig={gig}
-              gigBonusTiers={gigBonusTiers}
-              onSelectGig={onSelectGig}
-              onBookGig={onBookGig}
-            />
+          openGigs.map((gig) => (
+            <OpenGigCard key={gig._id} gig={gig} onApply={onApply} />
           ))
         )}
       </div>
