@@ -11,6 +11,13 @@ export function SplashScreen() {
   const [showLogo, setShowLogo] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // Allow marketing pages to deep-link into the flow: /?view=signup or /?view=login
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view")
+    if (view === "signup") setCurrentView("onboarding")
+    if (view === "login") setCurrentView("auth")
+  }, [])
+
   useEffect(() => {
     const videoElement = videoRef.current
     if (videoElement) {

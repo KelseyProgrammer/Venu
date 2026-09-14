@@ -1,45 +1,61 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
+export const metadata = {
+  title: "Get Started — VENU",
+  description: "Book your first show on VENU in three steps.",
+}
+
 export default function GetStarted() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-center text-center">
-        <h1 className="text-6xl font-bold text-center mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-6 sm:p-12">
+      <div className="z-10 max-w-3xl w-full text-center">
+        <h1 className="font-serif text-5xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
           Get Started
         </h1>
-        <p className="text-center text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Ready to begin your location management journey? Follow these simple steps to get started.
+        <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+          From empty calendar to sold-out show — booking live music on VENU takes three steps.
         </p>
-        
-        <div className="space-y-6 mb-12">
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Step 1: Create Your Account</h3>
-            <p className="text-muted-foreground">Sign up with your email and create your first location profile.</p>
+
+        <div className="space-y-4 mb-12 text-left">
+          <div className="bg-card rounded-lg p-6 border border-border">
+            <h3 className="text-2xl font-semibold mb-2 text-foreground">1. Pick your role</h3>
+            <p className="text-muted-foreground">
+              Sign up as a venue, artist, promoter, or fan — each gets its own dashboard built
+              around what you do.
+            </p>
           </div>
-          
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Step 2: Add Your Locations</h3>
-            <p className="text-muted-foreground">Input location details, capacity, amenities, and availability.</p>
+
+          <div className="bg-card rounded-lg p-6 border border-border">
+            <h3 className="text-2xl font-semibold mb-2 text-foreground">2. Post or apply</h3>
+            <p className="text-muted-foreground">
+              Venues post open gigs with the date, genre, and ticket price. Artists discover them
+              and apply to play — or get invited directly.
+            </p>
           </div>
-          
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
-            <h3 className="text-2xl font-semibold mb-3">Step 3: Start Managing</h3>
-            <p className="text-muted-foreground">Begin accepting bookings and managing your location operations.</p>
+
+          <div className="bg-card rounded-lg p-6 border border-border">
+            <h3 className="text-2xl font-semibold mb-2 text-foreground">3. Play the show, get paid</h3>
+            <p className="text-muted-foreground">
+              Fans buy tickets, the door scans them in, and everyone&apos;s cut is agreed up front —
+              no back-office math after the encore.
+            </p>
           </div>
         </div>
-        
+
         <div className="flex gap-4 justify-center">
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-            Sign Up Now
-          </Button>
-          <Link href="/">
+          <Link href="/?view=signup">
+            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
+              Create Your Account
+            </Button>
+          </Link>
+          <Link href="/learn-more">
             <Button variant="outline" size="lg">
-              Back to Home
+              Learn More
             </Button>
           </Link>
         </div>
       </div>
     </main>
   )
-} 
+}
