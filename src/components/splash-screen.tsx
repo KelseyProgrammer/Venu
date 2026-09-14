@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "./ui/button"
 import { OnboardingFlow } from "./onboarding-flow"
 import { AuthFlow } from "./auth-flow"
@@ -102,6 +103,13 @@ export function SplashScreen() {
           >
             Log In
           </Button>
+
+          <Link
+            href="/learn-more"
+            className="block text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            Learn more about VENU
+          </Link>
         </div>
 
         {/* Trust indicator */}
