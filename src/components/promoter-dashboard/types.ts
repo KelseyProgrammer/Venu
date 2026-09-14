@@ -84,11 +84,8 @@ export interface Venue {
   name: string;
   location: string;
   capacity: number;
-  type: string;
-  image: string;
-  instagram: string;
   eventsCount: number;
-  revenue: string;
+  revenue: number;
 }
 
 export interface ChatMessage {

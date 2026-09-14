@@ -2,9 +2,7 @@
 
 import { memo } from "react"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { MapPin } from "lucide-react"
-import Image from "next/image"
+import { MapPin, Building2 } from "lucide-react"
 import { Venue } from "./types"
 
 interface LocationCardProps {
@@ -14,18 +12,14 @@ interface LocationCardProps {
 
 export const LocationCard = memo(function LocationCard({ location, onClick }: LocationCardProps) {
   return (
-    <Card 
+    <Card
       className="p-4 bg-card border-border hover:border-primary/50 transition-colors cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-center gap-3 mb-3">
-        <Image
-          src={location.image}
-          alt={location.name}
-          width={48}
-          height={48}
-          className="rounded-lg object-cover w-12 h-12"
-        />
+        <div className="w-12 h-12 rounded-lg bg-purple-600/20 flex items-center justify-center">
+          <Building2 className="w-6 h-6 text-purple-400" />
+        </div>
         <div>
           <h4 className="font-semibold text-foreground">{location.name}</h4>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -36,8 +30,8 @@ export const LocationCard = memo(function LocationCard({ location, onClick }: Lo
       </div>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Type:</span>
-          <Badge variant="outline" className="text-xs">{location.type}</Badge>
+          <span className="text-muted-foreground">Capacity:</span>
+          <span className="text-foreground font-medium">{location.capacity}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Events:</span>
@@ -45,7 +39,7 @@ export const LocationCard = memo(function LocationCard({ location, onClick }: Lo
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Revenue:</span>
-          <span className="text-green-400 font-medium">{location.revenue}</span>
+          <span className="text-green-400 font-medium">${location.revenue.toLocaleString()}</span>
         </div>
       </div>
     </Card>

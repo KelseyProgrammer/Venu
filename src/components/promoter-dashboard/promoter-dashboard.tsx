@@ -75,13 +75,13 @@ export function PromoterDashboard() {
     return []
   })
 
-  const [myLocations, setMyLocations] = useState<Array<{ id: string; name: string }>>([])
+  const [myLocations, setMyLocations] = useState<Array<{ _id: string; name: string; city: string; state: string; capacity: number }>>([])
 
   useEffect(() => {
     if (!currentUserId) return
     locationApi.getAssignedLocations().then(res => {
       if (res.success && res.data) {
-        setMyLocations(res.data.map(loc => ({ id: loc._id, name: loc.name })))
+        setMyLocations(res.data)
       }
     })
   }, [currentUserId])
@@ -196,7 +196,7 @@ export function PromoterDashboard() {
               <SelectContent>
                 <SelectItem value="all">All Locations</SelectItem>
                 {myLocations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
+                  <SelectItem key={location._id} value={location._id}>
                     {location.name}
                   </SelectItem>
                 ))}
@@ -286,10 +286,11 @@ export function PromoterDashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6">
             <ErrorBoundary>
-              <OverviewTab 
+              <OverviewTab
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 selectedLocation={selectedLocation}
+                locations={myLocations}
               />
             </ErrorBoundary>
           </TabsContent>
@@ -325,7 +326,7 @@ export function PromoterDashboard() {
               <ChatTab
                 selectedLocation={selectedLocation}
                 currentUserId={currentUserId || ""}
-                locationName={myLocations.find(l => l.id === selectedLocation)?.name}
+                locationName={myLocations.find(l => l._id === selectedLocation)?.name}
               />
             </ErrorBoundary>
           </TabsContent>
