@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, Music, Users } from "lucide-react"
 import type { GigProfile } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface OpenGigCardProps {
   gig: GigProfile
@@ -17,7 +18,7 @@ export const OpenGigCard = memo(function OpenGigCard({ gig, onApply }: OpenGigCa
   const [errorMsg, setErrorMsg] = useState("")
 
   const openSlots = gig.numberOfBands - gig.bands.filter(b => b.confirmed).length
-  const dateStr = new Date(gig.eventDate).toLocaleDateString("en-US", {
+  const dateStr = dateUtils.formatEventDate(gig.eventDate, {
     weekday: "short", month: "short", day: "numeric",
   })
 

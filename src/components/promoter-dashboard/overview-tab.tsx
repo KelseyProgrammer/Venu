@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Building2, Calendar, Users, DollarSign, Loader2 } from "lucide-react"
 import { LocationCard } from "./location-card"
 import { gigApi, GigProfile } from "@/lib/api"
-import { authUtils } from "@/lib/utils"
+import { authUtils, dateUtils } from "@/lib/utils"
 
 interface AssignedLocation {
   _id: string;
@@ -28,12 +28,6 @@ function gigLocationId(gig: GigProfile): string | undefined {
   if (!loc) return undefined
   if (typeof loc === "string") return loc
   return (loc as { _id?: string })._id
-}
-
-function formatEventDate(dateString: string): string {
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return dateString
-  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
 }
 
 export function OverviewTab({ searchQuery, onSearchChange, selectedLocation, locations }: OverviewTabProps) {
@@ -142,9 +136,10 @@ export function OverviewTab({ searchQuery, onSearchChange, selectedLocation, loc
     }), [filteredLocations, gigs])
 
   const upcomingGigs = useMemo(() => {
-    const now = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     return filteredGigs
-      .filter(gig => new Date(gig.eventDate) >= now && gig.status !== "completed")
+      .filter(gig => dateUtils.parseEventDate(gig.eventDate) >= today && gig.status !== "completed")
       .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
   }, [filteredGigs])
 
@@ -237,7 +232,7 @@ export function OverviewTab({ searchQuery, onSearchChange, selectedLocation, loc
               {upcomingGigs.slice(0, 3).map((gig) => (
                 <div key={gig._id} className="flex items-center gap-3 text-sm">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{formatEventDate(gig.eventDate)}</span>
+                  <span className="text-muted-foreground">{dateUtils.formatEventDate(gig.eventDate, { weekday: "short", month: "short", day: "numeric" })}</span>
                   <span className="text-foreground">
                     {gig.eventName}
                     {typeof gig.selectedLocation === "object" && gig.selectedLocation?.name

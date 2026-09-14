@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Filter, Building2, Wifi, WifiOff, Calendar, Users } from "lucide-react"
 import { usePromoterRealTime } from "@/hooks/usePromoterRealTime"
 import { gigApi, GigProfile } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface ApplicationsTabProps {
   promoterId: string;
@@ -149,7 +150,7 @@ export function ApplicationsTab({ promoterId }: ApplicationsTabProps) {
                       )}
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(gig.eventDate).toLocaleDateString()}
+                        {dateUtils.formatEventDate(gig.eventDate)}
                       </span>
                       {totalBands > 0 && (
                         <span className="flex items-center gap-1">

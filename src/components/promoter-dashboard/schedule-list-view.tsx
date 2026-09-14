@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "lucide-react"
+import { dateUtils } from "@/lib/utils"
 import Image from "next/image"
 interface ScheduleListViewProps {
   scheduleFilter: string;
@@ -124,10 +125,10 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
                     <h3 className="font-semibold text-foreground">{event.artist}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
-                      {new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
+                      {dateUtils.formatEventDate(event.date, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
                       })} • {event.time}
                       <Badge variant="outline" className="text-xs">
                         {event.genre}

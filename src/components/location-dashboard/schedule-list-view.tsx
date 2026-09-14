@@ -8,6 +8,7 @@ import { Calendar } from "lucide-react"
 import Image from "next/image"
 import { useSocket, socketManager } from "@/lib/socket"
 import { GigProfile, gigApi } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 import { EventDetailsModal } from "./event-details-modal"
 import { ManageEventModal } from "./manage-event-modal"
 
@@ -169,7 +170,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
     if (scheduleFilter === "all") return eventsToUse;
     
     return eventsToUse.filter(event => {
-      const eventDate = new Date(event.date);
+      const eventDate = dateUtils.parseEventDate(event.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const isPast = eventDate < today;
@@ -243,7 +244,7 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
 
       <div className="grid gap-4">
         {filteredEvents.map((event) => {
-          const eventDate = new Date(event.date);
+          const eventDate = dateUtils.parseEventDate(event.date);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const isPast = eventDate < today;
@@ -271,10 +272,10 @@ export function ScheduleListView({ scheduleFilter, gigs, locationId, onRefreshGi
                     <h3 className="font-semibold text-foreground">{event.artist}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
-                      {new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
+                      {dateUtils.formatEventDate(event.date, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
                       })} • {formatTime12Hour(event.time)}
                       <Badge variant="outline" className="text-xs">
                         {event.genre}

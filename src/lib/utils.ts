@@ -52,6 +52,33 @@ export const timeUtils = {
   }
 }
 
+// Event date utilities.
+// Gig eventDate is a calendar date (picked via <input type="date">) that the
+// backend stores at UTC midnight. Parsing it with `new Date()` and formatting
+// in local time shifts it a day earlier anywhere west of UTC, so always go
+// through these helpers instead.
+export const dateUtils = {
+  /**
+   * Parse an eventDate (ISO string or YYYY-MM-DD) into a Date at LOCAL
+   * midnight of the intended calendar date, safe for display, comparison,
+   * and calendar grouping.
+   */
+  parseEventDate(eventDate: string): Date {
+    const d = new Date(eventDate)
+    if (isNaN(d.getTime())) return d
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  },
+
+  /**
+   * Format an eventDate for display, e.g. "Thu, Sep 18".
+   */
+  formatEventDate(eventDate: string, options: Intl.DateTimeFormatOptions = {}): string {
+    const d = dateUtils.parseEventDate(eventDate)
+    if (isNaN(d.getTime())) return eventDate
+    return d.toLocaleDateString('en-US', options)
+  },
+}
+
 // Authentication utilities
 export const authUtils = {
   /**

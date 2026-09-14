@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
+import { dateUtils } from "@/lib/utils"
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   availableDates: string[];
@@ -64,7 +65,7 @@ export function ScheduleCalendarView({
     if (scheduleFilter === "all") return myEvents;
     
     return myEvents.filter(event => {
-      const eventDate = new Date(event.date);
+      const eventDate = dateUtils.parseEventDate(event.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const isPast = eventDate < today;
@@ -101,7 +102,7 @@ export function ScheduleCalendarView({
       
       // Check if this date has an event (considering filter)
       const eventOnDate = filteredEvents.find(event => {
-        const eventDate = new Date(event.date);
+        const eventDate = dateUtils.parseEventDate(event.date);
         return eventDate.getDate() === day && 
                eventDate.getMonth() === currentMonth && 
                eventDate.getFullYear() === currentYear;
@@ -125,7 +126,7 @@ export function ScheduleCalendarView({
       const needsMoreBands = eventOnDate && eventOnDate.expectedBands > eventOnDate.confirmedBands;
       
       // Check if event is in the past
-      const eventDate = new Date(eventOnDate?.date || '');
+      const eventDate = dateUtils.parseEventDate(eventOnDate?.date || '');
       const todayForEvent = new Date();
       todayForEvent.setHours(0, 0, 0, 0);
       const isEventPast = eventOnDate ? eventDate < todayForEvent : false;
@@ -349,7 +350,7 @@ export function ScheduleCalendarView({
                   <div className="space-y-1 max-h-12 overflow-hidden">
                     {filteredEvents
                       .filter(event => {
-                        const eventDate = new Date(event.date);
+                        const eventDate = dateUtils.parseEventDate(event.date);
                         return eventDate.getDate() === day && 
                                eventDate.getMonth() === currentDate.getMonth() && 
                                eventDate.getFullYear() === currentDate.getFullYear();
@@ -377,14 +378,14 @@ export function ScheduleCalendarView({
                         </div>
                       ))}
                     {filteredEvents.filter(event => {
-                      const eventDate = new Date(event.date);
+                      const eventDate = dateUtils.parseEventDate(event.date);
                       return eventDate.getDate() === day && 
                              eventDate.getMonth() === currentDate.getMonth() && 
                              eventDate.getFullYear() === currentDate.getFullYear();
                     }).length > 2 && (
                       <div className="text-xs text-muted-foreground font-medium">
                         +{filteredEvents.filter(event => {
-                          const eventDate = new Date(event.date);
+                          const eventDate = dateUtils.parseEventDate(event.date);
                           return eventDate.getDate() === day && 
                                  eventDate.getMonth() === currentDate.getMonth() && 
                                  eventDate.getFullYear() === currentDate.getFullYear();

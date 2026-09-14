@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Users, FileText, CheckCircle, X, Loader2, ChevronDown, ChevronUp } from "lucide-react"
 import { GigProfile, gigApi } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface ApplicationsTabProps {
   gigs: GigProfile[];
@@ -90,7 +91,7 @@ export function ApplicationsTab({ gigs, onRefresh }: ApplicationsTabProps) {
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(gig.eventDate).toLocaleDateString()}
+                        {dateUtils.formatEventDate(gig.eventDate)}
                       </span>
                       {totalBands > 0 && (
                         <span className="flex items-center gap-1">

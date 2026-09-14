@@ -112,7 +112,7 @@ router.post('/', authenticateToken, requireGigCreationPermission, async (req: Re
           await socketService.sendNotificationToUser((user as any)._id.toString(), {
             type: 'gig-confirmation-required',
             title: 'New Gig Invitation',
-            message: `You've been invited to perform at ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString()}. Please confirm your participation.`,
+            message: `You've been invited to perform at ${gig.eventName} on ${new Date(gig.eventDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}. Please confirm your participation.`,
             data: { 
               gigId: gig._id, 
               gigData: gig,

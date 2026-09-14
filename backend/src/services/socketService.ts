@@ -238,7 +238,7 @@ class SocketService {
       eventId: gigData._id,
       eventTitle: gigData.eventName,
       notificationType: 'new-gig' as const,
-      message: `You've been invited to perform at ${gigData.eventName} on ${new Date(gigData.eventDate).toLocaleDateString()}`,
+      message: `You've been invited to perform at ${gigData.eventName} on ${new Date(gigData.eventDate).toLocaleDateString('en-US', { timeZone: 'UTC' })}`,
       timestamp: new Date().toISOString(),
       read: false
     };

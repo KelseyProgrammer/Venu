@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, Clock, Calendar, MapPin, Users } from "lucide-react"
 import { gigApi, GigProfile } from "@/lib/api"
-import { authUtils } from "@/lib/utils"
+import { authUtils, dateUtils } from "@/lib/utils"
 
 interface BandConfirmationModalProps {
   gig: GigProfile | null
@@ -132,11 +132,11 @@ export function BandConfirmationModal({ gig, isOpen, onClose, onConfirm }: BandC
               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  {new Date(gig.eventDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {dateUtils.formatEventDate(gig.eventDate, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </div>
                 <div className="flex items-center gap-1">

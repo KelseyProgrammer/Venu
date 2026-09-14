@@ -13,7 +13,7 @@ import {
   User,
   LogOut,
 } from "lucide-react"
-import { authUtils } from "@/lib/utils"
+import { authUtils, dateUtils } from "@/lib/utils"
 import { RealTimeNotifications } from "./real-time-notifications"
 import { BandConfirmationModal } from "./band-confirmation-modal"
 import { RealTimeGigUpdates } from "./real-time-gig-updates"
@@ -241,7 +241,7 @@ export function ArtistDashboard() {
       .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
       .slice(0, 5)
       .map(gig => ({
-        date: new Date(gig.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        date: dateUtils.formatEventDate(gig.eventDate, { month: "short", day: "numeric" }),
         eventName: gig.eventName,
         amount: gig.guarantee,
         status: gig.status as string,
@@ -255,7 +255,7 @@ export function ArtistDashboard() {
       id: index + 1,
       location: gig.selectedLocation?.name || "Unknown Venue",
       address: gig.selectedLocation?.address || "Address TBA",
-      date: new Date(gig.eventDate).toLocaleDateString("en-US", {
+      date: dateUtils.formatEventDate(gig.eventDate, {
         weekday: "short", month: "short", day: "numeric",
       }),
       time: gig.eventTime,
@@ -287,8 +287,7 @@ export function ArtistDashboard() {
       const artistBand = gig.bands?.find(
         (b) => b.email.toLowerCase() === user.email.toLowerCase()
       )
-      const eventDate = new Date(gig.eventDate)
-      eventDate.setHours(0, 0, 0, 0)
+      const eventDate = dateUtils.parseEventDate(gig.eventDate)
       let status: Booking["status"] = "pending"
       if (eventDate < today) {
         status = "completed"

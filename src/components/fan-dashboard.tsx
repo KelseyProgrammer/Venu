@@ -17,7 +17,7 @@ import { RealTimeEventsGrid } from "./real-time-events-grid"
 import { VerticalEventsGrid } from "./vertical-events-grid"
 import { useFanRealTime } from "@/hooks/useFanRealTime"
 import { useGigs } from "@/hooks/useGigs"
-import { authUtils } from "@/lib/utils"
+import { authUtils, dateUtils } from "@/lib/utils"
 import { artistApi, locationApi, ticketApi, ArtistProfile, LocationProfile } from "@/lib/api"
 
 // Remove unused interface and component
@@ -332,10 +332,10 @@ export function FanDashboard() {
         artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
         location: gig.selectedLocation?.name || "TBA",
         address: gig.selectedLocation?.address || `${gig.selectedLocation?.city}, ${gig.selectedLocation?.state}`,
-        date: new Date(gig.eventDate).toLocaleDateString('en-US', { 
-          weekday: 'short', 
-          month: 'short', 
-          day: 'numeric' 
+        date: dateUtils.formatEventDate(gig.eventDate, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
         }),
         time: gig.eventTime,
         genre: gig.eventGenre,
@@ -745,7 +745,7 @@ export function FanDashboard() {
             {myTickets.map((ticket) => {
               const gig = ticket.gigId || {}
               const eventDate = gig.eventDate
-                ? new Date(gig.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                ? dateUtils.formatEventDate(gig.eventDate, { weekday: 'short', month: 'short', day: 'numeric' })
                 : "—"
               const isValid = ticket.status === 'valid'
               return (

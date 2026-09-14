@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Calendar, Building2 } from "lucide-react"
 import { GigProfile } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface ApplicationsTabProps {
   totalUpdates: number
@@ -80,7 +81,7 @@ export const ApplicationsTab = memo(function ApplicationsTab({ totalUpdates, gig
                       )}
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(gig.eventDate).toLocaleDateString()} · {gig.eventTime}
+                        {dateUtils.formatEventDate(gig.eventDate)} · {gig.eventTime}
                       </span>
                     </div>
                     {gig.eventGenre && (
