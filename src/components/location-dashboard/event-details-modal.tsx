@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar, Clock, MapPin, Users, Music, CheckCircle, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { GigProfile } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface EventDetailsModalProps {
   event: GigProfile | null
@@ -85,11 +86,11 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {new Date(event.eventDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {dateUtils.formatEventDate(event.eventDate, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </span>
               </div>

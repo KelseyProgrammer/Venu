@@ -305,10 +305,12 @@ export function PromoterDashboard() {
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="mt-6">
             <ErrorBoundary>
-              <ScheduleTab 
+              <ScheduleTab
                 availableDates={availableDates}
                 unavailableDates={unavailableDates}
                 onToggleDateAvailability={toggleDateAvailability}
+                locations={myLocations}
+                selectedLocation={selectedLocation}
               />
             </ErrorBoundary>
           </TabsContent>

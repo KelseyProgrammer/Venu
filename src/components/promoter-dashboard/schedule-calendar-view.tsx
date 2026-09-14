@@ -4,61 +4,45 @@ import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react"
-import { dateUtils } from "@/lib/utils"
+import { dateUtils, timeUtils } from "@/lib/utils"
+import { GigProfile } from "@/lib/api"
+
 interface ScheduleCalendarViewProps {
   scheduleFilter: string;
   availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
   onFilterChange: (filter: string) => void;
+  gigs: GigProfile[];
 }
 
-export function ScheduleCalendarView({ 
-  scheduleFilter, 
+export function ScheduleCalendarView({
+  scheduleFilter,
   availableDates,
-  unavailableDates, 
+  unavailableDates,
   onToggleDateAvailability,
-  onFilterChange
+  onFilterChange,
+  gigs
 }: ScheduleCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const myEvents = useMemo(() => [
-    {
-      id: 1,
-      name: "Rock Night",
-      date: "2024-12-15",
-      location: "Muggsy's",
-      status: "confirmed",
-      time: "8:00 PM",
-      genre: "Rock",
-      image: "/images/BandFallBack.PNG",
-      artist: "Rock Night",
-      expectedBands: 3,
-      confirmedBands: 3,
-      ticketsSold: 45,
-      totalTickets: 100,
-      guarantee: 500,
-      currentEarnings: 750,
-      applications: 8
-    },
-    {
-      id: 2,
-      name: "Jazz Evening",
-      date: "2024-12-20",
-      location: "Sarbez",
-      status: "pending",
-      time: "9:00 PM",
-      genre: "Jazz",
-      image: "/images/BandFallBack.PNG",
-      artist: "Jazz Evening",
-      expectedBands: 2,
-      confirmedBands: 1,
-      ticketsSold: 23,
-      totalTickets: 80,
-      guarantee: 300,
-      currentEarnings: 345,
-      applications: 5
-    }
-  ], [])
+  const myEvents = useMemo(() =>
+    gigs.map(gig => ({
+      id: gig._id,
+      name: gig.eventName,
+      date: new Date(gig.eventDate).toISOString().split('T')[0],
+      location: typeof gig.selectedLocation === "object" ? gig.selectedLocation?.name || "TBA" : "TBA",
+      status: gig.status,
+      time: timeUtils.formatTime12Hour(gig.eventTime),
+      genre: gig.eventGenre,
+      artist: gig.bands.length > 0 ? gig.bands[0].name : gig.eventName,
+      expectedBands: gig.numberOfBands,
+      confirmedBands: gig.bands.filter(band => band.confirmed).length,
+      ticketsSold: gig.ticketsSold ?? 0,
+      totalTickets: gig.ticketCapacity,
+      guarantee: gig.guarantee,
+      currentEarnings: (gig.ticketsSold ?? 0) * (gig.ticketPrice ?? 0),
+      applications: gig.bands.filter(band => !band.confirmed).length,
+    })), [gigs])
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {

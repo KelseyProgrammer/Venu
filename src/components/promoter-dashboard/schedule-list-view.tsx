@@ -1,73 +1,66 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar } from "lucide-react"
-import { dateUtils } from "@/lib/utils"
-import Image from "next/image"
+import { Calendar, Music } from "lucide-react"
+import { dateUtils, timeUtils } from "@/lib/utils"
+import { GigProfile } from "@/lib/api"
+import { EventDetailsModal } from "@/components/location-dashboard/event-details-modal"
+import { ManageEventModal } from "@/components/location-dashboard/manage-event-modal"
+
 interface ScheduleListViewProps {
   scheduleFilter: string;
+  gigs: GigProfile[];
+  onRefreshGigs: () => void;
 }
 
-export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
-  const myEvents = useMemo(() => [
-    {
-      id: 1,
-      name: "Rock Night",
-      date: "2024-12-15",
-      location: "Muggsy's",
-      status: "confirmed",
-      time: "8:00 PM",
-      genre: "Rock",
-      image: "/images/BandFallBack.PNG",
-      artist: "Rock Night",
-      expectedBands: 3,
-      confirmedBands: 3,
-      ticketsSold: 45,
-      totalTickets: 100,
-      guarantee: 500,
-      currentEarnings: 750,
-      applications: 8
-    },
-    {
-      id: 2,
-      name: "Jazz Evening",
-      date: "2024-12-20",
-      location: "Sarbez",
-      status: "pending",
-      time: "9:00 PM",
-      genre: "Jazz",
-      image: "/images/BandFallBack.PNG",
-      artist: "Jazz Evening",
-      expectedBands: 2,
-      confirmedBands: 1,
-      ticketsSold: 23,
-      totalTickets: 80,
-      guarantee: 300,
-      currentEarnings: 345,
-      applications: 5
-    }
-  ], [])
+export function ScheduleListView({ scheduleFilter, gigs, onRefreshGigs }: ScheduleListViewProps) {
+  const [selectedEvent, setSelectedEvent] = useState<GigProfile | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false)
+
+  const myEvents = useMemo(() =>
+    gigs.map(gig => ({
+      id: gig._id,
+      gig,
+      name: gig.eventName,
+      date: new Date(gig.eventDate).toISOString().split('T')[0],
+      location: typeof gig.selectedLocation === "object" ? gig.selectedLocation?.name || "TBA" : "TBA",
+      status: gig.status,
+      time: timeUtils.formatTime12Hour(gig.eventTime),
+      genre: gig.eventGenre,
+      artist: gig.bands.length > 0 ? gig.bands[0].name : "TBA",
+      expectedBands: gig.numberOfBands,
+      confirmedBands: gig.bands.filter(band => band.confirmed).length,
+      ticketsSold: gig.ticketsSold ?? 0,
+      totalTickets: gig.ticketCapacity,
+      guarantee: gig.guarantee,
+      currentEarnings: (gig.ticketsSold ?? 0) * (gig.ticketPrice ?? 0),
+      applications: gig.bands.filter(band => !band.confirmed).length,
+    })), [gigs])
 
   // Filter events based on selected filter
   const filteredEvents = useMemo(() => {
     if (scheduleFilter === "all") return myEvents;
-    
+
     return myEvents.filter(event => {
+      const eventDate = dateUtils.parseEventDate(event.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPast = eventDate < today;
+
       switch (scheduleFilter) {
         case "complete":
           return event.expectedBands <= event.confirmedBands;
         case "needs-bands":
           return event.expectedBands > event.confirmedBands;
+        case "past":
+          return isPast;
         case "unavailable":
-          // For unavailable filter, we don't filter events - we show all events
-          // The calendar will handle showing unavailable dates separately
-          return true;
         case "available":
-          // For available filter, we don't filter events - we show all events
-          // The calendar will handle showing available dates separately
+          // Availability filters affect the calendar highlighting, not the event list
           return true;
         default:
           return true;
@@ -103,39 +96,45 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
         </div>
       </Card>
 
+      {filteredEvents.length === 0 && (
+        <Card className="p-6 bg-card border-border text-center">
+          <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-foreground font-medium">No events yet</p>
+          <p className="text-sm text-muted-foreground">
+            Post a gig or get assigned to a venue and your events will show up here.
+          </p>
+        </Card>
+      )}
+
       <div className="grid gap-4">
         {filteredEvents.map((event) => (
           <Card key={event.id} className={`p-4 bg-card ${
-            event.expectedBands > event.confirmedBands 
-              ? 'border-yellow-200 border-2' 
+            event.expectedBands > event.confirmedBands
+              ? 'border-yellow-200 border-2'
               : 'border-green-200 border-2'
           }`}>
             <div className="flex items-start gap-4">
-              <Image
-                src={event.image || "/images/BandFallBack.PNG"}
-                alt={event.artist}
-                width={80}
-                height={80}
-                className="rounded-lg object-cover"
-              />
-              
+              <div className="w-20 h-20 rounded-lg bg-purple-600/20 flex items-center justify-center flex-shrink-0">
+                <Music className="w-8 h-8 text-purple-400" />
+              </div>
+
               <div className="flex-1 space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-foreground">{event.artist}</h3>
+                    <h3 className="font-semibold text-foreground">{event.name}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       {dateUtils.formatEventDate(event.date, {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
-                      })} • {event.time}
+                      })} • {event.time} • {event.location}
                       <Badge variant="outline" className="text-xs">
                         {event.genre}
                       </Badge>
                     </div>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={event.status === 'live' ? 'default' : event.status === 'posted' ? 'secondary' : 'outline'}
                     className="text-xs"
                   >
@@ -180,10 +179,20 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="default" size="sm" className="w-28 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-28 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => { setSelectedEvent(event.gig); setIsDetailsModalOpen(true) }}
+                  >
                     View Details
                   </Button>
-                  <Button variant="default" size="sm" className="w-24 bg-purple-600 hover:bg-purple-700 text-white">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-24 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => { setSelectedEvent(event.gig); setIsManageModalOpen(true) }}
+                  >
                     Manage
                   </Button>
                 </div>
@@ -192,6 +201,18 @@ export function ScheduleListView({ scheduleFilter }: ScheduleListViewProps) {
           </Card>
         ))}
       </div>
+
+      <EventDetailsModal
+        event={selectedEvent}
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+      />
+      <ManageEventModal
+        event={selectedEvent}
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        onRefresh={onRefreshGigs}
+      />
     </div>
   )
 }

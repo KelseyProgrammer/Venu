@@ -1,20 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Calendar } from "lucide-react"
 import { ScheduleListView } from "./schedule-list-view"
 import { ScheduleCalendarView } from "./schedule-calendar-view"
+import { AssignedLocation, gigLocationId, usePromoterGigs } from "./usePromoterGigs"
 
 interface ScheduleTabProps {
   availableDates: string[];
   unavailableDates: string[];
   onToggleDateAvailability: (dateString: string) => void;
+  locations: AssignedLocation[];
+  selectedLocation: string;
 }
 
-export function ScheduleTab({ availableDates, unavailableDates, onToggleDateAvailability }: ScheduleTabProps) {
+export function ScheduleTab({ availableDates, unavailableDates, onToggleDateAvailability, locations, selectedLocation }: ScheduleTabProps) {
   const [scheduleSubcategory, setScheduleSubcategory] = useState("list")
   const [scheduleFilter, setScheduleFilter] = useState("all") // "all", "complete", "needs-bands", "unavailable", "past"
+
+  const { gigs, refresh } = usePromoterGigs(locations)
+
+  const visibleGigs = useMemo(() =>
+    selectedLocation === "all"
+      ? gigs
+      : gigs.filter(gig => gigLocationId(gig) === selectedLocation),
+    [gigs, selectedLocation])
 
   return (
     <div className="p-4 space-y-4">
@@ -85,17 +96,18 @@ export function ScheduleTab({ availableDates, unavailableDates, onToggleDateAvai
 
       {/* List View Subcategory */}
       {scheduleSubcategory === "list" && (
-        <ScheduleListView scheduleFilter={scheduleFilter} />
+        <ScheduleListView scheduleFilter={scheduleFilter} gigs={visibleGigs} onRefreshGigs={refresh} />
       )}
 
       {/* Calendar View Subcategory */}
       {scheduleSubcategory === "calendar" && (
-        <ScheduleCalendarView 
+        <ScheduleCalendarView
           scheduleFilter={scheduleFilter}
           availableDates={availableDates}
           unavailableDates={unavailableDates}
           onToggleDateAvailability={onToggleDateAvailability}
           onFilterChange={setScheduleFilter}
+          gigs={visibleGigs}
         />
       )}
     </div>

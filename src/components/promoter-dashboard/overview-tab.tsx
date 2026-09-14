@@ -1,20 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Building2, Calendar, Users, DollarSign, Loader2 } from "lucide-react"
 import { LocationCard } from "./location-card"
-import { gigApi, GigProfile } from "@/lib/api"
-import { authUtils, dateUtils } from "@/lib/utils"
-
-interface AssignedLocation {
-  _id: string;
-  name: string;
-  city: string;
-  state: string;
-  capacity: number;
-}
+import { dateUtils } from "@/lib/utils"
+import { AssignedLocation, gigLocationId, usePromoterGigs } from "./usePromoterGigs"
 
 interface OverviewTabProps {
   searchQuery: string;
@@ -23,53 +15,8 @@ interface OverviewTabProps {
   locations: AssignedLocation[];
 }
 
-function gigLocationId(gig: GigProfile): string | undefined {
-  const loc = gig.selectedLocation as unknown
-  if (!loc) return undefined
-  if (typeof loc === "string") return loc
-  return (loc as { _id?: string })._id
-}
-
 export function OverviewTab({ searchQuery, onSearchChange, selectedLocation, locations }: OverviewTabProps) {
-  const [gigs, setGigs] = useState<GigProfile[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const currentUserId = authUtils.getCurrentUser()?.id
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadGigs() {
-      setIsLoading(true)
-      try {
-        const requests: Promise<{ success: boolean; data?: GigProfile[] }>[] = locations.map(loc =>
-          gigApi.getGigsByLocation(loc._id, 1, 100)
-        )
-        if (currentUserId) {
-          requests.push(gigApi.getGigsByCreator(currentUserId, 1, 100))
-        }
-        const results = await Promise.all(requests)
-        if (cancelled) return
-
-        const byId = new Map<string, GigProfile>()
-        for (const res of results) {
-          if (res.success && res.data) {
-            for (const gig of res.data) {
-              byId.set(gig._id, gig)
-            }
-          }
-        }
-        setGigs(Array.from(byId.values()))
-      } catch {
-        if (!cancelled) setGigs([])
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-
-    loadGigs()
-    return () => { cancelled = true }
-  }, [locations, currentUserId])
+  const { gigs, isLoading } = usePromoterGigs(locations)
 
   // Filtered data based on search and location selection
   const filteredLocations = useMemo(() => {

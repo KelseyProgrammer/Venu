@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArtistListing } from "../artist-listing"
 import { gigApi, ArtistProfile, GigProfile } from "@/lib/api"
+import { dateUtils } from "@/lib/utils"
 
 interface DiscoverTabProps {
   gigs: GigProfile[]
@@ -87,7 +88,7 @@ export function DiscoverTab({ gigs }: DiscoverTabProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {openGigs.map(g => {
-                        const date = new Date(g.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        const date = dateUtils.formatEventDate(g.eventDate, { month: "short", day: "numeric" })
                         const openSlots = g.numberOfBands - g.bands.filter(b => b.confirmed).length
                         return (
                           <SelectItem key={g._id} value={g._id}>
