@@ -298,7 +298,7 @@ export function PromoterDashboard() {
           {/* Discover Tab */}
           <TabsContent value="discover" className="mt-6">
             <ErrorBoundary>
-              <DiscoverTab />
+              <DiscoverTab locations={myLocations} />
             </ErrorBoundary>
           </TabsContent>
 
@@ -336,7 +336,7 @@ export function PromoterDashboard() {
           {/* More Tab */}
           <TabsContent value="more" className="mt-6">
             <ErrorBoundary>
-              <MoreTab />
+              <MoreTab locations={myLocations} />
             </ErrorBoundary>
           </TabsContent>
         </Tabs>
